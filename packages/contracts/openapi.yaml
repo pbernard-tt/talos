@@ -6,9 +6,9 @@ info:
     The Angular client is generated from this file (openapi-generator, typescript-angular); CI
     diffs the running API's springdoc output against it. Endpoints are added phase by phase per
     Section 10 of the implementation plan — this file currently covers Phase 1 (auth),
-    Phase 3 (project registry), Phase 4 (task board), and Phase 5 (agent run lifecycle, API side
-    only -- no execution, diff capture, or approval endpoints yet).
-  version: "0.5.0"
+    Phase 3 (project registry), Phase 4 (task board), Phase 5 (agent run lifecycle, API side),
+    and Phase 6 (cancel + internal changes ingest; still no approval endpoints -- Phase 8).
+  version: "0.6.0"
 servers:
   - url: /api/v1
     description: "Public API (JWT via Authorization: Bearer)"
@@ -412,6 +412,33 @@ paths:
               schema:
                 type: string
 
+  /runs/{id}/cancel:
+    post:
+      operationId: cancelRun
+      summary: >
+        Cancel a non-terminal run (Section 8.2 cancel edge). Transitions the run to CANCELLED
+        immediately and publishes run.cancel.requested so the orchestrator can kill the process
+        tree for a run it is actively processing (Phase 6 extension of Section 11 -- see
+        packages/contracts/events/run.cancel.requested.json).
+      tags: [runs]
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          description: Run is not in a cancellable state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /internal/v1/runs/{id}/status:
     post:
       operationId: internalUpdateRunStatus
@@ -489,6 +516,29 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/InternalLogsRequest"
+      responses:
+        "204":
+          description: No Content
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /internal/v1/runs/{id}/changes:
+    post:
+      operationId: internalRecordRunChanges
+      summary: Record the file-level diff summary captured by the runner supervisor (Section 8.1 step 8).
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InternalChangesRequest"
       responses:
         "204":
           description: No Content
@@ -1035,6 +1085,23 @@ components:
           $ref: "#/components/schemas/RunStatus"
         errorMessage:
           type: string
+        testStatus:
+          $ref: "#/components/schemas/TestStatus"
+        workspacePath:
+          type: string
+        branchName:
+          type: string
+        prompt:
+          type: string
+        summary:
+          type: string
+        exitCode:
+          type: integer
+      description: >
+        Phase 6 extension: optional fields let the orchestrator attach whichever run details it
+        just produced (workspace_path/branchName after workspace prep, prompt/exitCode after agent
+        execution, testStatus after the test command) to the same transition call that reports the
+        status change, instead of a separate endpoint per field.
 
     InternalStepRequest:
       type: object
@@ -1070,6 +1137,39 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/InternalLogEntry"
+
+    GitChangeType:
+      type: string
+      enum: [ADDED, MODIFIED, DELETED, RENAMED]
+
+    GitChange:
+      type: object
+      required: [filePath, changeType, additions, deletions]
+      properties:
+        filePath:
+          type: string
+        changeType:
+          $ref: "#/components/schemas/GitChangeType"
+        additions:
+          type: integer
+        deletions:
+          type: integer
+
+    InternalChangesRequest:
+      type: object
+      required: [files]
+      properties:
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/GitChange"
+        diffArtifactRef:
+          type: string
+          description: >
+            Path to diff.patch on the runner supervisor's local filesystem (Section 8.3). Not a
+            durable API-owned reference -- no agent_runs column stores it (MinIO artifact storage
+            is post-MVP per Section "Post-MVP"); recorded in the run.changes.recorded audit event
+            only. Serving diff text through the API is deferred to Phase 8's Review Center.
 
     RunContext:
       type: object

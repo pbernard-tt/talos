@@ -1,0 +1,323 @@
+openapi: 3.1.0
+info:
+  title: Talos Runner Supervisor API
+  description: >
+    Source of truth for the talos-runner-supervisor HTTP surface (Section 6.4 / 10.5 of the
+    implementation plan). Called only by talos-orchestrator over the internal Docker network --
+    never by the browser, never by talos-api. No authentication scheme is defined because the
+    runner supervisor is not reachable outside the Docker network in the MVP.
+  version: "0.1.0"
+servers:
+  - url: /
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Liveness check.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+
+  /workspaces/prepare:
+    post:
+      operationId: prepareWorkspace
+      summary: >
+        Clone-or-fetch the project's primary repo, create a git worktree on branch
+        agent/task-<task-id>-<slug>, and apply the copy filter (Section 8.5) to the fresh
+        worktree.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrepareWorkspaceRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrepareWorkspaceResponse"
+        "422":
+          $ref: "#/components/responses/Error"
+
+  /runs/{id}/execute:
+    post:
+      operationId: executeRun
+      summary: >
+        Start the selected AgentAdapter in the prepared workspace and stream its events back as
+        newline-delimited JSON (one AgentEvent per line) until the adapter finishes or times out.
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecuteRunRequest"
+      responses:
+        "200":
+          description: application/x-ndjson stream of AgentEvent, terminated by one AgentResult line.
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          description: A run is already executing under this id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /runs/{id}/tests:
+    post:
+      operationId: runTests
+      summary: Run the project's configured test command in the workspace, streaming output.
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunTestsRequest"
+      responses:
+        "200":
+          description: application/x-ndjson stream of {type: log, message} lines, terminated by one {type: result, exitCode}.
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /runs/{id}/diff:
+    post:
+      operationId: captureDiff
+      summary: >
+        Capture changed-file summary + unified diff for the workspace's uncommitted changes
+        (agents do not commit -- Section 8.4) and write diff.patch under runs/<id>/artifacts/.
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workspacePath]
+              properties:
+                workspacePath:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiffResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /runs/{id}/stop:
+    post:
+      operationId: stopRun
+      summary: SIGTERM the adapter's process group; SIGKILL survivors after 10s (Section 7.1 stop()).
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: No running process registered for this id (already finished or never started).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /workspaces/cleanup:
+    post:
+      operationId: cleanupWorkspaces
+      summary: >
+        Delete named runs/<run-id> directories, each only if older than maxAgeDays. The runner
+        supervisor has no database and cannot itself determine run status or open-PR state
+        (Section 8.3's "terminal AND older than ... but never while the branch has an open PR"),
+        so the caller (orchestrator) must pass only run ids it has already verified are terminal
+        with no open PR -- this endpoint's own safety net is purely the age check. No caller is
+        wired up yet in Phase 6 (nothing schedules a call to this endpoint); see the Phase 6
+        report's Known blockers / follow-ups.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectSlug:
+                  type: string
+                runIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Explicit deletion candidates; empty/omitted deletes nothing.
+                maxAgeDays:
+                  type: integer
+                  description: Overrides TALOS_MAX_WORKSPACE_AGE_DAYS for this invocation.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deletedRunIds]
+                properties:
+                  deletedRunIds:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+
+components:
+  parameters:
+    RunId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+
+    PrepareWorkspaceRequest:
+      type: object
+      required: [runId, taskId, taskTitle, projectSlug, repoUrl, defaultBranch]
+      properties:
+        runId:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        taskTitle:
+          type: string
+        projectSlug:
+          type: string
+        repoUrl:
+          type: string
+        defaultBranch:
+          type: string
+        ignorePaths:
+          type: array
+          items:
+            type: string
+          description: talos.yaml context.ignore_paths, merged with the built-in .env*/*.pem/id_* filter.
+
+    PrepareWorkspaceResponse:
+      type: object
+      required: [workspacePath, branchName]
+      properties:
+        workspacePath:
+          type: string
+        branchName:
+          type: string
+
+    ExecuteRunRequest:
+      type: object
+      required: [adapterKey, workspacePath, prompt, env, authMode, timeoutSeconds]
+      properties:
+        adapterKey:
+          type: string
+        workspacePath:
+          type: string
+        prompt:
+          type: string
+        env:
+          type: object
+          additionalProperties:
+            type: string
+          description: Only approved injected variables (Section 12.2) -- never written to disk.
+        authMode:
+          type: string
+          enum: [api_key, subscription_local]
+        timeoutSeconds:
+          type: integer
+
+    RunTestsRequest:
+      type: object
+      required: [workspacePath, command, timeoutSeconds]
+      properties:
+        workspacePath:
+          type: string
+        command:
+          type: string
+          nullable: true
+          description: talos.yaml commands.test. Null (no test command configured) short-circuits with exitCode 0 and TestStatus NOT_RUN upstream.
+        timeoutSeconds:
+          type: integer
+
+    GitChangeType:
+      type: string
+      enum: [ADDED, MODIFIED, DELETED, RENAMED]
+
+    GitChange:
+      type: object
+      required: [filePath, changeType, additions, deletions]
+      properties:
+        filePath:
+          type: string
+        changeType:
+          $ref: "#/components/schemas/GitChangeType"
+        additions:
+          type: integer
+        deletions:
+          type: integer
+
+    DiffResponse:
+      type: object
+      required: [files, diff, diffArtifactPath]
+      properties:
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/GitChange"
+        diff:
+          type: string
+        diffArtifactPath:
+          type: string

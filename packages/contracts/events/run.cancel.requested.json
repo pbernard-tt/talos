@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talos.dev/schemas/events/run.cancel.requested.json",
+  "title": "run.cancel.requested",
+  "description": "Phase 6 extension of Section 11's event table, mirroring the existing approval.decided row (API -> orchestrator, same producer/consumer direction and purpose class: a human/API decision affecting an in-flight run). Published by POST /api/v1/runs/{id}/cancel after the run has already been transitioned to CANCELLED, so the orchestrator can kill the process tree for a run it is actively processing. Consumed by talos.orchestrator.cancellations. Documented as a deviation in docs/phase-reports/phase-6-report.md.",
+  "type": "object",
+  "required": ["event_id", "event_type", "occurred_at", "version", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "event_type": { "const": "run.cancel.requested" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "version": { "const": 1 },
+    "payload": {
+      "type": "object",
+      "required": ["run_id"],
+      "additionalProperties": false,
+      "properties": {
+        "run_id": { "type": "string", "format": "uuid" }
+      }
+    }
+  }
+}
