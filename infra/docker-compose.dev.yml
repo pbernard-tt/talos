@@ -1,0 +1,66 @@
+# Local development infra for Talos. Application services (talos-api, talos-web,
+# talos-orchestrator, talos-runner-supervisor) are added to this file as their
+# implementation phases land (Section 16 of the implementation plan).
+#
+# Usage: docker compose -f infra/docker-compose.dev.yml up
+#
+# Host ports for postgres (5433) and rabbitmq (5673/15673) are shifted from their
+# defaults to avoid clashing with other services that may already be running on
+# the host. Container-internal ports are untouched, so TALOS_*_URL values used by
+# app services on the Docker network stay at the standard ports (5432/5672).
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: talos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: talos
+      POSTGRES_USER: talos
+      POSTGRES_PASSWORD: talos
+    ports:
+      - "5433:5432"
+    volumes:
+      - talos_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U talos -d talos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    container_name: talos-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: talos
+      RABBITMQ_DEFAULT_PASS: talos
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    volumes:
+      - talos_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: talos-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - talos_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  talos_postgres_data:
+  talos_rabbitmq_data:
+  talos_redis_data:
