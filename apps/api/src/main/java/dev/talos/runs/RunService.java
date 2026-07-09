@@ -8,10 +8,13 @@ import dev.talos.projects.ProjectConfig;
 import dev.talos.projects.ProjectConfigRepository;
 import dev.talos.projects.ProjectRepository;
 import dev.talos.projects.dto.ProjectSummary;
+import dev.talos.runs.dto.GitChangeDto;
+import dev.talos.runs.dto.InternalChangesRequest;
 import dev.talos.runs.dto.InternalLogEntry;
 import dev.talos.runs.dto.InternalLogsRequest;
 import dev.talos.runs.dto.InternalStepRequest;
 import dev.talos.runs.dto.LogEntryResponse;
+import dev.talos.runs.dto.RunCancelRequestedPayload;
 import dev.talos.runs.dto.RunContextResponse;
 import dev.talos.runs.dto.RunDetailResponse;
 import dev.talos.runs.dto.RunResponse;
@@ -44,6 +47,7 @@ public class RunService {
 	private final AgentRunRepository agentRunRepository;
 	private final AgentRunStepRepository agentRunStepRepository;
 	private final AgentRunLogRepository agentRunLogRepository;
+	private final GitChangeRepository gitChangeRepository;
 	private final TaskRepository taskRepository;
 	private final ProjectRepository projectRepository;
 	private final ProjectConfigRepository projectConfigRepository;
@@ -52,12 +56,14 @@ public class RunService {
 	private final RunEventBroadcaster broadcaster;
 
 	public RunService(AgentRunRepository agentRunRepository, AgentRunStepRepository agentRunStepRepository,
-			AgentRunLogRepository agentRunLogRepository, TaskRepository taskRepository,
-			ProjectRepository projectRepository, ProjectConfigRepository projectConfigRepository,
-			AuditService auditService, EventPublisher eventPublisher, RunEventBroadcaster broadcaster) {
+			AgentRunLogRepository agentRunLogRepository, GitChangeRepository gitChangeRepository,
+			TaskRepository taskRepository, ProjectRepository projectRepository,
+			ProjectConfigRepository projectConfigRepository, AuditService auditService,
+			EventPublisher eventPublisher, RunEventBroadcaster broadcaster) {
 		this.agentRunRepository = agentRunRepository;
 		this.agentRunStepRepository = agentRunStepRepository;
 		this.agentRunLogRepository = agentRunLogRepository;
+		this.gitChangeRepository = gitChangeRepository;
 		this.taskRepository = taskRepository;
 		this.projectRepository = projectRepository;
 		this.projectConfigRepository = projectConfigRepository;
@@ -170,9 +176,37 @@ public class RunService {
 	}
 
 	@Transactional
-	public AgentRun updateStatus(UUID runId, RunStatus status, String errorMessage) {
+	public AgentRun updateStatus(UUID runId, dev.talos.runs.dto.InternalStatusRequest request) {
 		AgentRun run = getOrThrow(runId);
-		return transitionRun(run, status, errorMessage, null);
+		run.applyPipelineDetails(request.testStatus(), request.workspacePath(), request.branchName(),
+				request.prompt(), request.summary(), request.exitCode());
+		return transitionRun(run, request.status(), request.errorMessage(), null);
+	}
+
+	/**
+	 * Section 8.2 cancel edge, API-initiated. Transitions the run to CANCELLED immediately (the
+	 * run row is authoritative), then publishes run.cancel.requested so an orchestrator actively
+	 * processing this run can kill its process tree. This is a Phase 6 extension of Section 11's
+	 * event table -- see packages/contracts/events/run.cancel.requested.json for the rationale.
+	 */
+	@Transactional
+	public AgentRun cancel(UUID runId, UUID actorUserId) {
+		AgentRun run = getOrThrow(runId);
+		run = transitionRun(run, RunStatus.CANCELLED, null, actorUserId);
+		eventPublisher.publish("run.cancel.requested", new RunCancelRequestedPayload(run.getId()));
+		return run;
+	}
+
+	@Transactional
+	public void recordChanges(UUID runId, InternalChangesRequest request) {
+		getOrThrow(runId);
+		for (GitChangeDto file : request.files()) {
+			gitChangeRepository.save(new GitChange(runId, file.filePath(), file.changeType(), file.additions(),
+					file.deletions(), false));
+		}
+		auditService.record(null, "run.changes.recorded", "run", runId,
+				Map.of("fileCount", request.files().size(), "diffArtifactRef",
+						request.diffArtifactRef() == null ? "" : request.diffArtifactRef()));
 	}
 
 	@Transactional

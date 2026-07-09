@@ -73,6 +73,9 @@ class RunControllerIntegrationTest {
 	@Autowired
 	private AuditEventRepository auditEventRepository;
 
+	@Autowired
+	private GitChangeRepository gitChangeRepository;
+
 	private String bearerToken() throws Exception {
 		String response = mockMvc.perform(post("/api/v1/auth/login")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -262,6 +265,40 @@ class RunControllerIntegrationTest {
 	}
 
 	@Test
+	void internalStatus_optionalPipelineDetails_persistOntoRun() throws Exception {
+		String token = bearerToken();
+		String projectId = createProject(token, false);
+		String taskId = createTask(token, projectId);
+		String runId = startRun(token, taskId, "{\"agentKey\":\"custom-shell\"}");
+
+		mockMvc.perform(post("/internal/v1/runs/{id}/status", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"status":"PREPARING_WORKSPACE","workspacePath":"/var/talos/workspaces/demo/runs/r1/worktree",
+								 "branchName":"agent/task-t1-demo"}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.workspacePath").value("/var/talos/workspaces/demo/runs/r1/worktree"))
+				.andExpect(jsonPath("$.branchName").value("agent/task-t1-demo"));
+
+		mockMvc.perform(post("/internal/v1/runs/{id}/status", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"status\":\"RUNNING_AGENT\",\"prompt\":\"echo hi\",\"exitCode\":0}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.prompt").value("echo hi"))
+				.andExpect(jsonPath("$.exitCode").value(0));
+
+		mockMvc.perform(post("/internal/v1/runs/{id}/status", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"status\":\"RUNNING_TESTS\",\"testStatus\":\"PASSED\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.testStatus").value("PASSED"));
+	}
+
+	@Test
 	void internalSteps_startThenComplete_updatesSameStepRow() throws Exception {
 		String token = bearerToken();
 		String projectId = createProject(token, false);
@@ -366,6 +403,60 @@ class RunControllerIntegrationTest {
 						.param("status", "COMPLETED"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.content[?(@.id=='" + runId + "')]").doesNotExist());
+	}
+
+	@Test
+	void cancel_queuedRun_transitionsToCancelled_movesTaskToReady_andPublishesCancelEvent() throws Exception {
+		String token = bearerToken();
+		String projectId = createProject(token, false);
+		String taskId = createTask(token, projectId);
+		String runId = startRun(token, taskId, "{\"agentKey\":\"custom-shell\"}");
+
+		mockMvc.perform(post("/api/v1/runs/{id}/cancel", runId).header("Authorization", token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("CANCELLED"));
+
+		mockMvc.perform(get("/api/v1/tasks/{id}", taskId).header("Authorization", token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("READY"));
+	}
+
+	@Test
+	void cancel_terminalRun_returns422() throws Exception {
+		String token = bearerToken();
+		String projectId = createProject(token, false);
+		String taskId = createTask(token, projectId);
+		String runId = startRun(token, taskId, "{\"agentKey\":\"custom-shell\"}");
+		mockMvc.perform(post("/api/v1/runs/{id}/cancel", runId).header("Authorization", token))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(post("/api/v1/runs/{id}/cancel", runId).header("Authorization", token))
+				.andExpect(status().isUnprocessableContent())
+				.andExpect(jsonPath("$.error.code").value("ILLEGAL_RUN_TRANSITION"));
+	}
+
+	@Test
+	void internalChanges_persistsGitChangeRows_andAudits() throws Exception {
+		String token = bearerToken();
+		String projectId = createProject(token, false);
+		String taskId = createTask(token, projectId);
+		String runId = startRun(token, taskId, "{\"agentKey\":\"custom-shell\"}");
+
+		mockMvc.perform(post("/internal/v1/runs/{id}/changes", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"files":[
+								  {"filePath":"README.md","changeType":"MODIFIED","additions":1,"deletions":0}
+								],"diffArtifactRef":"/var/talos/workspaces/run/artifacts/diff.patch"}
+								"""))
+				.andExpect(status().isNoContent());
+
+		assertThat(auditEventRepository.findAll())
+				.anyMatch(e -> "run.changes.recorded".equals(e.getEventType())
+						&& runId.equals(String.valueOf(e.getEntityId())));
+		assertThat(gitChangeRepository.findByRunId(java.util.UUID.fromString(runId)))
+				.anyMatch(c -> "README.md".equals(c.getFilePath()) && c.getChangeType() == GitChangeType.MODIFIED);
 	}
 
 	@Test

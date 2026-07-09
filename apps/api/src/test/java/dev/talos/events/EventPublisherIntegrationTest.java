@@ -162,6 +162,41 @@ class EventPublisherIntegrationTest {
 		assertThat((String) JsonPath.read(body, "$.payload.to")).isEqualTo("QUEUED");
 	}
 
+	@Test
+	void cancelRun_publishesRunCancelRequested_validAgainstItsJsonSchema() throws Exception {
+		String queueName = "test." + UUID.randomUUID();
+		Queue queue = new Queue(queueName, false, false, true);
+		rabbitAdmin.declareQueue(queue);
+		Binding binding = BindingBuilder.bind(queue).to(new TopicExchange(RabbitConfig.EVENTS_EXCHANGE))
+				.with("run.cancel.requested");
+		rabbitAdmin.declareBinding(binding);
+
+		String token = bearerToken();
+		String projectId = createProject(token);
+		String taskId = createTask(token, projectId);
+		String startRunResponse = mockMvc.perform(post("/api/v1/tasks/{id}/start-run", taskId)
+						.header("Authorization", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"agentKey\":\"custom-shell\"}"))
+				.andExpect(status().isCreated())
+				.andReturn().getResponse().getContentAsString();
+		String runId = JsonPath.read(startRunResponse, "$.id");
+
+		mockMvc.perform(post("/api/v1/runs/{id}/cancel", runId).header("Authorization", token))
+				.andExpect(status().isOk());
+
+		Message message = rabbitTemplate.receive(queueName, 5000);
+		assertThat(message).isNotNull();
+
+		String body = new String(message.getBody(), StandardCharsets.UTF_8);
+		Schema schema = loadSchema("run.cancel.requested.json");
+		JsonNode node = OBJECT_MAPPER.readTree(body);
+		List<Error> errors = schema.validate(node);
+		assertThat(errors).as("schema errors: %s", errors).isEmpty();
+
+		assertThat((String) JsonPath.read(body, "$.payload.run_id")).isEqualTo(runId);
+	}
+
 	private String bearerToken() throws Exception {
 		String response = mockMvc.perform(post("/api/v1/auth/login")
 						.contentType(MediaType.APPLICATION_JSON)

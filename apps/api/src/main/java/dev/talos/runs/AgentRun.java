@@ -187,6 +187,29 @@ public class AgentRun {
 				|| status == RunStatus.REJECTED;
 	}
 
+	/** Phase 6: the pipeline supplies whichever of these it has just produced alongside a status transition (see InternalStatusRequest). */
+	public void applyPipelineDetails(TestStatus testStatus, String workspacePath, String branchName, String prompt,
+			String summary, Integer exitCode) {
+		if (testStatus != null) {
+			this.testStatus = testStatus;
+		}
+		if (workspacePath != null) {
+			this.workspacePath = workspacePath;
+		}
+		if (branchName != null) {
+			this.branchName = branchName;
+		}
+		if (prompt != null) {
+			this.prompt = prompt;
+		}
+		if (summary != null) {
+			this.summary = summary;
+		}
+		if (exitCode != null) {
+			this.exitCode = exitCode;
+		}
+	}
+
 	@PreUpdate
 	void onUpdate() {
 		this.updatedAt = Instant.now();

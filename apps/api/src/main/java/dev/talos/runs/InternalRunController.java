@@ -1,5 +1,6 @@
 package dev.talos.runs;
 
+import dev.talos.runs.dto.InternalChangesRequest;
 import dev.talos.runs.dto.InternalLogsRequest;
 import dev.talos.runs.dto.InternalStatusRequest;
 import dev.talos.runs.dto.InternalStepRequest;
@@ -31,7 +32,7 @@ public class InternalRunController {
 
 	@PostMapping("/{id}/status")
 	public RunResponse updateStatus(@PathVariable UUID id, @Valid @RequestBody InternalStatusRequest request) {
-		return RunResponse.from(runService.updateStatus(id, request.status(), request.errorMessage()));
+		return RunResponse.from(runService.updateStatus(id, request));
 	}
 
 	@PostMapping("/{id}/steps")
@@ -43,6 +44,12 @@ public class InternalRunController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void ingestLogs(@PathVariable UUID id, @Valid @RequestBody InternalLogsRequest request) {
 		runService.ingestLogs(id, request);
+	}
+
+	@PostMapping("/{id}/changes")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void recordChanges(@PathVariable UUID id, @Valid @RequestBody InternalChangesRequest request) {
+		runService.recordChanges(id, request);
 	}
 
 	@GetMapping("/{id}/context")
