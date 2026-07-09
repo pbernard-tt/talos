@@ -1,3 +1,59 @@
+## 2026-07-09 — Phase 6: orchestrator and runner supervisor (dummy flow)
+
+**Ask:** Implement Section 16 Phase 6: full pipeline with `CustomShellAdapter` — consume → workspace → execute → tests → diff → `WAITING_APPROVAL`. `apps/orchestrator`, `apps/runner-supervisor`, `packages/agent-adapter-spec` (ABC + `CustomShellAdapter` + contract tests), `scripts/smoke.sh`.
+
+**Changed (contracts):**
+- `packages/contracts/openapi.yaml` — `POST /api/v1/runs/{id}/cancel`; `POST /internal/v1/runs/{id}/changes`; `InternalStatusRequest` gained optional `testStatus`/`workspacePath`/`branchName`/`prompt`/`summary`/`exitCode` fields (see phase report Deviations); version bumped to `0.6.0`.
+- `packages/contracts/runner-api.yaml` (new) — the runner supervisor's own OpenAPI file, Section 10.5.
+- `packages/contracts/events/run.cancel.requested.json` (new) — a Phase 6 extension of Section 11's event table, mirroring `approval.decided`'s producer→consumer shape (see phase report Deviations for why).
+
+**Changed (backend):**
+- `dev.talos.runs.GitChange`/`GitChangeType`/`GitChangeRepository` — pre-existing since Phase 2 (entity scaffolding only); `RunService.recordChanges()` (new) is their first real writer.
+- `dev.talos.runs.RunService` — `cancel()` (transitions to `CANCELLED` via the existing validator, publishes `run.cancel.requested`), `recordChanges()`, `updateStatus()` now takes the full `InternalStatusRequest` and applies its optional fields via `AgentRun.applyPipelineDetails()` (new mutator) before transitioning.
+- `dev.talos.runs.RunController` — `POST /{id}/cancel`. `dev.talos.runs.InternalRunController` — `POST /{id}/changes`.
+- `dev.talos.runs.dto` — `GitChangeDto`, `InternalChangesRequest`, `RunCancelRequestedPayload`; `InternalStatusRequest` extended.
+
+**Changed (agent-adapter-spec):**
+- `adapter.py` — `AgentEventType`/`ProviderCapabilities`/`AgentSessionRequest`/`AgentEvent`/`AgentResult`/`AgentAdapter` (Section 7.1, verbatim).
+- `custom_shell.py` — `CustomShellAdapter`: real subprocess execution of `request.prompt` as a shell command, process-group kill-tree `stop()`, timeout enforcement, env-value masking in every emitted event, transcript written under `provider_home` (never the worktree).
+- `claude_code.py`/`opencode.py`/`codex_cli.py`/`openhands.py`/`gemini_cli.py` (new) — `NotImplementedError` stubs per Section 7.4's fixed order, each naming its assigned phase.
+- `registry.py` — `ADAPTERS` + `get_adapter_class()`.
+- `tests/contract/test_custom_shell_contract.py` (new) — the Section 7.2 six-point suite.
+
+**Changed (runner-supervisor):**
+- `config.py`, `models.py` (pydantic request/response schemas), `app.py` (FastAPI routes for every `runner-api.yaml` endpoint), `workspace.py` (clone-or-fetch, `git worktree add -B`, copy filter), `diff_capture.py` (numstat/name-status parsing into `GitChange`s + `diff.patch` artifact), `execute.py` + `run_registry.py` (in-memory adapter registry, ndjson event streaming), `test_command.py` (configured test command, ndjson streaming), `process_utils.py` (shared kill-tree helper).
+- `Dockerfile` — `mkdir`+`chown` `/var/talos/{workspaces,provider-homes}` before `USER talos` (fixes a named-volume ownership bug — see phase report); `ENTRYPOINT` uses `uv run --no-sync` (fixes a runtime crash-loop — see phase report).
+
+**Changed (orchestrator):**
+- `config.py`, `api_client.py` (`/internal/v1` httpx client, extended with the new optional `update_status` fields), `runner_client.py` (runner-api.yaml httpx client), `locks.py` (`RunLock`: Redis `SET NX EX` + Lua compare-and-delete release), `adapters.py` (capability lookup only), `log_batcher.py` (50-line/2s batching), `pipeline.py` (`RunPipeline`: full Section 8.1/8.2 state walk, crash-recovery poisoning check, cancel forwarding, best-effort failure reporting — see phase report Deviations for a race this last point fixes), `main.py` (`aio-pika` bootstrap: `talos.events`/`talos.events.dlx`/`talos.dlq`, two quorum queues with `x-delivery-limit: 3`, Redis-cached `event_id` idempotency).
+- `Dockerfile` — same two fixes as runner-supervisor's (`uv run --no-sync`; no volume-ownership issue here since orchestrator mounts none).
+- `pyproject.toml` (orchestrator) — added `redis`; both Python apps' `pyproject.toml` gained `asyncio_mode = "auto"`.
+
+**Bug found and fixed — `AuthControllerIntegrationTest.actuatorHealth_isPublic()` had been silently failing since Phase 5.** It pointed RabbitMQ/Redis at unreachable `localhost` addresses on the Phase-1-era assumption that those integrations "aren't load-bearing until later phases" — true until Phase 5 removed the `management.health.{rabbit,redis}.enabled: false` overrides, after which `/actuator/health` started actually dialing them and has returned 503 in this one test ever since (only surfaced now because this is the first time this session ran the *full* `./gradlew build` rather than a targeted test subset). Fixed by giving it real `RabbitMQContainer`/Redis `GenericContainer` instances, matching every other integration test's pattern.
+
+**Two container-startup bugs and one live race condition, found only by running the real stack — see phase report Deviations for full detail:** (1) both Python `Dockerfile`s' `uv run <entrypoint>` crash-looped as the non-root user trying to reconcile dev-dependencies at runtime — fixed with `--no-sync`. (2) the runner supervisor's named volumes were seeded root-owned, causing `PermissionError` on first `git clone` — fixed with an explicit `mkdir`+`chown` before `USER talos`. (3) cancelling a run mid-agent-execution raced the pipeline's own failure-reporting against the API's terminal-state guard, producing an unhandled exception (though the DB state stayed correct) — fixed by making that report best-effort.
+
+**Changed (tests):**
+- Python: `packages/agent-adapter-spec` 7 tests (6 new — contract suite). `apps/runner-supervisor` 16 tests (15 new — workspace/diff/execute/stop/cleanup). `apps/orchestrator` 15 tests (14 new — `LogBatcher`, idempotency, `RunPipeline` happy-path/lock/failure/poisoned-run/cancel/race-regression).
+- Java: `RunControllerIntegrationTest` +4 (cancel legal/terminal, internal changes, optional pipeline details), `EventPublisherIntegrationTest` +1 (`run.cancel.requested` schema validation), `AuthControllerIntegrationTest` fixed (see bug above, test count unchanged).
+
+**Coverage:** Backend (Java): 77 tests across 12 classes (5 new). Python: 38 tests across 3 projects (35 new: 6 + 15 + 14). Frontend: unchanged (10 tests, 3 files) — Phase 6 has no UI.
+
+**Verification:** All four module test suites green (`apps/api` 77/77, `packages/agent-adapter-spec` 7/7, `apps/runner-supervisor` 16/16, `apps/orchestrator` 15/15). `npm run build` unaffected. All four Docker images build independently. Full live verification against `docker compose -f infra/docker-compose.dev.yml up -d --build` (all six services healthy): `scripts/smoke.sh` passed twice, including once from a fully clean slate, proving a real `git clone`/worktree/branch/subprocess-execution/test-run/diff-capture/`git_changes` walk to `WAITING_APPROVAL` over the real Docker network with zero mocks; a live cancel-mid-run scenario run twice (pre- and post-fix) confirmed via `docker top` that the process tree is actually gone and the run correctly stays `CANCELLED`. Lock contention was not reproduced live — a single sequential (`prefetch=1`) orchestrator consumer can never actually observe two runs racing for one project/branch lock, so this is proven by the mocked `RunLock` unit test instead (see phase report for the full reasoning). `grep -ri agentos` — zero results. CI still hasn't run on GitHub Actions (no remote configured); the new `smoke` CI job is consequently unverified against real Actions runners.
+
+**Notes:**
+- `CustomShellAdapter` treats `request.prompt` as a literal shell command for this phase (Section 7.3's real prompt assembler is Phase 7); the orchestrator passes the task's `description` straight through. Consistent with the adapter's own "No AI" description.
+- None of the 38 new automated tests would have caught any of the three real bugs found this phase (two Docker/container issues, one live race) — all three are specifically about real OS/container/process behavior outside what mocks and fakes model. Same lesson as Phase 5's report: keep doing both kinds of verification.
+- `run.cancel.requested` is a documented, judgment-call extension of Section 11's event table (not in the plan verbatim) — modeled as a structural mirror of the existing `approval.decided` row rather than invented from scratch; full reasoning in the phase report.
+
+**Known blockers / follow-ups:**
+- `POST /internal/v1/runs/{id}/artifacts`, `GET /api/v1/runs/{id}/diff` — deferred; no durable artifact storage target exists yet (MinIO is post-MVP) and nothing needs to *serve* a diff until Phase 8's Review Center.
+- `POST /api/v1/runs/{id}/rerun-tests`, `GET /api/v1/projects/{id}/runs` — still not in any phase's task list.
+- `/workspaces/cleanup` has no scheduled caller yet; it only ever deletes explicitly-named run ids passed by whoever calls it, and nothing calls it currently.
+- Real secret injection (Section 12.2), policy scanning/risk flagging (Section 12.1) — both explicitly later phases (8/11); `env={}` and `review_status=CLEAN` always, this phase.
+- No UI — no "start run" or "cancel run" button in `apps/web` yet; both are only reachable via direct API calls (as `scripts/smoke.sh` does).
+- CI still hasn't run on GitHub Actions (no remote configured).
+
 ## 2026-07-09 — Phase 5: agent run lifecycle (API side)
 
 **Ask:** Implement Section 16 Phase 5: run records + state machine, event publishing to RabbitMQ, internal service-token API, Redis-backed SSE log streaming, scheduled reaper. Explicitly API-side only — no orchestrator, no execution, no diff capture.
