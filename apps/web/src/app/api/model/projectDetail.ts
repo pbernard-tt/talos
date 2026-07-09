@@ -23,6 +23,10 @@ export interface ProjectDetail {
     createdAt: string;
     updatedAt: string;
     activeConfig: ProjectConfig | null;
+    /**
+     * Every config version for this project, newest first (Phase 3 acceptance -- version history retained and visible).
+     */
+    configHistory: Array<ProjectConfig>;
     recentRuns: Array<RunSummary>;
 }
 export namespace ProjectDetail {

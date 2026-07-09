@@ -299,12 +299,17 @@ components:
       allOf:
         - $ref: "#/components/schemas/ProjectSummary"
         - type: object
-          required: [activeConfig, recentRuns]
+          required: [activeConfig, configHistory, recentRuns]
           properties:
             activeConfig:
               oneOf:
                 - $ref: "#/components/schemas/ProjectConfig"
                 - type: "null"
+            configHistory:
+              type: array
+              description: Every config version for this project, newest first (Phase 3 acceptance -- version history retained and visible).
+              items:
+                $ref: "#/components/schemas/ProjectConfig"
             recentRuns:
               type: array
               items:

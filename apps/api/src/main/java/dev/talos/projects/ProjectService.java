@@ -56,10 +56,14 @@ public class ProjectService {
 		ProjectConfigResponse activeConfig = projectConfigRepository.findByProjectIdAndActiveTrue(id)
 				.map(ProjectConfigResponse::from)
 				.orElse(null);
+		List<ProjectConfigResponse> configHistory = projectConfigRepository.findByProjectIdOrderByVersionDesc(id)
+				.stream()
+				.map(ProjectConfigResponse::from)
+				.toList();
 		List<RunSummary> recentRuns = agentRunRepository.findTop5ByProjectIdOrderByCreatedAtDesc(id).stream()
 				.map(RunSummary::from)
 				.toList();
-		return ProjectDetailResponse.from(project, activeConfig, recentRuns);
+		return ProjectDetailResponse.from(project, activeConfig, configHistory, recentRuns);
 	}
 
 	@Transactional
