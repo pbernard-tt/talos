@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talos.dev/schemas/events/run.status.changed.json",
+  "title": "run.status.changed",
+  "description": "Section 11: API -> observability/notifiers, published on every legal run state transition (Section 8.2).",
+  "type": "object",
+  "required": ["event_id", "event_type", "occurred_at", "version", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "event_type": { "const": "run.status.changed" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "version": { "const": 1 },
+    "payload": {
+      "type": "object",
+      "required": ["run_id", "from", "to"],
+      "additionalProperties": false,
+      "properties": {
+        "run_id": { "type": "string", "format": "uuid" },
+        "from": { "type": "string" },
+        "to": { "type": "string" }
+      }
+    }
+  }
+}

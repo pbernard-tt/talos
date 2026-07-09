@@ -6,8 +6,9 @@ info:
     The Angular client is generated from this file (openapi-generator, typescript-angular); CI
     diffs the running API's springdoc output against it. Endpoints are added phase by phase per
     Section 10 of the implementation plan — this file currently covers Phase 1 (auth),
-    Phase 3 (project registry), and Phase 4 (task board).
-  version: "0.4.0"
+    Phase 3 (project registry), Phase 4 (task board), and Phase 5 (agent run lifecycle, API side
+    only -- no execution, diff capture, or approval endpoints yet).
+  version: "0.5.0"
 servers:
   - url: /api/v1
     description: "Public API (JWT via Authorization: Bearer)"
@@ -280,12 +281,251 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tasks/{id}/start-run:
+    post:
+      operationId: startRun
+      summary: Start an agent run for a task (CREATED -> QUEUED, publishes task.run.requested).
+      tags: [runs]
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartRunRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          description: An active (non-terminal) run already exists for this task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /runs:
+    get:
+      operationId: listRuns
+      summary: List agent runs.
+      tags: [runs]
+      parameters:
+        - name: projectId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/RunStatus"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageRunSummary"
+
+  /runs/{id}:
+    get:
+      operationId: getRun
+      summary: Get a run and its steps.
+      tags: [runs]
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunDetail"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /runs/{id}/logs:
+    get:
+      operationId: getRunLogs
+      summary: Get a page of a run's logs, optionally after a given sequence number.
+      tags: [runs]
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+        - name: afterSequence
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 500
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageLogEntry"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /runs/{id}/events/stream:
+    get:
+      operationId: streamRunEvents
+      summary: Server-Sent Events stream of log/status/step events for a run (Section 10.3).
+      tags: [runs]
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: >
+            text/event-stream. Named events: log ({sequence, stream, message, timestamp}),
+            status ({from, to}), step ({stepType, status}). Heartbeat comment every 15s.
+            Reconnect with Last-Event-ID = last log sequence to backfill before live relay resumes.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /internal/v1/runs/{id}/status:
+    post:
+      operationId: internalUpdateRunStatus
+      summary: Transition a run's status (validated against Section 8.2's state machine).
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InternalStatusRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          description: Illegal transition (Section 8.2) -- an audit event is written even on rejection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /internal/v1/runs/{id}/steps:
+    post:
+      operationId: internalRecordRunStep
+      summary: Record a run step's start or completion.
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InternalStepRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Step"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /internal/v1/runs/{id}/logs:
+    post:
+      operationId: internalIngestRunLogs
+      summary: Ingest a batch of log lines; persists then relays to any open SSE connection via Redis.
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InternalLogsRequest"
+      responses:
+        "204":
+          description: No Content
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /internal/v1/runs/{id}/context:
+    get:
+      operationId: internalGetRunContext
+      summary: Run + task + project + active parsed config, for orchestrator pipeline bootstrap.
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunContext"
+        "404":
+          $ref: "#/components/responses/Error"
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    serviceToken:
+      type: apiKey
+      in: header
+      name: X-Talos-Internal-Token
 
   parameters:
     ProjectId:
@@ -296,6 +536,13 @@ components:
         type: string
         format: uuid
     TaskId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    RunId:
       name: id
       in: path
       required: true
@@ -613,3 +860,228 @@ components:
           type: integer
         totalElements:
           type: integer
+
+    RunStatus:
+      type: string
+      enum: [CREATED, QUEUED, PREPARING_WORKSPACE, RUNNING_AGENT, RUNNING_TESTS, REVIEWING,
+        WAITING_APPROVAL, APPROVED, REJECTED, COMPLETED, FAILED, CANCELLED]
+
+    TestStatus:
+      type: string
+      enum: [NOT_RUN, PASSED, FAILED, ERROR]
+
+    ReviewStatus:
+      type: string
+      enum: [CLEAN, RISK_FLAGGED]
+
+    StepType:
+      type: string
+      enum: [WORKSPACE, AGENT, TESTS, REVIEW, PUSH, PR, DEPLOY]
+
+    StepStatus:
+      type: string
+      enum: [RUNNING, COMPLETED, FAILED, SKIPPED]
+
+    LogStream:
+      type: string
+      enum: [STDOUT, STDERR, SYSTEM]
+
+    Run:
+      type: object
+      required: [id, taskId, projectId, status, agentKey, providerAuthMode, testStatus, reviewStatus,
+        createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/RunStatus"
+        agentKey:
+          type: string
+        providerAuthMode:
+          type: string
+        prompt:
+          type: string
+        branchName:
+          type: string
+        workspacePath:
+          type: string
+        summary:
+          type: string
+        testStatus:
+          $ref: "#/components/schemas/TestStatus"
+        reviewStatus:
+          $ref: "#/components/schemas/ReviewStatus"
+        errorMessage:
+          type: string
+        exitCode:
+          type: integer
+        timeoutAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Step:
+      type: object
+      required: [id, runId, stepType, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        runId:
+          type: string
+          format: uuid
+        stepType:
+          $ref: "#/components/schemas/StepType"
+        status:
+          $ref: "#/components/schemas/StepStatus"
+        summary:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+
+    RunDetail:
+      allOf:
+        - $ref: "#/components/schemas/Run"
+        - type: object
+          required: [steps]
+          properties:
+            steps:
+              type: array
+              items:
+                $ref: "#/components/schemas/Step"
+
+    LogEntry:
+      type: object
+      required: [sequence, stream, message, createdAt]
+      properties:
+        sequence:
+          type: integer
+          format: int64
+        stream:
+          $ref: "#/components/schemas/LogStream"
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    PageRunSummary:
+      type: object
+      required: [content, page, size, totalElements]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/RunSummary"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+
+    PageLogEntry:
+      type: object
+      required: [content, page, size, totalElements]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogEntry"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+
+    StartRunRequest:
+      type: object
+      properties:
+        agentKey:
+          type: string
+          description: Defaults to the active talos.yaml's agents.preferred when omitted.
+        authMode:
+          type: string
+          description: Defaults to "api_key" when omitted.
+
+    InternalStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: "#/components/schemas/RunStatus"
+        errorMessage:
+          type: string
+
+    InternalStepRequest:
+      type: object
+      required: [stepType, status]
+      properties:
+        stepType:
+          $ref: "#/components/schemas/StepType"
+        status:
+          $ref: "#/components/schemas/StepStatus"
+        summary:
+          type: string
+
+    InternalLogEntry:
+      type: object
+      required: [stream, sequence, message, timestamp]
+      properties:
+        stream:
+          $ref: "#/components/schemas/LogStream"
+        sequence:
+          type: integer
+          format: int64
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    InternalLogsRequest:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/InternalLogEntry"
+
+    RunContext:
+      type: object
+      required: [run, task, project]
+      properties:
+        run:
+          $ref: "#/components/schemas/Run"
+        task:
+          $ref: "#/components/schemas/TaskSummary"
+        project:
+          $ref: "#/components/schemas/ProjectSummary"
+        activeConfig:
+          type: object
+          additionalProperties: true
+          description: The active project_configs.parsed_json, or absent if the project has no active config.

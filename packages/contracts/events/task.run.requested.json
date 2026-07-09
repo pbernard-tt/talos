@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talos.dev/schemas/events/task.run.requested.json",
+  "title": "task.run.requested",
+  "description": "Section 11: API -> orchestrator (talos.orchestrator.run-requests), published when start-run moves a run CREATED -> QUEUED.",
+  "type": "object",
+  "required": ["event_id", "event_type", "occurred_at", "version", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "event_type": { "const": "task.run.requested" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "version": { "const": 1 },
+    "payload": {
+      "type": "object",
+      "required": ["run_id", "task_id", "project_id", "agent_key", "auth_mode"],
+      "additionalProperties": false,
+      "properties": {
+        "run_id": { "type": "string", "format": "uuid" },
+        "task_id": { "type": "string", "format": "uuid" },
+        "project_id": { "type": "string", "format": "uuid" },
+        "agent_key": { "type": "string", "minLength": 1 },
+        "auth_mode": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
