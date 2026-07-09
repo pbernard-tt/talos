@@ -1,12 +1,14 @@
 package dev.talos.audit;
 
-import dev.talos.common.UuidV7;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Generated;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.generator.EventType;
 import org.hibernate.type.SqlTypes;
+import dev.talos.common.UuidV7;
 
 import java.time.Instant;
 import java.util.Map;
@@ -35,6 +37,7 @@ public class AuditEvent {
 	@Column(name = "details_json", nullable = false)
 	private Map<String, Object> detailsJson = Map.of();
 
+	@Generated(event = EventType.INSERT)
 	@Column(name = "created_at", nullable = false, insertable = false, updatable = false)
 	private Instant createdAt;
 

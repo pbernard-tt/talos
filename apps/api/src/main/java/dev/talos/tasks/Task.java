@@ -7,6 +7,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -51,9 +53,11 @@ public class Task {
 	@Column(name = "assigned_agent_key", length = 50)
 	private String assignedAgentKey;
 
+	@Generated(event = EventType.INSERT)
 	@Column(name = "created_at", nullable = false, insertable = false, updatable = false)
 	private Instant createdAt;
 
+	@Generated(event = EventType.INSERT)
 	@Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
 	private Instant updatedAt;
 

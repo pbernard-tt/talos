@@ -1,12 +1,14 @@
 package dev.talos.integrations;
 
-import dev.talos.common.UuidV7;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Generated;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.generator.EventType;
 import org.hibernate.type.SqlTypes;
+import dev.talos.common.UuidV7;
 
 import java.time.Instant;
 import java.util.Map;
@@ -33,9 +35,11 @@ public class Integration {
 	@Column(nullable = false)
 	private boolean enabled = true;
 
+	@Generated(event = EventType.INSERT)
 	@Column(name = "created_at", nullable = false, insertable = false, updatable = false)
 	private Instant createdAt;
 
+	@Generated(event = EventType.INSERT)
 	@Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
 	private Instant updatedAt;
 

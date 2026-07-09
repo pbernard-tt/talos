@@ -8,6 +8,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -38,9 +40,11 @@ public class Project {
 	@Column(nullable = false, length = 20)
 	private ProjectStatus status = ProjectStatus.ACTIVE;
 
+	@Generated(event = EventType.INSERT)
 	@Column(name = "created_at", nullable = false, insertable = false, updatable = false)
 	private Instant createdAt;
 
+	@Generated(event = EventType.INSERT)
 	@Column(name = "updated_at", nullable = false, insertable = false)
 	private Instant updatedAt;
 
