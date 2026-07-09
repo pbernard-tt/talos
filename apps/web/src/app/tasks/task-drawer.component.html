@@ -1,0 +1,35 @@
+@if (task) {
+  <div class="header">
+    <h3>{{ task.title }}</h3>
+    <button mat-icon-button (click)="close.emit()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <p class="description">{{ task.description || 'No description.' }}</p>
+
+  <dl>
+    <dt>Status</dt>
+    <dd>{{ task.status }}</dd>
+    <dt>Priority</dt>
+    <dd>{{ task.priority }}</dd>
+    <dt>Risk level</dt>
+    <dd>{{ task.riskLevel }}</dd>
+    <dt>Source</dt>
+    <dd>{{ task.source }}</dd>
+  </dl>
+
+  <h4>Runs</h4>
+  @if (task.runs.length === 0) {
+    <p>No agent runs yet.</p>
+  } @else {
+    <mat-list>
+      @for (run of task.runs; track run.id) {
+        <mat-list-item>
+          <span matListItemTitle>{{ run.agentKey }}</span>
+          <span matListItemLine>{{ run.status }} &middot; {{ run.createdAt }}</span>
+        </mat-list-item>
+      }
+    </mat-list>
+  }
+}

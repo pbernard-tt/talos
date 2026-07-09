@@ -1,0 +1,9 @@
+<div class="task-card" (click)="onClick()">
+  <p class="title">{{ task.title }}</p>
+  <mat-chip-set>
+    <mat-chip [class]="'priority-' + task.priority.toLowerCase()">{{ task.priority }}</mat-chip>
+    @if (task.riskLevel === 'HIGH') {
+      <mat-chip class="risk-high">HIGH RISK</mat-chip>
+    }
+  </mat-chip-set>
+</div>

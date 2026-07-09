@@ -1,0 +1,39 @@
+<mat-toolbar>
+  <span>Board</span>
+  <button mat-button [routerLink]="['/projects']">Projects</button>
+  <span class="spacer"></span>
+  <button mat-flat-button color="primary" (click)="openCreateDialog()">
+    <mat-icon>add</mat-icon>
+    New Task
+  </button>
+</mat-toolbar>
+
+<mat-drawer-container>
+  <mat-drawer-content>
+    @if (store.loading() && store.tasks().length === 0) {
+      <div class="state-container">
+        <mat-spinner diameter="32" />
+      </div>
+    } @else if (store.error()) {
+      <div class="state-container">
+        <p>{{ store.error() }}</p>
+      </div>
+    } @else {
+      <div class="board">
+        @for (column of columns; track column.status) {
+          <app-task-column
+            [title]="column.title"
+            [listId]="column.listId"
+            [connectedTo]="listIds"
+            [tasks]="tasksFor(column.status)"
+            (taskDropped)="onTaskDropped($event, column.status)"
+            (taskClick)="onTaskClick($event)"
+          />
+        }
+      </div>
+    }
+  </mat-drawer-content>
+  <mat-drawer mode="over" position="end" [opened]="drawerOpen" (openedChange)="$event ? null : closeDrawer()">
+    <app-task-drawer [task]="store.selectedTask()" (close)="closeDrawer()" />
+  </mat-drawer>
+</mat-drawer-container>

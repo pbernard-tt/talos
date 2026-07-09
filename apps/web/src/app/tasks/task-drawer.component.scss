@@ -1,0 +1,24 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.description {
+  white-space: pre-wrap;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+}
+
+dt {
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+dd {
+  margin: 0;
+}

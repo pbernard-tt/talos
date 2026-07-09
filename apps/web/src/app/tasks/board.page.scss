@@ -1,0 +1,28 @@
+.spacer {
+  flex: 1 1 auto;
+}
+
+.state-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+mat-drawer-container {
+  height: calc(100vh - 64px);
+}
+
+.board {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  overflow-x: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+mat-drawer {
+  width: 360px;
+  padding: 16px;
+}
