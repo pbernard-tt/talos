@@ -9,4 +9,6 @@ public interface AgentRunRepository extends JpaRepository<AgentRun, UUID> {
 	List<AgentRun> findByTaskId(UUID taskId);
 
 	List<AgentRun> findByStatus(RunStatus status);
+
+	List<AgentRun> findTop5ByProjectIdOrderByCreatedAtDesc(UUID projectId);
 }

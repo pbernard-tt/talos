@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -40,7 +41,7 @@ public class Project {
 	@Column(name = "created_at", nullable = false, insertable = false, updatable = false)
 	private Instant createdAt;
 
-	@Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+	@Column(name = "updated_at", nullable = false, insertable = false)
 	private Instant updatedAt;
 
 	protected Project() {
@@ -89,5 +90,20 @@ public class Project {
 
 	public Instant getUpdatedAt() {
 		return updatedAt;
+	}
+
+	public void update(String name, String repoUrl, String defaultBranch, String stackType, ProjectStatus status) {
+		this.name = name;
+		this.repoUrl = repoUrl;
+		this.defaultBranch = defaultBranch;
+		this.stackType = stackType;
+		if (status != null) {
+			this.status = status;
+		}
+	}
+
+	@PreUpdate
+	void onUpdate() {
+		this.updatedAt = Instant.now();
 	}
 }

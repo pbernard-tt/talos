@@ -7,4 +7,6 @@ import java.util.UUID;
 
 public interface ProjectConfigRepository extends JpaRepository<ProjectConfig, UUID> {
 	Optional<ProjectConfig> findByProjectIdAndActiveTrue(UUID projectId);
+
+	Optional<ProjectConfig> findTopByProjectIdOrderByVersionDesc(UUID projectId);
 }

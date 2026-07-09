@@ -1,5 +1,7 @@
 package dev.talos.projects;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -9,4 +11,6 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
 	Optional<Project> findBySlug(String slug);
 
 	boolean existsBySlug(String slug);
+
+	Page<Project> findByStatus(ProjectStatus status, Pageable pageable);
 }
