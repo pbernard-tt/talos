@@ -1,10 +1,16 @@
 export * from './auth.service';
 import { AuthService } from './auth.service';
 export * from './auth.serviceInterface';
+export * from './internal.service';
+import { InternalService } from './internal.service';
+export * from './internal.serviceInterface';
 export * from './projects.service';
 import { ProjectsService } from './projects.service';
 export * from './projects.serviceInterface';
+export * from './runs.service';
+import { RunsService } from './runs.service';
+export * from './runs.serviceInterface';
 export * from './tasks.service';
 import { TasksService } from './tasks.service';
 export * from './tasks.serviceInterface';
-export const APIS = [AuthService, ProjectsService, TasksService];
+export const APIS = [AuthService, InternalService, ProjectsService, RunsService, TasksService];
