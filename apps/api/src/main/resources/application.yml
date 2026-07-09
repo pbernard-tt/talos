@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: talos-api
+
+  datasource:
+    url: ${TALOS_DB_URL:jdbc:postgresql://localhost:5432/talos}
+    username: ${TALOS_DB_USER:talos}
+    password: ${TALOS_DB_PASSWORD:talos}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      url: ${TALOS_REDIS_URL:redis://localhost:6379}
+
+  rabbitmq:
+    addresses: ${TALOS_RABBITMQ_URL:amqp://guest:guest@localhost:5672}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+talos:
+  internal-api-token: ${TALOS_INTERNAL_API_TOKEN:}
+  jwt-secret: ${TALOS_JWT_SECRET:}
+  admin-email: ${TALOS_ADMIN_EMAIL:}
+  admin-password: ${TALOS_ADMIN_PASSWORD:}
+  secrets-key: ${TALOS_SECRETS_KEY:}
+  github-webhook-secret: ${TALOS_GITHUB_WEBHOOK_SECRET:}
