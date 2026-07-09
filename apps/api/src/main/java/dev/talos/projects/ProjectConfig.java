@@ -4,7 +4,6 @@ import dev.talos.common.UuidV7;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -25,7 +24,6 @@ public class ProjectConfig {
 	@Column(name = "project_id", nullable = false)
 	private UUID projectId;
 
-	@Lob
 	@Column(name = "config_yaml", nullable = false)
 	private String configYaml;
 

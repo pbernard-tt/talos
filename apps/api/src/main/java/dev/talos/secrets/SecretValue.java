@@ -4,7 +4,6 @@ import dev.talos.common.UuidV7;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -21,11 +20,9 @@ public class SecretValue {
 	@Id
 	private UUID id = UuidV7.generate();
 
-	@Lob
 	@Column(name = "encrypted_value", nullable = false)
 	private byte[] encryptedValue;
 
-	@Lob
 	@Column(nullable = false)
 	private byte[] nonce;
 

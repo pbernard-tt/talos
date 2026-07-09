@@ -6,7 +6,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -35,7 +34,6 @@ public class AgentRun {
 	@Column(name = "provider_auth_mode", nullable = false, length = 30)
 	private String providerAuthMode = "api_key";
 
-	@Lob
 	@Column
 	private String prompt;
 
@@ -45,7 +43,6 @@ public class AgentRun {
 	@Column(name = "workspace_path", length = 500)
 	private String workspacePath;
 
-	@Lob
 	@Column
 	private String summary;
 
@@ -57,7 +54,6 @@ public class AgentRun {
 	@Column(name = "review_status", nullable = false, length = 20)
 	private ReviewStatus reviewStatus = ReviewStatus.CLEAN;
 
-	@Lob
 	@Column(name = "error_message")
 	private String errorMessage;
 

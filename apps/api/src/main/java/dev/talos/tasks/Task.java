@@ -6,7 +6,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -25,7 +24,6 @@ public class Task {
 	@Column(nullable = false, length = 300)
 	private String title;
 
-	@Lob
 	@Column
 	private String description;
 
