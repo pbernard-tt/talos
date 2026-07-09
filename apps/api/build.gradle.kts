@@ -60,3 +60,7 @@ tasks.withType<Test> {
 tasks.named<Jar>("jar") {
 	enabled = false
 }
+
+tasks.withType<JavaCompile> {
+	options.compilerArgs.add("-Xlint:deprecation")
+}
