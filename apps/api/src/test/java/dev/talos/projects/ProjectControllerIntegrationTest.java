@@ -58,6 +58,8 @@ class ProjectControllerIntegrationTest {
 				.andExpect(jsonPath("$.slug").value("example-backend"))
 				.andExpect(jsonPath("$.defaultBranch").value("main"))
 				.andExpect(jsonPath("$.status").value("ACTIVE"))
+				.andExpect(jsonPath("$.createdAt").isNotEmpty())
+				.andExpect(jsonPath("$.updatedAt").isNotEmpty())
 				.andReturn().getResponse().getContentAsString();
 
 		String id = com.jayway.jsonpath.JsonPath.read(createResponse, "$.id");
