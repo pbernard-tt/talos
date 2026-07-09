@@ -29,16 +29,35 @@ val copyTalosSchema by tasks.registering(Copy::class) {
 	into(layout.buildDirectory.dir("generated-resources/talos-schema"))
 }
 
+// Event JSON Schemas (Section 11) are test-only assets — EventPublisherIntegrationTest validates
+// published messages against them. Same dedicated-srcDir approach as copyTalosSchema, for the
+// same reason: a plain include() on an existing resources srcDir filters the whole source set.
+val copyEventSchemas by tasks.registering(Copy::class) {
+	from("../../packages/contracts/events") {
+		include("*.json")
+	}
+	into(layout.buildDirectory.dir("generated-resources/event-schemas"))
+}
+
 sourceSets {
 	main {
 		resources {
 			srcDir(copyTalosSchema.map { it.destinationDir })
 		}
 	}
+	test {
+		resources {
+			srcDir(copyEventSchemas.map { it.destinationDir })
+		}
+	}
 }
 
 tasks.named("processResources") {
 	dependsOn(copyTalosSchema)
+}
+
+tasks.named("processTestResources") {
+	dependsOn(copyEventSchemas)
 }
 
 dependencies {
@@ -80,6 +99,7 @@ dependencies {
 	// renamed its module artifacts with a "testcontainers-" prefix (was "junit-jupiter"/"postgresql").
 	testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
 	testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
+	testImplementation("org.testcontainers:testcontainers-rabbitmq:2.0.5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
