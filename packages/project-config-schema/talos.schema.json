@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talos.dev/schemas/talos.schema.json",
+  "title": "Talos project configuration (talos.yaml)",
+  "description": "Section 14 of the implementation plan.",
+  "type": "object",
+  "required": ["project", "commands"],
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["name", "type", "repo"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": ["spring-boot", "angular", "python", "node", "static"]
+        },
+        "repo": { "type": "string", "minLength": 1 },
+        "default_branch": { "type": "string", "default": "main" }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": { "type": "string" },
+        "runtime": { "type": "string" },
+        "framework": { "type": "string" },
+        "package_manager": { "type": "string" }
+      }
+    },
+    "commands": {
+      "type": "object",
+      "required": ["test"],
+      "additionalProperties": false,
+      "properties": {
+        "install": { "type": ["string", "null"] },
+        "test": { "type": "string", "minLength": 1 },
+        "build": { "type": ["string", "null"] },
+        "lint": { "type": ["string", "null"] }
+      }
+    },
+    "agents": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preferred": { "$ref": "#/$defs/agentKey", "default": "claude-code" },
+        "allowed": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/agentKey" }
+        }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "require_approval_for": { "type": "array", "items": { "type": "string" } },
+        "forbidden": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "docs": { "type": "array", "items": { "type": "string" } },
+        "important_paths": { "type": "array", "items": { "type": "string" } },
+        "ignore_paths": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "deploy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": { "type": "string" },
+        "app_id": { "type": "string" },
+        "environment": { "type": "string" },
+        "approval_required": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "agentKey": {
+      "type": "string",
+      "description": "Registered adapter keys per Section 7.4 (excludes gemini-cli, which is backlog, not registered).",
+      "enum": ["custom-shell", "claude-code", "opencode", "codex-cli", "openhands"]
+    }
+  }
+}
