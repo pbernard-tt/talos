@@ -1,3 +1,41 @@
+## 2026-07-09 — Phase 4: task board
+
+**Ask:** Implement Section 16 Phase 4: Tasks CRUD + Kanban (API and UI) — server-side transition validation, `board_position` ordering, `move` endpoint, audit on all mutations, Angular `/board` with CDK drag-drop.
+
+**Changed (contracts):**
+- `packages/contracts/openapi.yaml` — new `tasks` tag: `GET/POST /tasks`, `GET/PATCH /tasks/{id}`, `POST /tasks/{id}/move`, plus `TaskStatus`/`TaskPriority`/`TaskRiskLevel` enums and `TaskSummary`/`Task`/`TaskDetail`/`CreateTaskRequest`/`PatchTaskRequest`/`MoveTaskRequest`/`PageTaskSummary` schemas, matching Section 10.4's endpoint table verbatim (no `agentKey` on `CreateTaskRequest` — not in the plan's field list for this phase).
+
+**Changed (backend):**
+- `dev.talos.tasks.Task` — added `updatePartial()`, `move()`, `@PreUpdate`; flipped `updated_at` to `updatable=true` (same "first phase with a real update path" pattern `Project` went through in Phase 3).
+- `dev.talos.tasks.TaskRepository` — added `Page`-returning `findByProjectId`/`findByStatus`/`findByProjectIdAndStatus` for the filtered/paged list endpoint, alongside the pre-existing non-paged `findByProjectIdAndStatus`.
+- `dev.talos.tasks.TaskTransitionValidator` (new) — pure function, `Map<TaskStatus, Set<TaskStatus>>` of legal manual targets: `BACKLOG -> {READY, CANCELLED}`, `READY -> {BACKLOG, CANCELLED}`, same-status always legal, everything else (including anything touching `RUNNING`/`REVIEW`/`DONE`/`BLOCKED`) illegal. See the phase report's Deviations section for why those four are reserved for the run state machine (Section 8.2).
+- `dev.talos.tasks.dto` (new) — `CreateTaskRequest`, `PatchTaskRequest`, `MoveTaskRequest`, `TaskSummary`, `TaskDetailResponse` (reuses `dev.talos.projects.dto.RunSummary` for the embedded runs list — no duplicate DTO).
+- `dev.talos.tasks.TaskService`/`TaskController` — CRUD, `move` (422 `ILLEGAL_TRANSITION` via `ApiException` on an illegal transition), `AuditService.record(...)` on create/update/move (`task.created`/`task.updated`/`task.moved`). First module with mutations that actually write audit rows — Phase 3 left `dev.talos.projects` without this wiring, which Phase 4's own acceptance criteria required fixing here, scoped to `tasks` only.
+
+**Changed (tests):**
+- `apps/api/src/test/java/dev/talos/tasks/TaskTransitionValidatorTest.java` (new) — exhaustive `TaskStatus` x `TaskStatus` matrix (49 pairs) via `@ParameterizedTest`/`@EnumSource`, plus the two acceptance-criteria examples spelled out explicitly.
+- `apps/api/src/test/java/dev/talos/tasks/TaskControllerIntegrationTest.java` (new) — full CRUD round trip, legal move (persists + audit row), illegal move (422, task status confirmed unchanged), 404. Uses a real `/auth/login` JWT instead of `@WithMockUser`, since task mutations need `@AuthenticationPrincipal AuthenticatedUser` for `requestedBy`/audit actor, and `@WithMockUser`'s `UserDetails` principal can't supply that (would NPE on `principal.id()`).
+
+**Changed (frontend):**
+- `npm run generate:api` regenerated (`TasksService` + task models added, existing `AuthService`/`ProjectsService` output unchanged).
+- `tasks/task.store.ts` (new) — signal-based store mirroring `ProjectStore`; `load()` pulls one `size=500` page (the board needs full-column context, not pagination — see phase report); `move()` is optimistic (updates the local signal immediately) with rollback to the prior snapshot if the API call rejects.
+- `tasks/{task-card,task-column,task-drawer,task-form-dialog}.component.ts` + `board.page.ts` (new) — `/board` route, six columns (Backlog/Ready/Running/Review/Blocked/Done — Cancelled excluded per Section 6.2), `@angular/cdk/drag-drop` (`cdkDropList`/`cdkDrag`) connected across all six columns, `TaskFormDialogComponent` (project picker sourced from `ProjectStore` + title/description/priority/riskLevel, matching `CreateTaskRequest` exactly), `TaskDrawerComponent` (read-only detail + runs list in a `mat-drawer`, opened on card click).
+- `app.routes.ts` — `/board` route behind `authGuard`; cross-links added between the Projects and Board toolbars.
+
+**Coverage:** Backend: 35 tests across 6 classes (16 new in `TaskTransitionValidatorTest`, 4 new in `TaskControllerIntegrationTest`). Frontend: 10 tests across 3 spec files (4 new in `board.page.spec.ts` — drop-to-move, no-op same-position drop, rollback-on-rejection snackbar, per-column filter/sort by `boardPosition`).
+
+**Verification:** `./gradlew build` — BUILD SUCCESSFUL, 35/35 backend tests (Testcontainers `postgres:17`). `npm run build` + `npx ng test --watch=false` — clean, 10/10. `docker build` for `apps/api` and `apps/web` both succeeded; `apps/web` image run and curl-smoke-tested (`/`, `/board`, `/assets/env-config.json` all 200). Full live flow against `docker compose up`: login → create project → create task (lands in BACKLOG) → list (filtered by `projectId`+`status`) → get detail (empty `runs`) → patch description → move BACKLOG→READY (200, persists) → move READY→DONE (422 `ILLEGAL_TRANSITION`) → get detail again (status still READY) → `psql` confirmed `task.created`/`task.updated`/`task.moved` audit rows with correct `entity_id` and (for `created`) the seeded admin as `actor_user_id`. Compose stack and both images removed afterward. `grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github --exclude=CLAUDE.md --exclude=AGENTS.md` — zero results. Did not re-run the Python services (untouched). CI still hasn't run on GitHub Actions (no remote).
+
+**Notes:**
+- No browser automation tool available in this session — the CDK drag gesture itself was verified at the component-logic level (`board.page.spec.ts` synthesizing `CdkDragDrop` events), not by observing an actual pointer-drag in a rendered browser. Full HTTP contract (including the 422 path) verified live via `curl`.
+- Hit a Gradle-daemon staleness trap: a daemon started earlier in the session (before `sg docker -c` group membership was active) cached a failed Docker-probe result, so `./gradlew test` kept failing with "Could not find a valid Docker environment" even after wrapping subsequent calls in `sg docker -c`. Fixed with `./gradlew --stop` before retrying. Not a code issue — noting it in case a future session hits the same thing.
+
+**Known blockers / follow-ups:**
+- `RUNNING`/`REVIEW`/`DONE`/`BLOCKED` board columns render but can't be populated by anything yet — Phase 5 wires up Section 8.2's run-driven task status mapping, which is the only way into those four states by design (see phase report Deviations).
+- No "New Task" entry point from `ProjectDetailPage` pre-filled with that project — only the Board's dialog (with a manual project picker) exists; `TaskFormDialogComponent` already supports a pre-filled `projectId` via its dialog data, just not wired to a second launch site.
+- `move`'s `boardPosition` only renumbers the dragged task, not its siblings, since Section 10.4 exposes a single-task move endpoint, not a batch reorder — acceptable for the "persists across reload" acceptance criterion, but repeated reordering can eventually produce duplicate `boardPosition` values within a column.
+- CI still hasn't run on GitHub Actions (no remote configured).
+
 ## 2026-07-09 — Phase 3: project registry
 
 **Ask:** Implement Section 16 Phase 3: Projects CRUD + `talos.yaml` parsing (API and UI), `sync-config` validating against `talos.schema.json` with versioned `project_configs` and single-active enforcement, generated Angular API client, `/projects`/`/projects/:id` routes.

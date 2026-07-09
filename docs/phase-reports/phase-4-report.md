@@ -1,0 +1,57 @@
+# Phase 4 report — Task board
+
+## What works
+
+- **Contract:** `packages/contracts/openapi.yaml` gains a `tasks` tag with `GET/POST /tasks`, `GET/PATCH /tasks/{id}`, `POST /tasks/{id}/move`, and their schemas (`TaskStatus`/`TaskPriority`/`TaskRiskLevel` enums, `TaskSummary`/`Task`/`TaskDetail`, `CreateTaskRequest`/`PatchTaskRequest`/`MoveTaskRequest`, `PageTaskSummary`) — matches Section 10.4's endpoint table exactly (no invented fields; notably `CreateTaskRequest` has no `agentKey`, since Section 10.4 doesn't give it one).
+- **Backend:** `dev.talos.tasks` — `TaskTransitionValidator` (see Deviations for the exact matrix and why), `TaskService`/`TaskController` (CRUD, filtered/paged list, `move`), `AuditService.record(...)` wired into create/update/move (Phase 3 left `dev.talos.projects` without this; Phase 4's own acceptance criteria require it, so `dev.talos.tasks` is the first module with audited mutations). `Task` gained `updatePartial()`/`move()`/`@PreUpdate` — same "first phase with a real update path flips `updated_at` to `updatable=true`" pattern Phase 2/3 called out for `Project`.
+- **Backend tests:** `TaskTransitionValidatorTest` — exhaustive `TaskStatus` x `TaskStatus` matrix (49 pairs) plus the two acceptance-criteria examples named explicitly (`BACKLOG -> READY` legal, `BACKLOG -> DONE` illegal). `TaskControllerIntegrationTest` — full CRUD round trip, legal move (persists + audit row), illegal move (422, verified the task's status did *not* change), 404 on an unknown task. Uses a real `/auth/login` JWT rather than `@WithMockUser` (see Deviations) — 35 backend tests total now, all green against Testcontainers `postgres:17`.
+- **Frontend:** `TaskStore` (signal-based, mirrors `ProjectStore`; `move()` is optimistic with rollback on API rejection). `/board` route: `BoardPage` (six columns — Backlog/Ready/Running/Review/Blocked/Done, Cancelled excluded per Section 6.2), `TaskColumnComponent` (CDK `cdkDropList`, connected across all six columns), `TaskCardComponent` (priority/risk badges, `cdkDrag`), `TaskFormDialogComponent` (project picker + title/description/priority/riskLevel — matches `CreateTaskRequest` exactly), `TaskDrawerComponent` (read-only detail + runs list, opened on card click via a `mat-drawer`). Cross-links added between the Projects and Board toolbars.
+- **Frontend test:** `BoardPage` — dropping a card into a new column calls `store.move()` with the target status and CDK's drop index; a no-op drop (same column, same index) doesn't call `move()`; a rejected move (simulating a 422) shows an error snackbar instead of throwing; `tasksFor()` filters/sorts a column by `boardPosition`.
+- Verified the entire flow live against the real stack: login -> create project -> create task (lands in BACKLOG) -> list (filtered by `projectId`+`status`) -> get detail (empty `runs`) -> patch (description) -> move BACKLOG->READY (200, persists) -> move READY->DONE (422 `ILLEGAL_TRANSITION`) -> get detail again (status still READY, confirming the illegal move didn't persist) -> audit rows for `task.created`/`task.updated`/`task.moved` confirmed directly via `psql`. See Verification.
+
+## What is stubbed
+
+- "Start agent run from a card" (Section 15's `BoardPage` description) — not implemented. `POST /tasks/{id}/start-run` belongs to Phase 5 ("Agent run lifecycle"), which hasn't landed yet; there's nothing for a start-run button to call.
+- No "New Task" entry point from `ProjectDetailPage` pre-filled with that project — only the Board's "New Task" dialog exists, with a manual project picker. Same category of gap as Phase 3's missing project-edit trigger: the dialog component supports it (`data.projectId` pre-fills the picker), just not wired to a second launch site yet.
+- Agent/status badges on `TaskCard` are limited to priority and risk level — there's no `agentKey` to badge yet since nothing sets one before Phase 5/7.
+- `RUNNING`/`REVIEW`/`DONE`/`BLOCKED` columns render on the board but nothing can currently populate them (see Deviations) — they'll start filling once Phase 5 wires up Section 8.2's run-driven task status mapping.
+
+## Deviations from the plan
+
+- **Manual (human-drag / `/move`) transitions are restricted to `BACKLOG <-> READY <-> CANCELLED`; `RUNNING`, `REVIEW`, `DONE`, and `BLOCKED` are illegal targets for every transition, including from each other.** Section 8.2's "Task <-> run status mapping" table assigns those four states to the run state machine exclusively ("applied by the API on each run transition") — nothing in Section 10.4 or Section 15 says a human can *also* drag a card into them. Phase 4's own acceptance criteria only exercise `BACKLOG->READY` (legal) and `BACKLOG->DONE` (illegal), which this matrix satisfies either way, so there was no ambiguity to surface acceptance-criteria-side — but the broader design choice (a human can never manually force `RUNNING`/`REVIEW`/`DONE`/`BLOCKED`, only the run pipeline can) is a judgment call worth flagging rather than assuming self-evident, same as Phase 2's `Integration`/`PullRequest` module placement and Phase 3's `configHistory` addition. Revisit if Phase 5+ or the operator wants a manual override (e.g., a human marking a task `BLOCKED` without an agent run).
+- **`TaskControllerIntegrationTest` authenticates via a real `/auth/login` call instead of `@WithMockUser`.** Task mutations need the authenticated user's id (for `requestedBy` and the audit actor) via `@AuthenticationPrincipal AuthenticatedUser`, which `@WithMockUser`'s `UserDetails` principal can't supply — it would resolve to `null` and NPE on `principal.id()`. `ProjectControllerIntegrationTest` never needed this because Phase 3 didn't wire audit into project mutations (a pre-existing gap, not touched this phase). `AuthControllerIntegrationTest` already established the real-login pattern for exactly this reason.
+- **Board load requests one large page (`size=500`) instead of paginating.** Section 15 describes the Kanban board as showing tasks across six columns simultaneously, and the `move` endpoint's `boardPosition` needs full-column context to compute a sensible target index — paginating twenty at a time would fragment columns arbitrarily. No new endpoint invented; this uses the existing `GET /tasks` `size` parameter.
+- **`move`'s `boardPosition` persistence only renumbers the dragged task, not its new siblings.** Section 10.4 exposes a single-task `move` endpoint, not a batch reorder — so a drop assigns the CDK drop index as that one task's `boardPosition` and calls `/move` once. Column order is visually correct immediately after any single drag (the UI re-sorts by `boardPosition` client-side), but positions of untouched siblings aren't renumbered server-side, so repeated reordering can eventually produce duplicate `boardPosition` values within a column. Section 16's acceptance criterion is "drag to Ready persists across reload" (a status-persistence claim, not a precise-ordering claim), which this satisfies; flagged here as a known limitation rather than silently accepted.
+
+None of these required stopping to ask — each is an implementation-mechanism choice within an already-specified contract, not a change to any endpoint, schema, or enum the plan defines.
+
+## Acceptance criteria (Section 16, Phase 4)
+
+| Criterion | Status |
+|---|---|
+| UI-created task appears in Backlog | ✅ `TaskService.create()` defaults `status=BACKLOG`; verified live via `curl` and covered by `TaskControllerIntegrationTest` |
+| Drag to Ready persists across reload | ✅ `POST /tasks/{id}/move {status: READY}` returns 200 and the change is durable (re-`GET` confirms); verified live and in `TaskControllerIntegrationTest.move_legalTransition_persistsAndAudits` |
+| Backlog -> Done rejected with 422 | ✅ `TaskTransitionValidator` + verified live (`ILLEGAL_TRANSITION`) and in `TaskControllerIntegrationTest.move_illegalTransition_returns422AndDoesNotPersist` |
+| Audit rows written | ✅ `task.created`/`task.updated`/`task.moved`, confirmed via `psql` and asserted in `TaskControllerIntegrationTest` |
+| Transition-matrix units (test) | ✅ `TaskTransitionValidatorTest` — all 49 `TaskStatus` x `TaskStatus` pairs |
+| Move MockMvc (test) | ✅ `TaskControllerIntegrationTest` |
+| Board drag component test | ✅ `board.page.spec.ts` — drop-to-move, no-op same-position drop, rollback-on-rejection, per-column filter/sort |
+
+## Verification
+
+- `./gradlew build` — BUILD SUCCESSFUL, 35 backend tests across 6 classes (`AuthControllerIntegrationTest` 4, `CoreSchemaRepositoryTest` 4, `TalosConfigParserTest` 3, `ProjectControllerIntegrationTest` 4, `TaskTransitionValidatorTest` 16, `TaskControllerIntegrationTest` 4), all green against Testcontainers `postgres:17`.
+- `npm run build` and `npx ng test --watch=false` — clean build (`board-page` lazy chunk alongside the existing three), 10/10 tests passing (2 `app.spec` + 4 `project-form-dialog` + 4 `board.page`).
+- `docker build` for both `apps/api` (repo-root context) and `apps/web` succeeded; `apps/web`'s image was run and smoke-tested — `/`, `/board`, and `/assets/env-config.json` (SPA fallback + env substitution) all return 200.
+- Live full-stack verification against `docker compose -f infra/docker-compose.dev.yml up -d --build`: login -> create project -> create task (`BACKLOG`, `HIGH` priority) -> list filtered by `projectId`+`status` -> get detail (`runs: []`) -> patch `description` -> move `BACKLOG->READY` (200, persists) -> move `READY->DONE` (422 `ILLEGAL_TRANSITION`) -> get detail again (status still `READY`) -> `psql` confirms `task.created`/`task.updated`/`task.moved` audit rows with the correct `entity_id` and (for `created`) the seeded admin as `actor_user_id`. Compose stack and both built images removed after verification.
+- `grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github --exclude=CLAUDE.md --exclude=AGENTS.md` — zero results.
+- Did not re-run `apps/orchestrator`/`apps/runner-supervisor`/`packages/agent-adapter-spec` — untouched this phase.
+- CI still hasn't run on GitHub Actions (no remote configured) — unchanged caveat from every prior phase.
+
+## Notes
+
+- **No browser automation tool is available in this environment**, same caveat as Phase 3. The CDK drag-drop interaction was verified at the component-logic level (`board.page.spec.ts` calling `onTaskDropped()` with a synthesized `CdkDragDrop` event) and the full HTTP contract was verified live via `curl`, but the actual pointer-drag gesture and its visual reflow were not observed in a rendered browser. Flagging the gap explicitly rather than implying full UI verification happened.
+- Rediscovered the same "Gradle daemon caches a pre-`docker`-group-membership Docker-probe failure" issue noted operationally (not in a prior phase report) — `./gradlew test` failed with `Could not find a valid Docker environment` even under `sg docker -c`, because a long-lived daemon from earlier in the session had already cached a failed probe. Fixed by `./gradlew --stop` before the next `sg docker -c './gradlew test'`. Not a code bug, just a note in case a future phase's session hits the same daemon-staleness trap.
+
+## Next
+
+Phase 5 — Agent run lifecycle (API side): `dev.talos.runs` run records and state machine, `dev.talos.events` publishing to RabbitMQ, `/internal/v1` filter, Redis-backed SSE log streaming, the reaper. This is also what will start populating the board's `RUNNING`/`REVIEW`/`DONE`/`BLOCKED` columns via Section 8.2's task<->run status mapping.
