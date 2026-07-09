@@ -14,7 +14,12 @@ COPY apps/runner-supervisor /app/apps/runner-supervisor
 WORKDIR /app/apps/runner-supervisor
 RUN uv sync --frozen --no-dev
 
+# /var/talos/{workspaces,provider-homes} are mounted as named volumes at runtime; chown here so
+# their first-mount content-copy (Docker seeds a fresh named volume from the image path) is owned
+# by the non-root user this container runs as.
+RUN mkdir -p /var/talos/workspaces /var/talos/provider-homes && chown -R talos:talos /var/talos
+
 USER talos
 EXPOSE 8081
 HEALTHCHECK --interval=15s --timeout=5s --start-period=15s CMD curl -f http://localhost:8081/health || exit 1
-ENTRYPOINT ["uv", "run", "talos-runner-supervisor"]
+ENTRYPOINT ["uv", "run", "--no-sync", "talos-runner-supervisor"]

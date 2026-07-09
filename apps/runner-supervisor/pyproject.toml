@@ -27,5 +27,8 @@ dev = [
     "pytest-asyncio>=1.4.0",
 ]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [tool.uv.sources]
 talos-agent-adapter-spec = { path = "../../packages/agent-adapter-spec", editable = true }

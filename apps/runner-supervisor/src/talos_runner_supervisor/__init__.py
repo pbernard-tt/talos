@@ -1,6 +1,4 @@
 def main() -> None:
-    raise NotImplementedError(
-        "FastAPI/uvicorn bootstrap (POST /workspaces/prepare, /runs/{id}/execute, "
-        "/runs/{id}/tests, /runs/{id}/diff, /runs/{id}/stop, /workspaces/cleanup, GET /health) "
-        "arrives in Phase 6."
-    )
+    import uvicorn
+
+    uvicorn.run("talos_runner_supervisor.app:app", host="0.0.0.0", port=8081)
