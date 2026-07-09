@@ -7,6 +7,7 @@ from talos_agent_adapter_spec.adapter import (
     ProviderCapabilities,
 )
 from talos_agent_adapter_spec.custom_shell import CustomShellAdapter
+from talos_agent_adapter_spec.claude_code import ClaudeCodeAdapter
 from talos_agent_adapter_spec.registry import ADAPTERS, get_adapter_class
 
 __all__ = [
@@ -17,6 +18,7 @@ __all__ = [
     "AgentResult",
     "AgentSessionRequest",
     "CustomShellAdapter",
+    "ClaudeCodeAdapter",
     "ProviderCapabilities",
     "get_adapter_class",
 ]

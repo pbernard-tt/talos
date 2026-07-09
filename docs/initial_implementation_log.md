@@ -1,3 +1,19 @@
+## 2026-07-09 — Phase 7: Claude Code adapter and prompt assembly
+
+**Ask:** Continue Revision 2 implementation with Phase 7: implement `ClaudeCodeAdapter`, the Section 7.3 prompt assembler, provider-home bootstrap documentation, and the real-agent acceptance.
+
+**Changed (adapter/orchestrator):**
+
+- `packages/agent-adapter-spec/src/talos_agent_adapter_spec/claude_code.py` — replaces the stub with a provider-isolated headless adapter: current stream-JSON CLI invocation, output parsing, secret masking, native deny settings, transcript capture, and timeout/cancel kill-tree behavior.
+- `apps/orchestrator/src/talos_orchestrator/prompt_assembler.py` and `pipeline.py` — assemble and persist the Section 7.3 four-part prompt for real agents while preserving `custom-shell`'s documented literal-command semantics.
+- `apps/runner-supervisor/Dockerfile` — supplies Claude Code from Anthropic's signed APT repository, Temurin Java 21, and Gradle 9.5.1 for real Spring Boot/Kotlin DSL workspaces; Maven is intentionally not installed.
+- `scripts/phase7-live-smoke.sh` — a repeatable authenticated Spring Boot 4.1 fixture acceptance using Gradle Kotlin DSL. It avoids a host `jq` dependency, checks the task's focused test and actual `/hello` source, and excludes Gradle build outputs from review diffs.
+- `docs/provider-auth.md` — documents both isolated provider-home authentication modes.
+
+**Coverage:** Added Claude's six Section 7.2 adapter-contract checks using a deterministic fake CLI, recorded stream-JSON parser tests, prompt-assembly units, and audit-prompt pipeline coverage.
+
+**Verification:** `UV_CACHE_DIR=/tmp/talos-uv-cache uv run pytest` in `packages/agent-adapter-spec` — 15/15 passed; the same command in `apps/orchestrator` — 18/18 passed. `bash -n scripts/phase7-live-smoke.sh` and `git diff --check` passed. The local runner image was rebuilt and verified with OpenJDK 21.0.11, Gradle 9.5.1, and Claude Code 2.1.197. Live run `019f491c-15cb-7668-9c35-2e0c7ddc6186` reached `WAITING_APPROVAL`; its completed agent and test steps produced `HelloController.java` and `HelloControllerTest.java`, and live workspace inspection verified `@GetMapping("/hello")` returning `Hello, Talos!`.
+
 ## 2026-07-09 — Phase 6: orchestrator and runner supervisor (dummy flow)
 
 **Ask:** Implement Section 16 Phase 6: full pipeline with `CustomShellAdapter` — consume → workspace → execute → tests → diff → `WAITING_APPROVAL`. `apps/orchestrator`, `apps/runner-supervisor`, `packages/agent-adapter-spec` (ABC + `CustomShellAdapter` + contract tests), `scripts/smoke.sh`.

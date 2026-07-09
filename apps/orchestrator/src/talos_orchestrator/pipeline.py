@@ -13,6 +13,7 @@ from talos_orchestrator.adapters import capabilities_for
 from talos_orchestrator.api_client import ApiClient
 from talos_orchestrator.log_batcher import LogBatcher
 from talos_orchestrator.locks import RunLock
+from talos_orchestrator.prompt_assembler import assemble_prompt
 from talos_orchestrator.runner_client import RunnerClient
 
 logger = logging.getLogger(__name__)
@@ -118,10 +119,11 @@ class RunPipeline:
         )
 
         # --- agent execution --------------------------------------------------------------
-        # Interim Phase 6 semantics (Section 7.3's real prompt assembler arrives in Phase 7): the
-        # task description is passed straight through as the adapter's `prompt`. For
-        # CustomShellAdapter that is literally the shell command to run.
-        prompt = task.get("description") or ""
+        # CustomShellAdapter retains its documented Phase 6 command semantics so the deterministic
+        # smoke flow remains executable. Every real coding adapter receives the Section 7.3 prompt.
+        prompt = task.get("description") or "" if agent_key == "custom-shell" else assemble_prompt(
+            task, project, active_config, workspace_path
+        )
         await self._api_client.update_status(
             run_id, "RUNNING_AGENT", workspace_path=workspace_path, branch_name=branch_name, prompt=prompt
         )

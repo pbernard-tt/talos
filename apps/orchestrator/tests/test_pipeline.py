@@ -71,6 +71,21 @@ async def test_happy_path_walks_all_statuses_and_releases_lock():
     assert api_client.log_entries  # the "hi" log line was batched and flushed
 
 
+async def test_claude_run_stores_assembled_prompt_for_audit():
+    payload = {**REQUEST_PAYLOAD, "agent_key": "claude-code"}
+    context = {
+        **CONTEXT,
+        "activeConfig": {"commands": {"test": "echo testing"}, "rules": {"forbidden": [".env"]}, "context": {}},
+    }
+    pipeline, api_client, _, _ = _pipeline(context=context)
+
+    await pipeline.handle_run_requested(payload)
+
+    running = next(call for call in api_client.status_calls if call["status"] == "RUNNING_AGENT")
+    assert "isolated branch of demo" in running["prompt"]
+    assert "Task title: Add hello" in running["prompt"]
+
+
 async def test_lock_contention_rejects_concurrent_run():
     pipeline, api_client, runner_client, run_lock = _pipeline(acquire_result=False)
 
