@@ -4,7 +4,7 @@
 
 - Monorepo skeleton matches Section 5 of the implementation plan (minus Phase 12's `telegram-adapter`/`whatsapp-adapter`, which are explicitly deferred).
 - `apps/web`: Angular 22, standalone components, signals, Angular Material + CDK, Vitest. Builds and tests pass.
-- `apps/api`: Spring Boot 4.1.0, Java 21, Maven, package `dev.talos`. Builds; all pinned starters (web, data-jpa, security, validation, postgresql, flyway, actuator, amqp, data-redis) present. `application.yml` wires the Appendix A env vars with local defaults.
+- `apps/api`: Spring Boot 4.1.0, Java 21, Gradle (Kotlin DSL, see Deviations), package `dev.talos`. Builds; all pinned starters (web, data-jpa, security, validation, postgresql, flyway, actuator, amqp, data-redis) present. `application.yml` wires the Appendix A env vars with local defaults.
 - `apps/orchestrator`, `apps/runner-supervisor`, `packages/agent-adapter-spec`: three `uv`-managed Python 3.12 projects; the two apps consume `agent-adapter-spec` as an editable path dependency. Orchestrator's module layout matches Section 6.3 exactly.
 - `packages/contracts`: `openapi.yaml` stub (OpenAPI 3.1, error envelope schema, no paths yet) and `events/` with the event-envelope contract documented.
 - `infra/docker-compose.dev.yml`: postgres:17, rabbitmq:4.1-management, redis:7, all with healthchecks; verified to reach `healthy` from a cold `docker compose up`.
@@ -24,18 +24,20 @@
 
 ## Deviations from the plan
 
-- **Spring Boot version string.** The plan pins "Spring Boot 4.1.x." start.spring.io's `bootVersion` metadata returns `4.1.0.RELEASE`, but that exact string does not resolve on Maven Central (Boot dropped the `.RELEASE` suffix from its actual artifact versions starting well before 4.x). Used `4.1.0` in `pom.xml`, which is the correct Maven Central version and still satisfies "4.1.x." No sign-off needed — this is a packaging-metadata correction, not an architectural change.
+- **Spring Boot version string.** The plan pins "Spring Boot 4.1.x." start.spring.io's `bootVersion` metadata returns `4.1.0.RELEASE`, but that exact string does not resolve on Maven Central (Boot dropped the `.RELEASE` suffix from its actual artifact versions starting well before 4.x). Used `4.1.0`, which is the correct Maven Central version and still satisfies "4.1.x." No sign-off needed — this is a packaging-metadata correction, not an architectural change.
 - **Host port remapping in `docker-compose.dev.yml`.** Postgres (5433) and RabbitMQ (5673/15673) host-side ports are shifted from their defaults because the development machine already runs unrelated native services on 5432/5672/15672. Container-internal ports, and therefore every `TALOS_*_URL` value used between containers on the Docker network, are untouched. This only affects host-machine convenience access (e.g. `psql -p 5433`); it does not change any contract in the plan.
 - **Node version.** The plan pins Node 22 LTS; the development machine's default `PATH` resolves to Node 24 (via linuxbrew), which is below Angular 22's minimum supported range at the patch level installed. Installed Node 22.23.1 via `nvm` and pinned it in `apps/web/.nvmrc`. Both are within the "22 LTS" family the plan specifies.
 
-Both deviations are mechanical (packaging/tooling corrections), not architectural, so they're recorded here rather than gated on sign-off before continuing — flag if that judgment is wrong.
+The three deviations above are mechanical (packaging/tooling corrections), not architectural, so they're recorded here rather than gated on sign-off before continuing — flag if that judgment is wrong.
+
+- **Build tool: Maven → Gradle (approved).** Section 4.0 pins "Maven (`./mvnw`)" for `apps/api`. Before Phase 1 started, the operator explicitly asked to switch to Gradle. Migrated `apps/api` from the generated Maven project to a Gradle (Kotlin DSL) project with an identical dependency set (same starters, same versions, same `dev.talos` package, same Spring Boot 4.1.0/Java 21 pins) — only the build tool changed. One follow-on fix was needed: the Spring Boot Gradle plugin's default `jar` task produces a second `-plain.jar` alongside the executable `bootJar`, which broke the Dockerfile's `COPY .../talos-api-*.jar app.jar` wildcard (two matches, one destination); disabled the plain `jar` task in `build.gradle.kts` (`tasks.named<Jar>("jar") { enabled = false }`), which is standard practice when only the executable jar is shipped. `./gradlew build` and the Docker image build were both re-verified after the switch. This is an explicit, operator-directed deviation — the plan's Maven pin is superseded for this repo.
 
 ## Acceptance criteria (Section 16, Phase 0)
 
 | Criterion | Status |
 |---|---|
 | `docker compose -f infra/docker-compose.dev.yml up` starts infra healthy | ✅ verified (postgres, rabbitmq, redis all `healthy`) |
-| `./mvnw verify` passes (empty suite allowed) | ✅ |
+| `./mvnw verify` passes (empty suite allowed) | ✅ superseded by `./gradlew build` after the Maven→Gradle switch (Deviations); same empty-suite outcome |
 | `ng build` passes | ✅ (`ng test` also passes, 2/2) |
 | `uv run pytest` passes (empty suite allowed) | ✅ x3 (agent-adapter-spec, orchestrator, runner-supervisor — each has one real import-smoke test since pytest exits non-zero on true empty collection) |
 | `grep -ri agentos .` returns nothing | ✅ outside `docs/`. The literal repo-root command self-matches the plan's own text (this rule quoted in `docs/src/talos-implementation-plan.md`, this table, the CI step name, etc.) — CI scopes the check to `--exclude-dir=docs --exclude-dir=.github` to catch real leakage into code/config while allowing the rule to be documented. `grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github` returns nothing. |

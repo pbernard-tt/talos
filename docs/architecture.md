@@ -7,7 +7,7 @@ Talos's target architecture, service boundaries, and communication contract are 
 | Concern | Pinned decision | Verified version in this repo |
 |---|---|---|
 | Frontend | Angular 22, standalone components, signals, Angular Material + CDK, Node 22 LTS | `@angular/cli` 22.0.6, `@angular/material`/`@angular/cdk` 22.0.4, Node 22.23.1 (LTS "Krypton"), npm 10.9.8 |
-| Backend API | Spring Boot 4.1.x, Java 21 LTS, Maven | Spring Boot 4.1.0, `dev.talos` base package, Java 21.0.11 (Temurin/OpenJDK), Maven 3.9.11 |
+| Backend API | Spring Boot 4.1.x, Java 21 LTS, Gradle (Kotlin DSL) | Spring Boot 4.1.0, `dev.talos` base package, Java 21.0.11 (Temurin/OpenJDK), Gradle 9.5.1 via wrapper (`./gradlew`) |
 | Migrations | Flyway, bundled with Spring Boot | `flyway-database-postgresql`, `V0xx__description.sql` naming from Phase 2 onward |
 | Database | PostgreSQL 17 | `postgres:17` (Docker) |
 | Queue | RabbitMQ 4.1, topic exchange `talos.events`, quorum queues | `rabbitmq:4.1-management` (Docker) |
@@ -21,6 +21,8 @@ Talos's target architecture, service boundaries, and communication contract are 
 | Deployment | Docker image per service, deployed via Dokploy | Dockerfiles present for all four apps as of Phase 0; Dokploy runbook in Phase 10 |
 
 The host machine used for initial development also runs Node 24 and a Java 11 toolchain for unrelated projects; `apps/web/.nvmrc` pins Node 22 for this repo specifically, and `nvm use` (or any Node-version manager honoring `.nvmrc`) should be run before working in `apps/web`.
+
+**Amendment (2026-07-09):** Section 4.0 of the implementation plan pins Maven for `apps/api`. At the operator's explicit request, before Phase 1 started, the build tool was switched to Gradle (Kotlin DSL, `./gradlew`), preserving every other pinned decision (Spring Boot 4.1.0, Java 21, package `dev.talos`, the exact starter set). See `docs/phase-reports/phase-0-report.md` and `docs/initial_implementation_log.md` for what changed and how it was verified.
 
 ## System diagram
 

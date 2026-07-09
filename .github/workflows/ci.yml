@@ -43,7 +43,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - run: ./mvnw -B verify
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew --no-daemon build
 
   python:
     runs-on: ubuntu-latest

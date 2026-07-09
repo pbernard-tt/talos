@@ -42,7 +42,7 @@ Each app builds its own Docker image and is independently deployable; the only s
 
 ## Local development
 
-Requires Docker, Node 22 LTS, Java 21, Maven, and [`uv`](https://docs.astral.sh/uv/).
+Requires Docker, Node 22 LTS, Java 21, and [`uv`](https://docs.astral.sh/uv/). `apps/api` uses the bundled Gradle wrapper (`./gradlew`) — no separate Gradle install needed.
 
 ```bash
 # Start infra (Postgres 17, RabbitMQ 4.1, Redis 7)
@@ -52,7 +52,7 @@ docker compose -f infra/docker-compose.dev.yml up
 cd apps/web && npm install && npm run build
 
 # API
-cd apps/api && ./mvnw verify
+cd apps/api && ./gradlew build
 
 # Orchestrator / Runner supervisor
 cd apps/orchestrator && uv run pytest

@@ -13,10 +13,10 @@ apps/web/dist/
 apps/web/.angular/
 npm-debug.log*
 
-# Java / Maven
-target/
+# Java / Gradle
 *.class
-!apps/api/.mvn/wrapper/*.jar
+.gradle/
+!apps/api/gradle/wrapper/gradle-wrapper.jar
 
 # Python / uv
 __pycache__/
