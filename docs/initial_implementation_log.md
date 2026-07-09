@@ -1,3 +1,30 @@
+## 2026-07-09 — Phase 2: database and migrations
+
+**Ask:** Implement Section 16 Phase 2: the full MVP schema from Section 9.2 (`V002__core_schema.sql`) and JPA entities/repositories for every remaining table, nothing from Section 9.4.
+
+**Changed (backend):**
+- `db/migration/V002__core_schema.sql` — `projects`, `project_configs`, `tasks`, `agent_runs`, `agent_run_steps`, `agent_run_logs`, `approvals`, `git_changes`, `pull_requests`, `integrations`, `secret_values`, `integration_credentials`, copied verbatim from Section 9.2, in FK-safe order.
+- `dev.talos.projects`: `ProjectStatus` enum, `Project`/`ProjectConfig` entities + repositories. `ProjectConfig.setActive()` is the only setter added anywhere this phase — needed to enforce "at most one `is_active=true` row per project," the one mutation Section 9.2 names explicitly.
+- `dev.talos.tasks`: `TaskStatus`/`TaskPriority`/`TaskRiskLevel` enums, `Task` entity + repository.
+- `dev.talos.runs`: `RunStatus`/`TestStatus`/`ReviewStatus`/`StepType`/`StepStatus`/`LogStream`/`GitChangeType` enums, `AgentRun`/`AgentRunStep`/`AgentRunLog`/`GitChange` entities + repositories.
+- `dev.talos.approvals`: `ApprovalStatus` enum, `Approval` entity + repository.
+- `dev.talos.integrations`: `PullRequestStatus` enum, `Integration`/`PullRequest` entities + repositories. Neither table is explicitly assigned a module in Section 6.2; placed here since `Integration` is self-evidently this module's and `PullRequest` belongs to the GitHub push/PR pipeline Phase 9 assigns to `dev.talos.integrations` — see the phase report for this as a flagged judgment call, not a literal instruction.
+- `dev.talos.secrets`: `SecretValue`/`IntegrationCredential` entities + repositories, both javadoc'd as never-exposed-via-REST per Section 12.2.
+- Every unconstrained `VARCHAR` column that the DDL only comments example values for (`tasks.source`, `agent_runs.provider_auth_mode`, `approvals.approval_type`, `integrations.type`, `integration_credentials.auth_mode`) was left as a plain `String` field — no CHECK constraint in the DDL means no invented Java enum either.
+
+**Root cause (bug fixed this phase):** `ddl-auto=validate` failed on first run: `wrong column type encountered in column [message] in table [agent_run_logs]; found [text (Types#VARCHAR)], but expecting [oid (Types#CLOB)]`. Every `TEXT`/`BYTEA` column had been mapped with `@Lob`, which on PostgreSQL makes Hibernate target `Types.CLOB`/`Types.BLOB` — implemented via Postgres's `oid` large-object mechanism, not the plain `text`/`bytea` types the migration declares. Removed `@Lob` from all seven affected fields (`AgentRun.prompt`/`summary`/`errorMessage`, `Approval.notes`, `ProjectConfig.configYaml`, `Task.description`, `AgentRunStep.summary`) plus `SecretValue`'s two `byte[]` fields; Hibernate's un-annotated default mapping for `String`/`byte[]` is exactly the `VARCHAR`-family/`VARBINARY`-family type Postgres's `TEXT`/`BYTEA` actually are.
+
+**Changed (tests):**
+- `apps/api/src/test/java/dev/talos/CoreSchemaRepositoryTest.java` (new) — one round-trip test per new entity, built as a real FK chain (project → task → run → step/log/change/approval/PR; integration → secret → credential) since orphan UUIDs would be rejected by the FK constraints anyway, so this doubles as a referential-integrity check. Plus `flywayMigrateTwice_isIdempotent`, which re-invokes the autowired `Flyway` bean's `.migrate()` inside a running context and asserts zero new migrations execute.
+
+**Coverage:** `CoreSchemaRepositoryTest` (4 tests) + Phase 1's `AuthControllerIntegrationTest` (4 tests) = 8 tests, all green. Every one of the 12 new tables has at least one entity persisted and re-read in the test suite.
+
+**Verification:** `./gradlew build` — BUILD SUCCESSFUL, 8/8 tests. `docker compose -f infra/docker-compose.dev.yml up -d --build` — `talos-api` healthy; `psql` confirmed all 15 tables (14 domain + `flyway_schema_history`) exist and both `V001`/`V002` rows show `success=t`; re-ran the Phase 1 login smoke test to confirm no regression. Compose stack and built image torn down afterward. `grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github --exclude=CLAUDE.md --exclude=AGENTS.md` — zero results. Did not re-run `apps/web`/Python suites (untouched this phase). CI still hasn't run on GitHub Actions (no remote) — unchanged caveat.
+
+**Known blockers / follow-ups:**
+- Every entity's `created_at`/`updated_at` is still `insertable=false, updatable=false` (DB-default only) — correct for now since nothing mutates rows yet, but each phase that adds a real update path (Phase 3 onward) needs to flip `updated_at` to `updatable=true` and set it explicitly to actually satisfy Section 9.1's "maintained by the API on every mutation" rule. Flagged in the phase report so it isn't silently forgotten.
+- CI still hasn't run on GitHub Actions (no remote configured).
+
 ## 2026-07-09 — Phase 1: backend foundation (auth, errors, audit)
 
 **Ask:** Implement Section 16 Phase 1: a running API with login, JWT security, the standard error envelope, and an audit writer — `dev.talos.auth`, `dev.talos.audit`, `dev.talos.common`, `V001__users_and_audit.sql`.
