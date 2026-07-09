@@ -11,9 +11,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.rabbitmq.RabbitMQContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
 
@@ -36,12 +39,21 @@ class AuthControllerIntegrationTest {
 	@ServiceConnection
 	static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
 
+	@Container
+	@ServiceConnection
+	static RabbitMQContainer rabbitmq = new RabbitMQContainer("rabbitmq:4.1-management");
+
+	@Container
+	static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7"))
+			.withExposedPorts(6379);
+
 	@DynamicPropertySource
-	static void disableUnusedIntegrations(DynamicPropertyRegistry registry) {
-		// No RabbitMQ/Redis container in this test; those integrations aren't load-bearing until
-		// later phases, so point them at addresses that won't be dialed during this test's requests.
-		registry.add("spring.rabbitmq.addresses", () -> "amqp://guest:guest@localhost:5672");
-		registry.add("spring.data.redis.url", () -> "redis://localhost:6379");
+	static void redisProperties(DynamicPropertyRegistry registry) {
+		// RabbitMQ/Redis became load-bearing actuator health checks in Phase 5 (application.yml's
+		// management.health.{rabbit,redis}.enabled overrides were removed); actuatorHealth_isPublic
+		// needs real containers, not unreachable localhost addresses, or /actuator/health reports 503.
+		registry.add("spring.data.redis.url",
+				() -> "redis://" + redis.getHost() + ":" + redis.getMappedPort(6379));
 	}
 
 	@Autowired
