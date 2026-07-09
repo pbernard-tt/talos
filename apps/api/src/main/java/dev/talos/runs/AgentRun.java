@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Generated;
 import org.hibernate.generator.EventType;
@@ -76,7 +77,7 @@ public class AgentRun {
 	private Instant createdAt;
 
 	@Generated(event = EventType.INSERT)
-	@Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+	@Column(name = "updated_at", nullable = false, insertable = false)
 	private Instant updatedAt;
 
 	protected AgentRun() {
@@ -164,5 +165,30 @@ public class AgentRun {
 
 	public Instant getUpdatedAt() {
 		return updatedAt;
+	}
+
+	/** Sets the given transition's timeout deadline. startedAt is stamped once, on first entering RUNNING_AGENT; completedAt on reaching any terminal status. */
+	public void transitionTo(RunStatus newStatus, Instant timeoutAt, String errorMessage) {
+		this.status = newStatus;
+		this.timeoutAt = timeoutAt;
+		if (errorMessage != null) {
+			this.errorMessage = errorMessage;
+		}
+		if (newStatus == RunStatus.RUNNING_AGENT && this.startedAt == null) {
+			this.startedAt = Instant.now();
+		}
+		if (isTerminal(newStatus)) {
+			this.completedAt = Instant.now();
+		}
+	}
+
+	private static boolean isTerminal(RunStatus status) {
+		return status == RunStatus.COMPLETED || status == RunStatus.FAILED || status == RunStatus.CANCELLED
+				|| status == RunStatus.REJECTED;
+	}
+
+	@PreUpdate
+	void onUpdate() {
+		this.updatedAt = Instant.now();
 	}
 }

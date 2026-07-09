@@ -46,6 +46,10 @@ public class AgentRunStep {
 		this.runId = runId;
 		this.stepType = stepType;
 		this.status = status;
+		this.startedAt = Instant.now();
+		if (status != StepStatus.RUNNING) {
+			this.completedAt = Instant.now();
+		}
 	}
 
 	public UUID getId() {
@@ -74,5 +78,11 @@ public class AgentRunStep {
 
 	public Instant getCompletedAt() {
 		return completedAt;
+	}
+
+	public void complete(StepStatus status, String summary) {
+		this.status = status;
+		this.summary = summary;
+		this.completedAt = Instant.now();
 	}
 }
