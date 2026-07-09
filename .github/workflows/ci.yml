@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: grep -ri agentos . must return nothing (outside docs, which discuss the rule itself)
+      - name: grep -ri agentos . must return nothing (outside docs/CLAUDE.md/AGENTS.md, which discuss the rule itself)
         run: |
-          if grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github; then
+          if grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github --exclude=CLAUDE.md --exclude=AGENTS.md; then
             echo "Found forbidden legacy naming (agentos)"; exit 1
           fi
 

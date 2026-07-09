@@ -18,7 +18,7 @@ Talos is a self-hosted, web-based, agent-agnostic control plane that orchestrate
 6. Safe defaults everywhere: runs execute only on `agent/task-<id>-<slug>` branches in isolated worktrees; nothing is pushed, PR'd, or deployed without an `APPROVED` approval row, enforced server-side and covered by a test.
 7. Never expose production secrets to agent workers. Runners receive only enumerated injected env vars; provider credentials live in isolated provider homes outside every workspace; all injected values are masked in every log path.
 8. No deploy trigger (Phase 10) before the review/approval flow (Phase 8) is complete and tested. Until then `DeployProvider` is an interface with a no-op implementation.
-9. Naming is canonical — see below. Run `grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github` before every commit; it must return nothing. (The unscoped command self-matches this rule's own text in `docs/` — CI's `naming-guard` job uses the scoped form.)
+9. Naming is canonical — see below. Run `grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github --exclude=CLAUDE.md --exclude=AGENTS.md` before every commit; it must return nothing. (The unscoped command self-matches this rule's own text in `docs/` and this file — CI's `naming-guard` job uses the scoped form.)
 10. `docker compose -f infra/docker-compose.dev.yml up` must work at the end of every phase.
 
 ## Process
@@ -76,7 +76,7 @@ uv run pytest                                        # full suite
 uv run pytest tests/test_package.py::test_name       # single test
 
 # Naming guard (must return nothing before any commit)
-grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github
+grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github --exclude=CLAUDE.md --exclude=AGENTS.md
 
 # Docker image per app (orchestrator/runner-supervisor build from repo root — see Architecture)
 docker build -f apps/web/Dockerfile apps/web
