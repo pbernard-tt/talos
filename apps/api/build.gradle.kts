@@ -20,13 +20,25 @@ repositories {
 
 // talos.schema.json's canonical location is packages/project-config-schema (Section 14) — pulled
 // onto the classpath at build time rather than duplicating the file into src/main/resources.
+// Copied into a generated-resources dir (rather than adding packages/project-config-schema
+// directly as a srcDir with include()) because SourceDirectorySet.include() filters the whole
+// resources set, not just the one srcDir it's declared next to — that silently dropped
+// application.yml and db/migration/*.sql the first time this was tried.
+val copyTalosSchema by tasks.registering(Copy::class) {
+	from("../../packages/project-config-schema/talos.schema.json")
+	into(layout.buildDirectory.dir("generated-resources/talos-schema"))
+}
+
 sourceSets {
 	main {
 		resources {
-			srcDir("../../packages/project-config-schema")
-			include("talos.schema.json")
+			srcDir(copyTalosSchema.map { it.destinationDir })
 		}
 	}
+}
+
+tasks.named("processResources") {
+	dependsOn(copyTalosSchema)
 }
 
 dependencies {
