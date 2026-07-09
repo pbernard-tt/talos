@@ -5,9 +5,9 @@ info:
     Source of truth for the talos-api public (/api/v1) and internal (/internal/v1) REST surface.
     The Angular client is generated from this file (openapi-generator, typescript-angular); CI
     diffs the running API's springdoc output against it. Endpoints are added phase by phase per
-    Section 10 of the implementation plan — this file currently covers Phase 1 (auth) and
-    Phase 3 (project registry).
-  version: "0.3.0"
+    Section 10 of the implementation plan — this file currently covers Phase 1 (auth),
+    Phase 3 (project registry), and Phase 4 (task board).
+  version: "0.4.0"
 servers:
   - url: /api/v1
     description: "Public API (JWT via Authorization: Bearer)"
@@ -157,6 +157,129 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tasks:
+    get:
+      operationId: listTasks
+      summary: List tasks.
+      tags: [tasks]
+      parameters:
+        - name: projectId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/TaskStatus"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageTaskSummary"
+    post:
+      operationId: createTask
+      summary: Create a task in BACKLOG.
+      tags: [tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      summary: Get a task and its agent runs.
+      tags: [tasks]
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskDetail"
+        "404":
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: patchTask
+      summary: Partially update task fields (not status — use /move).
+      tags: [tasks]
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchTaskRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /tasks/{id}/move:
+    post:
+      operationId: moveTask
+      summary: Move a task to a new Kanban column and/or reorder it within one.
+      tags: [tasks]
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveTaskRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          description: Illegal status transition (Section 8.2 -- RUNNING/REVIEW/DONE/BLOCKED are set only by the run state machine).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -166,6 +289,13 @@ components:
 
   parameters:
     ProjectId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TaskId:
       name: id
       in: path
       required: true
@@ -359,6 +489,124 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ProjectSummary"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+
+    TaskStatus:
+      type: string
+      enum: [BACKLOG, READY, RUNNING, REVIEW, BLOCKED, DONE, CANCELLED]
+
+    TaskPriority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH]
+
+    TaskRiskLevel:
+      type: string
+      enum: [NORMAL, HIGH]
+
+    TaskSummary:
+      type: object
+      required: [id, projectId, title, source, status, priority, riskLevel, boardPosition, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        source:
+          type: string
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        priority:
+          $ref: "#/components/schemas/TaskPriority"
+        riskLevel:
+          $ref: "#/components/schemas/TaskRiskLevel"
+        boardPosition:
+          type: integer
+        requestedBy:
+          type: string
+          format: uuid
+        assignedAgentKey:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Task:
+      allOf:
+        - $ref: "#/components/schemas/TaskSummary"
+
+    TaskDetail:
+      allOf:
+        - $ref: "#/components/schemas/TaskSummary"
+        - type: object
+          required: [runs]
+          properties:
+            runs:
+              type: array
+              items:
+                $ref: "#/components/schemas/RunSummary"
+
+    CreateTaskRequest:
+      type: object
+      required: [projectId, title]
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          $ref: "#/components/schemas/TaskPriority"
+        riskLevel:
+          $ref: "#/components/schemas/TaskRiskLevel"
+
+    PatchTaskRequest:
+      type: object
+      description: Only non-null fields are applied. Status is not patchable here -- use /move.
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          $ref: "#/components/schemas/TaskPriority"
+        riskLevel:
+          $ref: "#/components/schemas/TaskRiskLevel"
+        assignedAgentKey:
+          type: string
+
+    MoveTaskRequest:
+      type: object
+      required: [status, boardPosition]
+      properties:
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        boardPosition:
+          type: integer
+
+    PageTaskSummary:
+      type: object
+      required: [content, page, size, totalElements]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskSummary"
         page:
           type: integer
         size:

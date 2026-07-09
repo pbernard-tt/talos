@@ -4,4 +4,7 @@ export * from './auth.serviceInterface';
 export * from './projects.service';
 import { ProjectsService } from './projects.service';
 export * from './projects.serviceInterface';
-export const APIS = [AuthService, ProjectsService];
+export * from './tasks.service';
+import { TasksService } from './tasks.service';
+export * from './tasks.serviceInterface';
+export const APIS = [AuthService, ProjectsService, TasksService];
