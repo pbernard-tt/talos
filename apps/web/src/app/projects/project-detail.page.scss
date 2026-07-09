@@ -1,0 +1,16 @@
+.state-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.overview,
+.runs,
+.config {
+  padding: 16px;
+}
+
+.full-width {
+  width: 100%;
+}

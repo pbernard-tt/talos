@@ -1,0 +1,47 @@
+<h3>Configuration</h3>
+
+@if (project().activeConfig) {
+  <p>Active version: {{ project().activeConfig!.version }}</p>
+} @else {
+  <p>No active talos.yaml yet — paste one below to validate and activate it.</p>
+}
+
+<mat-form-field appearance="outline" class="full-width">
+  <mat-label>talos.yaml</mat-label>
+  <textarea matInput rows="12" [(ngModel)]="configYaml" name="configYaml"></textarea>
+</mat-form-field>
+
+@if (fieldErrorEntries().length > 0) {
+  <div class="field-errors">
+    <p>talos.yaml failed validation:</p>
+    <ul>
+      @for (entry of fieldErrorEntries(); track entry[0]) {
+        <li><code>{{ entry[0] }}</code>: {{ entry[1] }}</li>
+      }
+    </ul>
+  </div>
+}
+
+<button mat-flat-button color="primary" [disabled]="syncing()" (click)="sync()">
+  Sync config
+</button>
+
+@if (configHistory().length > 0) {
+  <mat-accordion class="history">
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>Version history ({{ configHistory().length }})</mat-panel-title>
+      </mat-expansion-panel-header>
+      <ul>
+        @for (config of configHistory(); track config.id) {
+          <li>
+            v{{ config.version }} — {{ config.createdAt | date: 'medium' }}
+            @if (config.active) {
+              <strong>(active)</strong>
+            }
+          </li>
+        }
+      </ul>
+    </mat-expansion-panel>
+  </mat-accordion>
+}
