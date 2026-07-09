@@ -5,15 +5,176 @@ info:
     Source of truth for the talos-api public (/api/v1) and internal (/internal/v1) REST surface.
     The Angular client is generated from this file (openapi-generator, typescript-angular); CI
     diffs the running API's springdoc output against it. Endpoints are added phase by phase per
-    Section 10 of the implementation plan — this file is a Phase 0 stub with no paths yet.
-  version: "0.1.0"
+    Section 10 of the implementation plan — this file currently covers Phase 1 (auth) and
+    Phase 3 (project registry).
+  version: "0.3.0"
 servers:
   - url: /api/v1
     description: "Public API (JWT via Authorization: Bearer)"
   - url: /internal/v1
     description: "Internal API (service token via X-Talos-Internal-Token)"
-paths: {}
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate and receive a JWT.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /projects:
+    get:
+      operationId: listProjects
+      summary: List projects.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/ProjectStatus"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageProjectSummary"
+    post:
+      operationId: createProject
+      summary: Register a new project.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "422":
+          $ref: "#/components/responses/Error"
+
+  /projects/{id}:
+    get:
+      operationId: getProject
+      summary: Get a project, its active config, and its 5 most recent runs.
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateProject
+      summary: Update project fields.
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+
+  /projects/{id}/sync-config:
+    post:
+      operationId: syncProjectConfig
+      summary: Validate and store a new talos.yaml version; deactivates the previous active version.
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncConfigRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectConfig"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          description: talos.yaml failed schema validation; error.details is a field-path -> message map.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ProjectId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Error:
+      description: Error envelope (Section 10.1).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
   schemas:
     Error:
       type: object
@@ -32,3 +193,164 @@ components:
             details:
               type: object
               additionalProperties: true
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      required: [token, expiresAt]
+      properties:
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+    ProjectStatus:
+      type: string
+      enum: [ACTIVE, ARCHIVED]
+
+    ProjectSummary:
+      type: object
+      required: [id, name, slug, repoUrl, defaultBranch, stackType, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        repoUrl:
+          type: string
+        defaultBranch:
+          type: string
+        stackType:
+          type: string
+        status:
+          $ref: "#/components/schemas/ProjectStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Project:
+      allOf:
+        - $ref: "#/components/schemas/ProjectSummary"
+
+    ProjectConfig:
+      type: object
+      required: [id, projectId, configYaml, parsedJson, version, active, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        configYaml:
+          type: string
+        parsedJson:
+          type: object
+          additionalProperties: true
+        version:
+          type: integer
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    RunSummary:
+      type: object
+      required: [id, taskId, status, agentKey, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        agentKey:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ProjectDetail:
+      allOf:
+        - $ref: "#/components/schemas/ProjectSummary"
+        - type: object
+          required: [activeConfig, recentRuns]
+          properties:
+            activeConfig:
+              oneOf:
+                - $ref: "#/components/schemas/ProjectConfig"
+                - type: "null"
+            recentRuns:
+              type: array
+              items:
+                $ref: "#/components/schemas/RunSummary"
+              maxItems: 5
+
+    CreateProjectRequest:
+      type: object
+      required: [name, repoUrl, stackType]
+      properties:
+        name:
+          type: string
+        repoUrl:
+          type: string
+        defaultBranch:
+          type: string
+          description: Defaults to "main" when omitted.
+        stackType:
+          type: string
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        repoUrl:
+          type: string
+        defaultBranch:
+          type: string
+        stackType:
+          type: string
+        status:
+          $ref: "#/components/schemas/ProjectStatus"
+
+    SyncConfigRequest:
+      type: object
+      required: [configYaml]
+      properties:
+        configYaml:
+          type: string
+
+    PageProjectSummary:
+      type: object
+      required: [content, page, size, totalElements]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectSummary"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
