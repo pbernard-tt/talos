@@ -48,8 +48,11 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("org.springframework.boot:spring-boot-testcontainers")
-	testImplementation("org.testcontainers:junit-jupiter")
-	testImplementation("org.testcontainers:postgresql")
+	// spring-boot-dependencies doesn't manage bare Testcontainers versions; pinned to the
+	// release spring-boot-testcontainers:4.1.0 itself was built against. Testcontainers 2.x
+	// renamed its module artifacts with a "testcontainers-" prefix (was "junit-jupiter"/"postgresql").
+	testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
+	testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
