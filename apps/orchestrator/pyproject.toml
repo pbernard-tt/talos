@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "aio-pika>=10.0.1",
     "httpx>=0.28.1",
+    "redis>=6.2.0",
     "talos-agent-adapter-spec",
 ]
 
@@ -25,6 +26,9 @@ dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [tool.uv.sources]
 talos-agent-adapter-spec = { path = "../../packages/agent-adapter-spec", editable = true }

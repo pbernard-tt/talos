@@ -13,4 +13,4 @@ WORKDIR /app/apps/orchestrator
 RUN uv sync --frozen --no-dev
 
 USER talos
-ENTRYPOINT ["uv", "run", "talos-orchestrator"]
+ENTRYPOINT ["uv", "run", "--no-sync", "talos-orchestrator"]

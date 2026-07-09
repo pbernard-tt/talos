@@ -1,0 +1,110 @@
+"""Lightweight test doubles for ApiClient/RunnerClient/RunLock. Hand-written rather than
+unittest.mock.AsyncMock because execute_run/run_tests are async generators, which AsyncMock
+doesn't model cleanly.
+"""
+
+from __future__ import annotations
+
+from typing import Any, AsyncIterator
+
+
+class FakeApiClient:
+    def __init__(self, context: dict[str, Any], reject_status_updates_to: set[str] | None = None) -> None:
+        self.context = context
+        self.status_calls: list[dict[str, Any]] = []
+        self.step_calls: list[tuple[str, str, str | None]] = []
+        self.log_entries: list[dict[str, Any]] = []
+        self.changes_calls: list[tuple[list[dict[str, Any]], str | None]] = []
+        # Simulates the API's 422 ILLEGAL_RUN_TRANSITION when the run is already terminal (e.g. a
+        # concurrent /cancel already moved it to CANCELLED before the pipeline tries to report FAILED).
+        self._reject_status_updates_to = reject_status_updates_to or set()
+
+    async def get_context(self, run_id: str) -> dict[str, Any]:
+        return self.context
+
+    async def update_status(
+        self,
+        run_id: str,
+        status: str,
+        error_message: str | None = None,
+        *,
+        test_status: str | None = None,
+        workspace_path: str | None = None,
+        branch_name: str | None = None,
+        prompt: str | None = None,
+        summary: str | None = None,
+        exit_code: int | None = None,
+    ) -> dict[str, Any]:
+        if status in self._reject_status_updates_to:
+            raise RuntimeError(f"422 ILLEGAL_RUN_TRANSITION: run already terminal, cannot move to {status}")
+        self.status_calls.append(
+            {
+                "status": status,
+                "errorMessage": error_message,
+                "testStatus": test_status,
+                "workspacePath": workspace_path,
+                "branchName": branch_name,
+                "prompt": prompt,
+                "summary": summary,
+                "exitCode": exit_code,
+            }
+        )
+        return {}
+
+    async def record_step(self, run_id: str, step_type: str, status: str, summary: str | None = None) -> dict[str, Any]:
+        self.step_calls.append((step_type, status, summary))
+        return {}
+
+    async def ingest_logs(self, run_id: str, entries: list[dict[str, Any]]) -> None:
+        self.log_entries.extend(entries)
+
+    async def record_changes(
+        self, run_id: str, files: list[dict[str, Any]], diff_artifact_ref: str | None = None
+    ) -> None:
+        self.changes_calls.append((files, diff_artifact_ref))
+
+
+class FakeRunnerClient:
+    def __init__(
+        self,
+        prepare_result: dict[str, Any],
+        execute_events: list[dict[str, Any]],
+        test_events: list[dict[str, Any]],
+        diff_result: dict[str, Any],
+    ) -> None:
+        self.prepare_result = prepare_result
+        self.execute_events = execute_events
+        self.test_events = test_events
+        self.diff_result = diff_result
+        self.stop_calls: list[str] = []
+
+    async def prepare_workspace(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        return self.prepare_result
+
+    async def execute_run(self, *args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
+        for event in self.execute_events:
+            yield event
+
+    async def run_tests(self, *args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
+        for event in self.test_events:
+            yield event
+
+    async def capture_diff(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        return self.diff_result
+
+    async def stop(self, run_id: str) -> None:
+        self.stop_calls.append(run_id)
+
+
+class FakeRunLock:
+    def __init__(self, acquire_result: bool = True) -> None:
+        self.acquire_result = acquire_result
+        self.acquired: list[tuple[str, str, str]] = []
+        self.released: list[tuple[str, str, str]] = []
+
+    async def acquire(self, project_id: str, base_branch: str, run_id: str, ttl_seconds: int) -> bool:
+        self.acquired.append((project_id, base_branch, run_id))
+        return self.acquire_result
+
+    async def release(self, project_id: str, base_branch: str, run_id: str) -> None:
+        self.released.append((project_id, base_branch, run_id))
