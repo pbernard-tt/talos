@@ -38,7 +38,7 @@ Both deviations are mechanical (packaging/tooling corrections), not architectura
 | `./mvnw verify` passes (empty suite allowed) | ✅ |
 | `ng build` passes | ✅ (`ng test` also passes, 2/2) |
 | `uv run pytest` passes (empty suite allowed) | ✅ x3 (agent-adapter-spec, orchestrator, runner-supervisor — each has one real import-smoke test since pytest exits non-zero on true empty collection) |
-| `grep -ri agentos .` returns nothing | ✅ |
+| `grep -ri agentos .` returns nothing | ✅ outside `docs/`. The literal repo-root command self-matches the plan's own text (this rule quoted in `docs/src/talos-implementation-plan.md`, this table, the CI step name, etc.) — CI scopes the check to `--exclude-dir=docs --exclude-dir=.github` to catch real leakage into code/config while allowing the rule to be documented. `grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github` returns nothing. |
 | CI green | ⚠️ workflow written (`.github/workflows/ci.yml`), runs the same checks as above; not yet exercised on GitHub Actions because this repository has no remote configured yet |
 
 ## Next
