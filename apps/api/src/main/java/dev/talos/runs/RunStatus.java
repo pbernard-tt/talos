@@ -1,0 +1,7 @@
+package dev.talos.runs;
+
+/** Section 8.2 run state machine. */
+public enum RunStatus {
+	CREATED, QUEUED, PREPARING_WORKSPACE, RUNNING_AGENT, RUNNING_TESTS,
+	REVIEWING, WAITING_APPROVAL, APPROVED, REJECTED, COMPLETED, FAILED, CANCELLED
+}
