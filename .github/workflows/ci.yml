@@ -72,7 +72,7 @@ jobs:
             context: apps/web
           - name: talos-api
             dockerfile: apps/api/Dockerfile
-            context: apps/api
+            context: .
           - name: talos-orchestrator
             dockerfile: apps/orchestrator/Dockerfile
             context: .

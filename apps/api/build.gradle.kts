@@ -18,6 +18,17 @@ repositories {
 	mavenCentral()
 }
 
+// talos.schema.json's canonical location is packages/project-config-schema (Section 14) — pulled
+// onto the classpath at build time rather than duplicating the file into src/main/resources.
+sourceSets {
+	main {
+		resources {
+			srcDir("../../packages/project-config-schema")
+			include("talos.schema.json")
+		}
+	}
+}
+
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-amqp")
@@ -38,6 +49,10 @@ dependencies {
 	implementation("io.jsonwebtoken:jjwt-api:0.13.0")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
 	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
+
+	// talos.yaml parsing + validation against packages/project-config-schema/talos.schema.json (Section 14)
+	implementation("tools.jackson.dataformat:jackson-dataformat-yaml:3.2.0")
+	implementation("com.networknt:json-schema-validator:3.0.6")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-amqp-test")

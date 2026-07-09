@@ -62,7 +62,8 @@ services:
 
   api:
     build:
-      context: ../apps/api
+      context: ..
+      dockerfile: apps/api/Dockerfile
     container_name: talos-api
     restart: unless-stopped
     depends_on:

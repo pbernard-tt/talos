@@ -3,7 +3,8 @@ docs
 apps/web/node_modules
 apps/web/dist
 apps/web/.angular
-apps/api/target
+apps/api/build
+apps/api/.gradle
 **/.venv
 **/__pycache__
 **/.pytest_cache
