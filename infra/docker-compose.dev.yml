@@ -1,6 +1,6 @@
-# Local development infra for Talos. Application services (talos-api, talos-web,
-# talos-orchestrator, talos-runner-supervisor) are added to this file as their
-# implementation phases land (Section 16 of the implementation plan).
+# Local development infra for Talos. Application services are added to this file as their
+# implementation phases land (Section 16 of the implementation plan): talos-api since Phase 1,
+# talos-web/talos-orchestrator/talos-runner-supervisor still to come.
 #
 # Usage: docker compose -f infra/docker-compose.dev.yml up
 #
@@ -59,6 +59,35 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    build:
+      context: ../apps/api
+    container_name: talos-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Dev-only placeholders, committed deliberately (same spirit as the postgres/rabbitmq
+      # credentials above) — never reuse these values outside local development.
+      TALOS_DB_URL: jdbc:postgresql://postgres:5432/talos
+      TALOS_DB_USER: talos
+      TALOS_DB_PASSWORD: talos
+      TALOS_RABBITMQ_URL: amqp://talos:talos@rabbitmq:5672
+      TALOS_REDIS_URL: redis://redis:6379
+      TALOS_JWT_SECRET: dev-only-jwt-signing-secret-do-not-use-in-production-32bytes+
+      TALOS_INTERNAL_API_TOKEN: dev-only-internal-api-token-do-not-use-in-production
+      TALOS_ADMIN_EMAIL: admin@talos.local
+      TALOS_ADMIN_PASSWORD: talos-dev-admin
+      TALOS_SECRETS_KEY: ZGV2LW9ubHktMzItYnl0ZS1wbGFjZWhvbGRlci1rZXkhISE=
+      TALOS_GITHUB_WEBHOOK_SECRET: dev-only-github-webhook-secret
+    ports:
+      - "8080:8080"
 
 volumes:
   talos_postgres_data:
