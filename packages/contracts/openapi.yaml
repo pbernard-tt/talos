@@ -20,6 +20,7 @@ paths:
     post:
       operationId: login
       summary: Authenticate and receive a JWT.
+      tags: [auth]
       security: []
       requestBody:
         required: true
@@ -41,6 +42,7 @@ paths:
     get:
       operationId: listProjects
       summary: List projects.
+      tags: [projects]
       parameters:
         - name: status
           in: query
@@ -69,6 +71,7 @@ paths:
     post:
       operationId: createProject
       summary: Register a new project.
+      tags: [projects]
       requestBody:
         required: true
         content:
@@ -89,6 +92,7 @@ paths:
     get:
       operationId: getProject
       summary: Get a project, its active config, and its 5 most recent runs.
+      tags: [projects]
       parameters:
         - $ref: "#/components/parameters/ProjectId"
       responses:
@@ -103,6 +107,7 @@ paths:
     put:
       operationId: updateProject
       summary: Update project fields.
+      tags: [projects]
       parameters:
         - $ref: "#/components/parameters/ProjectId"
       requestBody:
@@ -127,6 +132,7 @@ paths:
     post:
       operationId: syncProjectConfig
       summary: Validate and store a new talos.yaml version; deactivates the previous active version.
+      tags: [projects]
       parameters:
         - $ref: "#/components/parameters/ProjectId"
       requestBody:
