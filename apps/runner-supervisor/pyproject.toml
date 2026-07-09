@@ -1,0 +1,31 @@
+[project]
+name = "talos-runner-supervisor"
+version = "0.1.0"
+description = "Talos runner supervisor: prepares git worktrees, executes agent adapters, streams logs, captures diffs."
+readme = "README.md"
+authors = [
+    { name = "Paul Bernard", email = "paulvbernard73@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.139.0",
+    "httpx>=0.28.1",
+    "talos-agent-adapter-spec",
+    "uvicorn[standard]>=0.51.0",
+]
+
+[project.scripts]
+talos-runner-supervisor = "talos_runner_supervisor:main"
+
+[build-system]
+requires = ["uv_build>=0.11.28,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.uv.sources]
+talos-agent-adapter-spec = { path = "../../packages/agent-adapter-spec", editable = true }

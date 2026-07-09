@@ -1,0 +1,30 @@
+[project]
+name = "talos-orchestrator"
+version = "0.1.0"
+description = "Talos orchestrator: consumes run requests from RabbitMQ and drives the run pipeline."
+readme = "README.md"
+authors = [
+    { name = "Paul Bernard", email = "paulvbernard73@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "aio-pika>=10.0.1",
+    "httpx>=0.28.1",
+    "talos-agent-adapter-spec",
+]
+
+[project.scripts]
+talos-orchestrator = "talos_orchestrator:main"
+
+[build-system]
+requires = ["uv_build>=0.11.28,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.uv.sources]
+talos-agent-adapter-spec = { path = "../../packages/agent-adapter-spec", editable = true }

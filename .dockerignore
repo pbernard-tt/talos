@@ -1,0 +1,9 @@
+.git
+docs
+apps/web/node_modules
+apps/web/dist
+apps/web/.angular
+apps/api/target
+**/.venv
+**/__pycache__
+**/.pytest_cache
