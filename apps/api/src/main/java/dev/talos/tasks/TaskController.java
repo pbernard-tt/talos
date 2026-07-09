@@ -2,6 +2,9 @@ package dev.talos.tasks;
 
 import dev.talos.auth.AuthenticatedUser;
 import dev.talos.common.PageResponse;
+import dev.talos.runs.RunService;
+import dev.talos.runs.dto.RunResponse;
+import dev.talos.runs.dto.StartRunRequest;
 import dev.talos.tasks.dto.CreateTaskRequest;
 import dev.talos.tasks.dto.MoveTaskRequest;
 import dev.talos.tasks.dto.PatchTaskRequest;
@@ -29,9 +32,11 @@ import java.util.UUID;
 public class TaskController {
 
 	private final TaskService taskService;
+	private final RunService runService;
 
-	public TaskController(TaskService taskService) {
+	public TaskController(TaskService taskService, RunService runService) {
 		this.taskService = taskService;
+		this.runService = runService;
 	}
 
 	@GetMapping
@@ -64,5 +69,12 @@ public class TaskController {
 	public TaskSummary move(@PathVariable UUID id, @Valid @RequestBody MoveTaskRequest request,
 			@AuthenticationPrincipal AuthenticatedUser principal) {
 		return TaskSummary.from(taskService.move(id, request, principal.id()));
+	}
+
+	@PostMapping("/{id}/start-run")
+	@ResponseStatus(HttpStatus.CREATED)
+	public RunResponse startRun(@PathVariable UUID id, @RequestBody(required = false) StartRunRequest request,
+			@AuthenticationPrincipal AuthenticatedUser principal) {
+		return RunResponse.from(runService.startRun(id, request, principal.id()));
 	}
 }
