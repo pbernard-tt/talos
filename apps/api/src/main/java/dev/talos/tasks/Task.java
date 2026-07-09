@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Generated;
 import org.hibernate.generator.EventType;
@@ -58,7 +59,7 @@ public class Task {
 	private Instant createdAt;
 
 	@Generated(event = EventType.INSERT)
-	@Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+	@Column(name = "updated_at", nullable = false, insertable = false)
 	private Instant updatedAt;
 
 	protected Task() {
@@ -122,5 +123,34 @@ public class Task {
 
 	public Instant getUpdatedAt() {
 		return updatedAt;
+	}
+
+	public void updatePartial(String title, String description, TaskPriority priority, TaskRiskLevel riskLevel,
+			String assignedAgentKey) {
+		if (title != null) {
+			this.title = title;
+		}
+		if (description != null) {
+			this.description = description;
+		}
+		if (priority != null) {
+			this.priority = priority;
+		}
+		if (riskLevel != null) {
+			this.riskLevel = riskLevel;
+		}
+		if (assignedAgentKey != null) {
+			this.assignedAgentKey = assignedAgentKey;
+		}
+	}
+
+	public void move(TaskStatus status, int boardPosition) {
+		this.status = status;
+		this.boardPosition = boardPosition;
+	}
+
+	@PreUpdate
+	void onUpdate() {
+		this.updatedAt = Instant.now();
 	}
 }
