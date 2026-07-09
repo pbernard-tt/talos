@@ -1,0 +1,43 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Node / Angular
+node_modules/
+apps/web/dist/
+apps/web/.angular/
+npm-debug.log*
+
+# Java / Maven
+target/
+*.class
+!apps/api/.mvn/wrapper/*.jar
+
+# Python / uv
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+uv.lock.bak
+
+# Env files (never commit real secrets)
+.env
+.env.local
+*.env
+!.env.example
+!**/.env.example
+
+# Talos runtime data (local dev)
+/var/talos/
+infra/.data/
+
+# Build artifacts
+*.log
+dist/
+build/
