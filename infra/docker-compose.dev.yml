@@ -1,6 +1,6 @@
 # Local development infra for Talos. Application services are added to this file as their
 # implementation phases land (Section 16 of the implementation plan): talos-api since Phase 1,
-# talos-web/talos-orchestrator/talos-runner-supervisor still to come.
+# talos-orchestrator/talos-runner-supervisor since Phase 6, talos-web still to come.
 #
 # Usage: docker compose -f infra/docker-compose.dev.yml up
 #
@@ -90,7 +90,57 @@ services:
     ports:
       - "8080:8080"
 
+  runner-supervisor:
+    build:
+      context: ..
+      dockerfile: apps/runner-supervisor/Dockerfile
+    container_name: talos-runner-supervisor
+    restart: unless-stopped
+    environment:
+      TALOS_WORKSPACES_ROOT: /var/talos/workspaces
+      TALOS_PROVIDER_HOMES_ROOT: /var/talos/provider-homes
+      # Dev-only placeholder, committed deliberately -- see the api service's comment above.
+      TALOS_INTERNAL_API_TOKEN: dev-only-internal-api-token-do-not-use-in-production
+      TALOS_MAX_WORKSPACE_AGE_DAYS: "7"
+    volumes:
+      - talos_workspaces:/var/talos/workspaces
+      - talos_provider_homes:/var/talos/provider-homes
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  orchestrator:
+    build:
+      context: ..
+      dockerfile: apps/orchestrator/Dockerfile
+    container_name: talos-orchestrator
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+      runner-supervisor:
+        condition: service_healthy
+    environment:
+      TALOS_API_BASE_URL: http://api:8080
+      # Dev-only placeholder, committed deliberately -- see the api service's comment above.
+      TALOS_INTERNAL_API_TOKEN: dev-only-internal-api-token-do-not-use-in-production
+      TALOS_RABBITMQ_URL: amqp://talos:talos@rabbitmq:5672
+      TALOS_REDIS_URL: redis://redis:6379
+      TALOS_RUNNER_BASE_URL: http://runner-supervisor:8081
+      TALOS_MAX_ACTIVE_RUNS: "1"
+      TALOS_RUN_TIMEOUT_MINUTES: "60"
+
 volumes:
   talos_postgres_data:
   talos_rabbitmq_data:
   talos_redis_data:
+  talos_workspaces:
+  talos_provider_homes:
