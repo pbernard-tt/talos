@@ -5,6 +5,9 @@ Verified against Anthropic's CLI reference on 2026-07-09.  Claude Code supports 
 The adapter deliberately uses the documented ``acceptEdits`` permission mode rather than the
 unsafe ``--dangerously-skip-permissions`` flag.  Its provider-home settings add native deny rules
 for operations Talos must never delegate to an agent (committing, pushing, destructive resets).
+
+Phase 11: when ``request.container`` is set, `claude` runs inside a per-run Docker container
+(Section 8/12.1) instead of directly as a talos-runner-supervisor subprocess -- see container.py.
 """
 
 from __future__ import annotations
@@ -25,6 +28,12 @@ from talos_agent_adapter_spec.adapter import (
     AgentResult,
     AgentSessionRequest,
     ProviderCapabilities,
+)
+from talos_agent_adapter_spec.container import (
+    PROVIDER_HOME_MOUNT_TARGET,
+    build_docker_run_args,
+    kill_container,
+    write_env_file,
 )
 
 _SENTINEL = object()
@@ -61,6 +70,7 @@ class ClaudeCodeAdapter(AgentAdapter):
         self._summary: str | None = None
         self._transcript_path: Path | None = None
         self._transcript_lines: list[str] = []
+        self._env_file_path: str | None = None
 
     def capabilities(self) -> ProviderCapabilities:
         return ProviderCapabilities(
@@ -77,6 +87,10 @@ class ClaudeCodeAdapter(AgentAdapter):
         if request.auth_mode not in {"api_key", "subscription_local"}:
             raise ValueError("ClaudeCodeAdapter auth_mode must be 'api_key' or 'subscription_local'")
         self._request = request
+        # Talos' own settings.json write happens on the host-visible provider_home path regardless
+        # of containerization -- this runs in the supervisor's own process, before the container
+        # (if any) exists, and is exactly why provider_home is mounted at a fixed container path
+        # below rather than requiring the adapter to know a container-relative equivalent up front.
         provider_home = Path(request.provider_home)
         claude_config = provider_home / ".claude"
         claude_config.mkdir(parents=True, exist_ok=True)
@@ -84,10 +98,6 @@ class ClaudeCodeAdapter(AgentAdapter):
         self._transcript_path = provider_home / "runs" / request.run_id / "transcript.jsonl"
         self._transcript_path.parent.mkdir(parents=True, exist_ok=True)
 
-        env = os.environ.copy()
-        env.update(request.env)
-        env["HOME"] = str(provider_home)
-        env["CLAUDE_CONFIG_DIR"] = str(claude_config)
         args = [
             "claude", "-p", request.prompt,
             "--output-format", "stream-json",
@@ -95,6 +105,30 @@ class ClaudeCodeAdapter(AgentAdapter):
             "--max-turns", "50",
             "--permission-mode", "acceptEdits",
         ]
+
+        if request.container is not None:
+            container_home = PROVIDER_HOME_MOUNT_TARGET
+            env = dict(request.env)
+            env["HOME"] = container_home
+            env["CLAUDE_CONFIG_DIR"] = f"{container_home}/.claude"
+            self._env_file_path = write_env_file(env)
+            docker_args = build_docker_run_args(request.run_id, request.container, self._env_file_path, args)
+            self._process = await asyncio.create_subprocess_exec(
+                *docker_args,
+                env=os.environ.copy(),  # no secrets here -- request.env travels via --env-file only
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                start_new_session=True,
+            )
+            # NOT deleted here -- see custom_shell.py's identical comment; `docker run`'s own
+            # --env-file read races this coroutine resuming. Removed once the process exits instead.
+            self._runner_task = asyncio.create_task(self._run())
+            return
+
+        env = os.environ.copy()
+        env.update(request.env)
+        env["HOME"] = str(provider_home)
+        env["CLAUDE_CONFIG_DIR"] = str(claude_config)
         self._process = await asyncio.create_subprocess_exec(
             *args,
             cwd=request.workspace_path,
@@ -158,6 +192,10 @@ class ClaudeCodeAdapter(AgentAdapter):
             _now_iso(), {"exit_code": self._exit_code},
         ))
         self._transcript_path.write_text("\n".join(self._transcript_lines) + "\n")
+        if self._env_file_path is not None:
+            with contextlib.suppress(FileNotFoundError):
+                os.unlink(self._env_file_path)
+            self._env_file_path = None
         await self._queue.put(_SENTINEL)
         self._done.set()
 
@@ -203,19 +241,25 @@ class ClaudeCodeAdapter(AgentAdapter):
                 await asyncio.wait_for(self._runner_task, timeout=15)
 
     async def _kill_process_group(self) -> None:
-        if self._process is None or self._process.returncode is not None:
-            return
         try:
-            pgid = os.getpgid(self._process.pid)
-            os.killpg(pgid, signal.SIGTERM)
-        except ProcessLookupError:
-            return
-        try:
-            await asyncio.wait_for(self._process.wait(), timeout=10)
-        except asyncio.TimeoutError:
-            with contextlib.suppress(ProcessLookupError):
-                os.killpg(pgid, signal.SIGKILL)
-            await self._process.wait()
+            if self._process is not None and self._process.returncode is None:
+                try:
+                    pgid = os.getpgid(self._process.pid)
+                    os.killpg(pgid, signal.SIGTERM)  # docker run's default --sig-proxy forwards this
+                    try:
+                        await asyncio.wait_for(self._process.wait(), timeout=10)
+                    except asyncio.TimeoutError:
+                        with contextlib.suppress(ProcessLookupError):
+                            os.killpg(pgid, signal.SIGKILL)
+                        await self._process.wait()
+                except ProcessLookupError:
+                    pass
+        finally:
+            if self._request is not None and self._request.container is not None:
+                # Safety net (see container.kill_container's docstring): guarantees the container is
+                # gone even if the `docker run` client above was killed before it could proxy the
+                # signal in. Idempotent -- harmless if --rm already cleaned it up.
+                await kill_container(self._request.run_id)
 
     async def result(self) -> AgentResult:
         await self._done.wait()

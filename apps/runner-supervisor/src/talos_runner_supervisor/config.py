@@ -12,6 +12,17 @@ class Settings:
     provider_homes_root: str
     internal_api_token: str
     max_workspace_age_days: int
+    # Phase 11 (Section 8/12.1): per-run Docker execution. Volume/network names must match
+    # infra/docker-compose.dev.yml's (and the prod compose's) explicit `name:` fields exactly --
+    # talos-runner-supervisor references them by fixed name, not by Compose's project-name-prefixed
+    # default, since dev and prod compose files live in different directories (see
+    # docs/security-model.md).
+    run_workspaces_volume: str
+    run_provider_homes_volume: str
+    run_network: str
+    run_memory_limit: str
+    run_cpu_limit: str
+    run_pids_limit: str
 
 
 def load_settings() -> Settings:
@@ -24,4 +35,10 @@ def load_settings() -> Settings:
         # "artifact/log posts", which today are relayed through the orchestrator instead).
         internal_api_token=os.environ.get("TALOS_INTERNAL_API_TOKEN", ""),
         max_workspace_age_days=int(os.environ.get("TALOS_MAX_WORKSPACE_AGE_DAYS", "7")),
+        run_workspaces_volume=os.environ.get("TALOS_RUN_WORKSPACES_VOLUME", "talos_workspaces"),
+        run_provider_homes_volume=os.environ.get("TALOS_RUN_PROVIDER_HOMES_VOLUME", "talos_provider_homes"),
+        run_network=os.environ.get("TALOS_RUN_NETWORK", "talos_run_network"),
+        run_memory_limit=os.environ.get("TALOS_RUN_MEMORY_LIMIT", "1g"),
+        run_cpu_limit=os.environ.get("TALOS_RUN_CPU_LIMIT", "1"),
+        run_pids_limit=os.environ.get("TALOS_RUN_PIDS_LIMIT", "256"),
     )

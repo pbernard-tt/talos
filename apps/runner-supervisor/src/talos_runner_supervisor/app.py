@@ -78,6 +78,7 @@ async def execute(
             env=request.env,
             auth_mode=request.auth_mode,
             timeout_seconds=request.timeout_seconds,
+            container_image=request.container_image,
         )
     except RunAlreadyExecutingError as exc:
         raise HTTPException(

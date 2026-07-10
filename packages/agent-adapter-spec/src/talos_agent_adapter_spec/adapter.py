@@ -1,9 +1,12 @@
-"""The AgentAdapter contract (Section 7.1 of the implementation plan, transcribed verbatim)."""
+"""The AgentAdapter contract (Section 7.1 of the implementation plan, transcribed verbatim, plus
+the Phase 11 addition noted on AgentSessionRequest below)."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import AsyncIterator
+
+from talos_agent_adapter_spec.container import ContainerConfig
 
 
 class AgentEventType(str, Enum):
@@ -33,6 +36,10 @@ class AgentSessionRequest:
     auth_mode: str  # "api_key" | "subscription_local"
     provider_home: str  # isolated HOME dir holding provider credentials
     timeout_seconds: int
+    # Phase 11 (Section 8: "per-run Docker containers using the workers/ images"): when set, the
+    # adapter spawns its command inside this container instead of as a direct local subprocess.
+    # None only for adapter-level unit tests that don't need real isolation.
+    container: ContainerConfig | None = None
 
 
 @dataclass

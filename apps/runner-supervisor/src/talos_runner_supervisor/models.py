@@ -31,6 +31,9 @@ class ExecuteRunRequest(BaseModel):
     env: dict[str, str] = Field(default_factory=dict)
     auth_mode: str = Field(alias="authMode")
     timeout_seconds: int = Field(alias="timeoutSeconds")
+    # Phase 11 (Section 8/12.1): when set, run in a per-run Docker container built from this image
+    # instead of a local subprocess -- resolved by the orchestrator from project.stackType.
+    container_image: str | None = Field(default=None, alias="containerImage")
 
     model_config = {"populate_by_name": True}
 

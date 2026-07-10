@@ -5,6 +5,9 @@ Interim Phase 6 semantics (no prompt assembler exists until Phase 7 -- Section 7
 passes the literal shell command to run as ``request.prompt``. This is deliberate: CustomShellAdapter
 is explicitly "No AI", so the generic "assembled instructions" field is repurposed as "the command to
 execute" for this one adapter. Documented as a Phase 6 judgment call in docs/phase-reports/phase-6-report.md.
+
+Phase 11: when ``request.container`` is set, the command runs inside a per-run Docker container
+(Section 8/12.1) instead of directly as a talos-runner-supervisor subprocess -- see container.py.
 """
 
 from __future__ import annotations
@@ -25,6 +28,7 @@ from talos_agent_adapter_spec.adapter import (
     AgentSessionRequest,
     ProviderCapabilities,
 )
+from talos_agent_adapter_spec.container import build_docker_run_args, kill_container, write_env_file
 
 _SENTINEL = object()
 
@@ -54,6 +58,7 @@ class CustomShellAdapter(AgentAdapter):
         self._transcript_lines: list[str] = []
         self._done = asyncio.Event()
         self._runner_task: asyncio.Task | None = None
+        self._env_file_path: str | None = None
 
     def capabilities(self) -> ProviderCapabilities:
         return ProviderCapabilities(
@@ -75,17 +80,33 @@ class CustomShellAdapter(AgentAdapter):
         self._transcript_path = Path(request.provider_home) / "runs" / request.run_id / "transcript.txt"
         self._transcript_path.parent.mkdir(parents=True, exist_ok=True)
 
-        env = os.environ.copy()
-        env.update(request.env)
-
-        self._process = await asyncio.create_subprocess_shell(
-            request.prompt,
-            cwd=request.workspace_path,
-            env=env,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            start_new_session=True,  # own process group, so stop() can kill the whole tree
-        )
+        if request.container is not None:
+            self._env_file_path = write_env_file(request.env)
+            args = build_docker_run_args(
+                request.run_id, request.container, self._env_file_path, ["sh", "-c", request.prompt]
+            )
+            self._process = await asyncio.create_subprocess_exec(
+                *args,
+                env=os.environ.copy(),  # no secrets here -- request.env travels via --env-file only
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                start_new_session=True,
+            )
+            # NOT deleted here: `docker run`'s own argument parsing (including reading
+            # --env-file) happens inside the freshly exec'd process, asynchronously with respect
+            # to this coroutine resuming -- unlinking immediately races the CLI actually opening
+            # the file. Removed once the process has exited instead (end of _run()).
+        else:
+            env = os.environ.copy()
+            env.update(request.env)
+            self._process = await asyncio.create_subprocess_shell(
+                request.prompt,
+                cwd=request.workspace_path,
+                env=env,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                start_new_session=True,  # own process group, so stop() can kill the whole tree
+            )
         self._runner_task = asyncio.create_task(self._run())
 
     async def _run(self) -> None:
@@ -137,6 +158,10 @@ class CustomShellAdapter(AgentAdapter):
         await self._queue.put(_SENTINEL)
 
         self._transcript_path.write_text("\n".join(self._transcript_lines) + "\n")
+        if self._env_file_path is not None:
+            with contextlib.suppress(FileNotFoundError):
+                os.unlink(self._env_file_path)
+            self._env_file_path = None
         self._done.set()
 
     async def events(self) -> AsyncIterator[AgentEvent]:
@@ -153,28 +178,24 @@ class CustomShellAdapter(AgentAdapter):
                 await asyncio.wait_for(self._runner_task, timeout=15)
 
     async def _kill_process_group(self) -> None:
-        if self._process is None or self._process.returncode is not None:
-            return
         try:
-            pgid = os.getpgid(self._process.pid)
-        except ProcessLookupError:
-            return
-        try:
-            os.killpg(pgid, signal.SIGTERM)
-        except ProcessLookupError:
-            return
-
-        try:
-            await asyncio.wait_for(self._process.wait(), timeout=10)
-            return
-        except asyncio.TimeoutError:
-            pass
-
-        try:
-            os.killpg(pgid, signal.SIGKILL)
-        except ProcessLookupError:
-            return
-        await self._process.wait()
+            if self._process is not None and self._process.returncode is None:
+                try:
+                    pgid = os.getpgid(self._process.pid)
+                    os.killpg(pgid, signal.SIGTERM)  # docker run's default --sig-proxy forwards this
+                    try:
+                        await asyncio.wait_for(self._process.wait(), timeout=10)
+                    except asyncio.TimeoutError:
+                        os.killpg(pgid, signal.SIGKILL)
+                        await self._process.wait()
+                except ProcessLookupError:
+                    pass
+        finally:
+            if self._request is not None and self._request.container is not None:
+                # Safety net (see container.kill_container's docstring): guarantees the container is
+                # gone even if the `docker run` client above was killed before it could proxy the
+                # signal in. Idempotent -- harmless if --rm already cleaned it up.
+                await kill_container(self._request.run_id)
 
     async def result(self) -> AgentResult:
         await self._done.wait()
