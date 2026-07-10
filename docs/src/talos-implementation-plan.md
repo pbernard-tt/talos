@@ -623,7 +623,8 @@ CREATE TABLE approvals (
   approved_at TIMESTAMPTZ,
   notes TEXT,
   expires_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  environment VARCHAR(50)                            -- Phase 10: which environment a DEPLOY-type approval is for
 );
 
 CREATE TABLE git_changes (
@@ -673,6 +674,23 @@ CREATE TABLE integration_credentials (
   owner_user_id UUID REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Phase 10 (Section 9.4 deferred this to here): one row per project+environment deploy target,
+-- synced from talos.yaml's deploy: block, tracking the most recent Dokploy deployment's status.
+CREATE TABLE project_environments (
+  id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(id),
+  environment VARCHAR(50) NOT NULL,
+  provider VARCHAR(30) NOT NULL DEFAULT 'dokploy',
+  app_id VARCHAR(200) NOT NULL,
+  approval_required BOOLEAN NOT NULL DEFAULT true,
+  last_deploy_status VARCHAR(20) CHECK (last_deploy_status IN ('RUNNING','SUCCEEDED','FAILED')),
+  last_deployed_at TIMESTAMPTZ,
+  last_run_id UUID REFERENCES agent_runs(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (project_id, environment)
+);
 ```
 
 ### 9.3 Enum reference (single source of truth)
@@ -687,13 +705,14 @@ ReviewStatus:   CLEAN, RISK_FLAGGED
 StepType:       WORKSPACE, AGENT, TESTS, REVIEW, PUSH, PR, DEPLOY
 LogStream:      STDOUT, STDERR, SYSTEM
 Role:           OWNER, MAINTAINER, REVIEWER, VIEWER
+DeployStatus:   RUNNING, SUCCEEDED, FAILED (Phase 10; null on project_environments = never deployed)
 ```
 
 Note: `APPROVED` and `REJECTED` are real run states (absent from earlier drafts); without them, "approved but push failed" is unrepresentable.
 
 ### 9.4 Deferred tables (do NOT create in MVP migrations)
 
-`project_environments` (Phase 10, with Dokploy), `memory_documents` and `memory_chunks` (+ pgvector extension, Phase 13). Listing them here prevents an implementer from guessing them into `V002`.
+`project_environments` was deferred here through Phase 9; it's created in Phase 10's `V004__deploy.sql` (see Section 9.2). `memory_documents` and `memory_chunks` (+ pgvector extension, Phase 13) remain deferred. Listing them here prevents an implementer from guessing them into `V002`.
 
 <div class="pagebreak"></div>
 

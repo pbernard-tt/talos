@@ -1,3 +1,31 @@
+## 2026-07-10 — Phase 10: Dokploy integration
+
+**Ask:** Continue Revision 2 implementation with Phase 10: approval-gated deploy trigger for Dokploy, plus Talos's own production deployment runbook.
+
+**Root cause / bug found (live, not by a unit test):** `DeployService.triggerNow` and `ApprovalService.decide()`'s public entry points were `@Transactional`. `deployProvider.trigger(...)` is an external HTTP call; when it threw, Spring rolled back the *whole* enclosing transaction, including the "mark FAILED" write `triggerNow` made in its own catch block and, in the `ApprovalService` path, the approval's `APPROVED` status itself — a human's approval would silently revert to `PENDING` whenever the deploy trigger failed. Fixed by removing `@Transactional` from `requestDeploy`, `triggerNow`, and `approve`/`reject`/`requestChanges`; each write already commits independently via Spring Data's per-method transactions, and `RunService.transitionRun` (a separate bean) keeps its own atomicity for the `RUN_RESULT` run-transition path.
+
+**Changed (contracts):**
+- `packages/contracts/openapi.yaml` — new `ProjectEnvironment`/`DeployStatus`/`DeployTriggerResponse` schemas; `POST/GET /runs/{id}/deploy`, `GET /projects/{id}/environments`; `GET /approvals` gained an optional `type` filter; `Approval` gained `environment`; version bumped to `0.10.0`. Also fixed two more unquoted-colon-in-description YAML bugs (same class of latent issue as Phase 9's `runner-api.yaml` fix) that broke `openapi-generator` parsing.
+- `packages/contracts/events/deploy.requested.json`, `deploy.completed.json`, `deploy.failed.json` (new) — Section 11's three deploy events, all produced solely by talos-api (resolves the plan's ambiguous "API/orchestrator" producer — see phase report deviation 3).
+
+**Changed (backend):**
+- `apps/api/src/main/resources/db/migration/V004__deploy.sql` — `project_environments` (Section 9.4 explicitly deferred this table to Phase 10) + `approvals.environment`.
+- `dev.talos.integrations` — `DeployProvider`/`DokployDeployProvider` (Dokploy REST client, verified against current docs via Context7), `ProjectEnvironment`/`ProjectEnvironmentRepository`, `DeployService` (`requestDeploy`, `triggerNow`, `getStatus`), `DeployStatusPoller` (new `@Scheduled` job mirroring `RunReaper`). `IntegrationService` gained `resolveDokployCredentials()` and a `dokploy` branch in `test()`.
+- `dev.talos.approvals.ApprovalService` — `decide()` now branches on `approvalType` (`RUN_RESULT` unchanged; `DEPLOY` calls `DeployService.triggerNow` on approve only); `ApprovalRepository` gained a unified `search(status, runId, approvalType, pageable)` query replacing three separate derived-query overloads.
+- `dev.talos.runs.RunController` — `POST/GET /{id}/deploy`. `dev.talos.projects.ProjectController` — `GET /{id}/environments`.
+
+**Changed (frontend):**
+- `run.store.ts`/`run-detail.page.ts`/`.html` — a Deploy section on `RunDetailPage`, visible once `COMPLETED`: status display, Deploy button, inline approve/reject (reusing Phase 8's `ApprovalActionDialogComponent`) for a pending `DEPLOY` approval.
+- Angular client regenerated from the updated `openapi.yaml`.
+
+**Changed (docs/infra):**
+- `docs/deployment.md` — real operator runbook (was a Phase-0 placeholder): prerequisites, Dokploy Compose app setup, full Appendix A env var mapping, GitHub/Dokploy integration setup via `curl`, rollback procedure.
+- `infra/dokploy/docker-compose.prod.yml` (new) — production reference composition, all eight Section 18 services, importable via Dokploy's "Compose" app type.
+
+**Coverage:** `DokployDeployProviderTest` (mock HTTP server — trigger success/400/401, all four Dokploy status mappings), `DeployStatusPollerTest` (direct-call style mirroring `RunReaperTest`), `DeployControllerIntegrationTest` (422 on non-`COMPLETED`/no-config, the production approval-gate proof with a Mockito `never()` provider-call assertion, staging auto-deploy with no approval row, and the transaction-boundary regression test).
+
+**Verification:** `apps/api`: `sg docker -c "./gradlew test"` — full suite green (multiple full runs across the transaction-boundary fix). `apps/web`: `npm run build` and `npx ng test --watch=false` — both green. `docker compose -f infra/docker-compose.dev.yml up -d --build` — live walk: configured a `dokploy` integration, created a project with a `production` deploy config, walked a run to `COMPLETED`, requested a deploy (created a `PENDING` `DEPLOY` approval, confirmed the provider was never called), approved it against an intentionally-unreachable Dokploy URL (502), and confirmed — after the fix — the approval stayed `APPROVED` and the environment correctly recorded `FAILED` rather than silently reverting. Grepped talos-api's logs for the fake Dokploy API key: zero matches. Naming guard clean. **Not checked:** live deploy against a real Dokploy instance (none available); interactive browser verification of the Deploy section UI (no browser automation tool available this session).
+
 ## 2026-07-09 — Phase 9: Git push and PR workflow
 
 **Ask:** Continue Revision 2 implementation with Phase 9: approval → commit → push → GitHub PR, recorded and linked — the orchestrator consuming `approval.decided` (published since Phase 8 but never consumed), a runner-supervisor push step, and talos-api-owned GitHub PR creation.
