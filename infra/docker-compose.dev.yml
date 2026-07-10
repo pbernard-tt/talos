@@ -91,6 +91,8 @@ services:
       # telegram-adapter/whatsapp-adapter services' own TALOS_*_SERVICE_EMAIL/PASSWORD below.
       TALOS_TELEGRAM_SERVICE_EMAIL: telegram-bot@talos.local
       TALOS_TELEGRAM_SERVICE_PASSWORD: talos-dev-telegram-password
+      TALOS_WHATSAPP_SERVICE_EMAIL: whatsapp-bot@talos.local
+      TALOS_WHATSAPP_SERVICE_PASSWORD: talos-dev-whatsapp-password
     ports:
       - "8080:8080"
 
@@ -184,6 +186,42 @@ services:
       TALOS_TELEGRAM_ALLOWED_CHAT_IDS: ""
       TALOS_TELEGRAM_SERVICE_EMAIL: telegram-bot@talos.local
       TALOS_TELEGRAM_SERVICE_PASSWORD: talos-dev-telegram-password
+
+  whatsapp-adapter:
+    build:
+      context: ../apps/whatsapp-adapter
+      dockerfile: Dockerfile
+    container_name: talos-whatsapp-adapter
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    environment:
+      TALOS_API_BASE_URL: http://api:8080
+      TALOS_WEB_BASE_URL: http://localhost:4200
+      TALOS_RABBITMQ_URL: amqp://talos:talos@rabbitmq:5672
+      TALOS_REDIS_URL: redis://redis:6379
+      # Real values required to actually run this service -- see docs/deployment.md. Left blank by
+      # default so `docker compose up` still succeeds without the Cloud API configured (Section 16
+      # Phase 12 Track B is optional post-MVP, not a Section 10 hard dependency).
+      TALOS_WHATSAPP_VERIFY_TOKEN: ""
+      TALOS_WHATSAPP_APP_SECRET: ""
+      TALOS_WHATSAPP_ACCESS_TOKEN: ""
+      TALOS_WHATSAPP_PHONE_NUMBER_ID: ""
+      TALOS_WHATSAPP_ALLOWED_IDS: ""
+      TALOS_WHATSAPP_SERVICE_EMAIL: whatsapp-bot@talos.local
+      TALOS_WHATSAPP_SERVICE_PASSWORD: talos-dev-whatsapp-password
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   talos_postgres_data:

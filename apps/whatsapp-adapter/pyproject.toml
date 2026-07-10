@@ -1,0 +1,33 @@
+[project]
+name = "talos-whatsapp-adapter"
+version = "0.1.0"
+description = "Talos WhatsApp trigger: chat-based task intake and run/approval notifications via the WhatsApp Business Cloud API (Section 16 Phase 12 Track B)."
+readme = "README.md"
+authors = [
+    { name = "Paul Bernard", email = "paulvbernard73@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.139.0",
+    "uvicorn[standard]>=0.51.0",
+    "aio-pika>=10.0.1",
+    "httpx>=0.28.1",
+    "redis>=6.2.0",
+]
+
+[project.scripts]
+talos-whatsapp-adapter = "talos_whatsapp_adapter:main"
+
+[build-system]
+requires = ["uv_build>=0.11.28,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "jsonschema>=4.23.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
