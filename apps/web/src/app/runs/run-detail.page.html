@@ -28,6 +28,13 @@
     @if (run.errorMessage) {
       <p class="error"><strong>Error:</strong> {{ run.errorMessage }}</p>
     }
+    @if (store.pullRequest(); as pullRequest) {
+      <p>
+        <strong>Pull request:</strong>
+        <a [href]="pullRequest.url" target="_blank" rel="noopener">#{{ pullRequest.prNumber }}</a>
+        ({{ pullRequest.status }})
+      </p>
+    }
 
     <div class="actions">
       @if (isCancellable(run.status)) {

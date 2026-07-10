@@ -7,6 +7,8 @@ api/approvals.service.ts
 api/approvals.serviceInterface.ts
 api/auth.service.ts
 api/auth.serviceInterface.ts
+api/integrations.service.ts
+api/integrations.serviceInterface.ts
 api/internal.service.ts
 api/internal.serviceInterface.ts
 api/projects.service.ts
@@ -30,9 +32,13 @@ model/errorError.ts
 model/gitChange.ts
 model/gitChangeSummary.ts
 model/gitChangeType.ts
+model/gitTokenResponse.ts
+model/integration.ts
+model/integrationCreateRequest.ts
 model/internalChangesRequest.ts
 model/internalLogEntry.ts
 model/internalLogsRequest.ts
+model/internalPullRequestRequest.ts
 model/internalStatusRequest.ts
 model/internalStepRequest.ts
 model/logEntry.ts
@@ -53,6 +59,8 @@ model/projectConfig.ts
 model/projectDetail.ts
 model/projectStatus.ts
 model/projectSummary.ts
+model/pullRequest.ts
+model/pullRequestStatus.ts
 model/rejectRequest.ts
 model/requestChangesRequest.ts
 model/reviewStatus.ts
@@ -72,6 +80,7 @@ model/taskPriority.ts
 model/taskRiskLevel.ts
 model/taskStatus.ts
 model/taskSummary.ts
+model/testIntegrationResponse.ts
 model/testStatus.ts
 model/updateProjectRequest.ts
 ng-package.json

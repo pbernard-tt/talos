@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, of } from 'rxjs';
 
-import { Diff, LogEntry, RunDetail, RunsService } from '../api';
+import { Diff, LogEntry, PullRequest, RunDetail, RunsService } from '../api';
 import { RunEventStreamService, RunStreamEvent } from './run-event-stream.service';
 
 /** One signal-based store per domain (Section 6.1); components read signals and call store methods. */
@@ -13,12 +13,14 @@ export class RunStore {
   private readonly runSignal = signal<RunDetail | null>(null);
   private readonly diffSignal = signal<Diff | null>(null);
   private readonly logsSignal = signal<LogEntry[]>([]);
+  private readonly pullRequestSignal = signal<PullRequest | null>(null);
   private readonly loadingSignal = signal(false);
   private readonly errorSignal = signal<string | null>(null);
 
   readonly run = this.runSignal.asReadonly();
   readonly diff = this.diffSignal.asReadonly();
   readonly logs = this.logsSignal.asReadonly();
+  readonly pullRequest = this.pullRequestSignal.asReadonly();
   readonly loading = this.loadingSignal.asReadonly();
   readonly error = this.errorSignal.asReadonly();
 
@@ -54,6 +56,7 @@ export class RunStore {
     this.runSignal.set(null);
     this.diffSignal.set(null);
     this.logsSignal.set([]);
+    this.pullRequestSignal.set(null);
   }
 
   async cancel(runId: string): Promise<void> {
@@ -78,5 +81,16 @@ export class RunStore {
     ]);
     this.runSignal.set(run);
     this.diffSignal.set(diff);
+
+    // Only COMPLETED runs have a PR (Section 8.2's APPROVED -> COMPLETED, commit/push/PR); 404
+    // before that is expected, not an error -- surface it as "no PR yet" rather than failing load().
+    if (run.status === 'COMPLETED') {
+      const pullRequest = await firstValueFrom(
+        this.runsService.getRunPullRequest({ id: runId }).pipe(catchError(() => of(null))),
+      );
+      this.pullRequestSignal.set(pullRequest);
+    } else {
+      this.pullRequestSignal.set(null);
+    }
   }
 }

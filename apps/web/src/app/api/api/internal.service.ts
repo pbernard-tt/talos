@@ -17,13 +17,19 @@ import { Observable }                                        from 'rxjs';
 import { OpenApiHttpParams, QueryParamStyle } from '../query.params';
 
 // @ts-ignore
+import { GitTokenResponse } from '../model/gitTokenResponse';
+// @ts-ignore
 import { InternalChangesRequest } from '../model/internalChangesRequest';
 // @ts-ignore
 import { InternalLogsRequest } from '../model/internalLogsRequest';
 // @ts-ignore
+import { InternalPullRequestRequest } from '../model/internalPullRequestRequest';
+// @ts-ignore
 import { InternalStatusRequest } from '../model/internalStatusRequest';
 // @ts-ignore
 import { InternalStepRequest } from '../model/internalStepRequest';
+// @ts-ignore
+import { PullRequest } from '../model/pullRequest';
 // @ts-ignore
 import { Run } from '../model/run';
 // @ts-ignore
@@ -37,7 +43,9 @@ import { Configuration }                                     from '../configurat
 import { BaseService } from '../api.base.service';
 import {
     InternalServiceInterface,
+    InternalCreateRunPullRequestRequestParams,
     InternalGetRunContextRequestParams,
+    InternalGetRunGitTokenRequestParams,
     InternalIngestRunLogsRequestParams,
     InternalRecordRunChangesRequestParams,
     InternalRecordRunStepRequestParams,
@@ -53,6 +61,80 @@ export class InternalService extends BaseService implements InternalServiceInter
 
     constructor(protected httpClient: HttpClient, @Optional() @Inject(BASE_PATH) basePath: string|string[], @Optional() configuration?: Configuration) {
         super(basePath, configuration);
+    }
+
+    /**
+     * Called once the runner supervisor has pushed branchName: opens the PR via the GitHub REST API, stores the pull_requests row, publishes pr.created, and transitions the run APPROVED -&gt; COMPLETED (Section 8.2). 
+     * @endpoint post /internal/v1/runs/{id}/pull-request
+     * @param requestParameters
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public internalCreateRunPullRequest(requestParameters: InternalCreateRunPullRequestRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PullRequest>;
+    public internalCreateRunPullRequest(requestParameters: InternalCreateRunPullRequestRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PullRequest>>;
+    public internalCreateRunPullRequest(requestParameters: InternalCreateRunPullRequestRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PullRequest>>;
+    public internalCreateRunPullRequest(requestParameters: InternalCreateRunPullRequestRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const id = requestParameters?.id;
+        if (id === null || id === undefined) {
+            throw new Error('Required parameter id was null or undefined when calling internalCreateRunPullRequest.');
+        }
+        const internalPullRequestRequest = requestParameters?.internalPullRequestRequest;
+        if (internalPullRequestRequest === null || internalPullRequestRequest === undefined) {
+            throw new Error('Required parameter internalPullRequestRequest was null or undefined when calling internalCreateRunPullRequest.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (serviceToken) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('serviceToken', 'X-Talos-Internal-Token', localVarHeaders);
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/internal/v1/runs/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/pull-request`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<PullRequest>('post', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: internalPullRequestRequest,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
     }
 
     /**
@@ -103,6 +185,66 @@ export class InternalService extends BaseService implements InternalServiceInter
         let localVarPath = `/internal/v1/runs/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/context`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<RunContext>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Phase 9\&#39;s push credential flow: the decrypted GitHub token for this run\&#39;s project, plus repoUrl/defaultBranch, for the runner supervisor\&#39;s push step. 409 unless run.status &#x3D;&#x3D; APPROVED -- the server-side enforcement behind \&quot;unapproved run cannot push\&quot;. 
+     * @endpoint get /internal/v1/runs/{id}/git-token
+     * @param requestParameters
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public internalGetRunGitToken(requestParameters: InternalGetRunGitTokenRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GitTokenResponse>;
+    public internalGetRunGitToken(requestParameters: InternalGetRunGitTokenRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GitTokenResponse>>;
+    public internalGetRunGitToken(requestParameters: InternalGetRunGitTokenRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GitTokenResponse>>;
+    public internalGetRunGitToken(requestParameters: InternalGetRunGitTokenRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const id = requestParameters?.id;
+        if (id === null || id === undefined) {
+            throw new Error('Required parameter id was null or undefined when calling internalGetRunGitToken.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (serviceToken) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('serviceToken', 'X-Talos-Internal-Token', localVarHeaders);
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/internal/v1/runs/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/git-token`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<GitTokenResponse>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

@@ -14,6 +14,7 @@ import { Observable }                                        from 'rxjs';
 import { Diff } from '../model/models';
 import { PageLogEntry } from '../model/models';
 import { PageRunSummary } from '../model/models';
+import { PullRequest } from '../model/models';
 import { Run } from '../model/models';
 import { RunDetail } from '../model/models';
 import { RunStatus } from '../model/models';
@@ -39,6 +40,10 @@ export interface GetRunLogsRequestParams {
     id: string;
     afterSequence?: number;
     size?: number;
+}
+
+export interface GetRunPullRequestRequestParams {
+    id: string;
 }
 
 export interface ListRunsRequestParams {
@@ -93,6 +98,14 @@ export interface RunsServiceInterface {
 * @param requestParameters
      */
     getRunLogs(requestParameters: GetRunLogsRequestParams, extraHttpRequestParams?: any): Observable<PageLogEntry>;
+
+    /**
+     * The PR opened for this run after approval (Phase 9). 404 until PullRequestService has opened one. 
+     * 
+     * @endpoint get /runs/{id}/pull-request
+* @param requestParameters
+     */
+    getRunPullRequest(requestParameters: GetRunPullRequestRequestParams, extraHttpRequestParams?: any): Observable<PullRequest>;
 
     /**
      * List agent runs.

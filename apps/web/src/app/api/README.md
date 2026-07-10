@@ -1,8 +1,8 @@
-# @talos/api-client@0.8.0
+# @talos/api-client@0.9.0
 
-Source of truth for the talos-api public (/api/v1) and internal (/internal/v1) REST surface. The Angular client is generated from this file (openapi-generator, typescript-angular); CI diffs the running API\'s springdoc output against it. Endpoints are added phase by phase per Section 10 of the implementation plan — this file currently covers Phase 1 (auth), Phase 3 (project registry), Phase 4 (task board), Phase 5 (agent run lifecycle, API side), Phase 6 (cancel + internal changes ingest), and Phase 8 (review/approval flow: diff serving and the approvals endpoints). 
+Source of truth for the talos-api public (/api/v1) and internal (/internal/v1) REST surface. The Angular client is generated from this file (openapi-generator, typescript-angular); CI diffs the running API\'s springdoc output against it. Endpoints are added phase by phase per Section 10 of the implementation plan — this file currently covers Phase 1 (auth), Phase 3 (project registry), Phase 4 (task board), Phase 5 (agent run lifecycle, API side), Phase 6 (cancel + internal changes ingest), Phase 8 (review/approval flow: diff serving and the approvals endpoints), and Phase 9 (git push and PR workflow: integrations, the git-token/pull-request internal endpoints, and GET /runs/{id}/pull-request). 
 
-The version of the OpenAPI document: 0.8.0
+The version of the OpenAPI document: 0.9.0
 
 ## Building
 
@@ -24,7 +24,7 @@ Navigate to the folder of your consuming project and run one of next commands.
 _published:_
 
 ```console
-npm install @talos/api-client@0.8.0 --save
+npm install @talos/api-client@0.9.0 --save
 ```
 
 _without publishing (not recommended):_

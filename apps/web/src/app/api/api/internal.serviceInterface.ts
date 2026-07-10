@@ -11,10 +11,13 @@ import { HttpHeaders }                                       from '@angular/comm
 
 import { Observable }                                        from 'rxjs';
 
+import { GitTokenResponse } from '../model/models';
 import { InternalChangesRequest } from '../model/models';
 import { InternalLogsRequest } from '../model/models';
+import { InternalPullRequestRequest } from '../model/models';
 import { InternalStatusRequest } from '../model/models';
 import { InternalStepRequest } from '../model/models';
+import { PullRequest } from '../model/models';
 import { Run } from '../model/models';
 import { RunContext } from '../model/models';
 import { Step } from '../model/models';
@@ -23,7 +26,16 @@ import { Step } from '../model/models';
 import { Configuration }                                     from '../configuration';
 
 
+export interface InternalCreateRunPullRequestRequestParams {
+    id: string;
+    internalPullRequestRequest: InternalPullRequestRequest;
+}
+
 export interface InternalGetRunContextRequestParams {
+    id: string;
+}
+
+export interface InternalGetRunGitTokenRequestParams {
     id: string;
 }
 
@@ -53,12 +65,28 @@ export interface InternalServiceInterface {
     configuration: Configuration;
 
     /**
+     * Called once the runner supervisor has pushed branchName: opens the PR via the GitHub REST API, stores the pull_requests row, publishes pr.created, and transitions the run APPROVED -&gt; COMPLETED (Section 8.2). 
+     * 
+     * @endpoint post /internal/v1/runs/{id}/pull-request
+* @param requestParameters
+     */
+    internalCreateRunPullRequest(requestParameters: InternalCreateRunPullRequestRequestParams, extraHttpRequestParams?: any): Observable<PullRequest>;
+
+    /**
      * Run + task + project + active parsed config, for orchestrator pipeline bootstrap.
      * 
      * @endpoint get /internal/v1/runs/{id}/context
 * @param requestParameters
      */
     internalGetRunContext(requestParameters: InternalGetRunContextRequestParams, extraHttpRequestParams?: any): Observable<RunContext>;
+
+    /**
+     * Phase 9\&#39;s push credential flow: the decrypted GitHub token for this run\&#39;s project, plus repoUrl/defaultBranch, for the runner supervisor\&#39;s push step. 409 unless run.status &#x3D;&#x3D; APPROVED -- the server-side enforcement behind \&quot;unapproved run cannot push\&quot;. 
+     * 
+     * @endpoint get /internal/v1/runs/{id}/git-token
+* @param requestParameters
+     */
+    internalGetRunGitToken(requestParameters: InternalGetRunGitTokenRequestParams, extraHttpRequestParams?: any): Observable<GitTokenResponse>;
 
     /**
      * Ingest a batch of log lines; persists then relays to any open SSE connection via Redis.
