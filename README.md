@@ -10,7 +10,7 @@ The full architecture, data model, API surface, and phased implementation plan l
 
 - **One dashboard for many repos.** Register projects, track tasks, and keep agent work visible instead of buried in separate terminal sessions.
 - **Governed agent runs.** Start a run from a task, execute it on an isolated `agent/task-<id>-<slug>` branch, stream logs live, and retain an auditable step history.
-- **Agent-agnostic execution.** The platform talks to adapters, not directly to providers. `custom-shell` and `claude-code` are implemented; `opencode`, `codex-cli`, and `openhands` are intentionally stubbed until the post-MVP adapter phase.
+- **Agent-agnostic execution.** The platform talks to adapters, not directly to providers. `custom-shell`, `claude-code`, `opencode`, `codex-cli`, and `openhands` (an HTTP client against a locally deployed OpenHands agent-server) are implemented; `gemini-cli` remains a backlog stub.
 - **Real isolation boundary.** Runs execute in per-run Docker containers with their own worktree subpath, resource limits, no Docker socket, no internal service network, and provider homes outside the workspace.
 - **Review before merge.** Talos captures diffs, scans configured risk patterns, shows the review result, and requires approval before any push, pull request, or deploy action.
 - **Approval-gated delivery.** Approved runs can push a branch, open a GitHub pull request, and trigger a Dokploy deployment. Production deploys require their own deploy approval.
