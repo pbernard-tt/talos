@@ -39,3 +39,5 @@ talos:
   secrets-key: ${TALOS_SECRETS_KEY:}
   github-webhook-secret: ${TALOS_GITHUB_WEBHOOK_SECRET:}
   policy-file: ${TALOS_POLICY_FILE:}
+  login-rate-limit-max-attempts: ${TALOS_LOGIN_RATE_LIMIT_MAX_ATTEMPTS:10}
+  login-rate-limit-window-seconds: ${TALOS_LOGIN_RATE_LIMIT_WINDOW_SECONDS:60}

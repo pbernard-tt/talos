@@ -85,13 +85,21 @@ class RunControllerIntegrationTest {
 	@Autowired
 	private GitChangeRepository gitChangeRepository;
 
+	// Cached across this class's ~20 test methods (one shared Spring context/Testcontainers Redis):
+	// logging in fresh per test would otherwise trip Phase 11's login rate limiter, which counts
+	// attempts per client IP and doesn't distinguish MockMvc's synthetic requests from each other.
+	private static String cachedBearerToken;
+
 	private String bearerToken() throws Exception {
-		String response = mockMvc.perform(post("/api/v1/auth/login")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("{\"email\":\"admin@test.local\",\"password\":\"test-admin-password\"}"))
-				.andExpect(status().isOk())
-				.andReturn().getResponse().getContentAsString();
-		return "Bearer " + JsonPath.<String>read(response, "$.token");
+		if (cachedBearerToken == null) {
+			String response = mockMvc.perform(post("/api/v1/auth/login")
+							.contentType(MediaType.APPLICATION_JSON)
+							.content("{\"email\":\"admin@test.local\",\"password\":\"test-admin-password\"}"))
+					.andExpect(status().isOk())
+					.andReturn().getResponse().getContentAsString();
+			cachedBearerToken = "Bearer " + JsonPath.<String>read(response, "$.token");
+		}
+		return cachedBearerToken;
 	}
 
 	private String createProject(String token, boolean withConfig) throws Exception {

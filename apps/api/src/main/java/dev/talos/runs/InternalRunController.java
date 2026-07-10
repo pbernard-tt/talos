@@ -9,6 +9,7 @@ import dev.talos.runs.dto.InternalPullRequestRequest;
 import dev.talos.runs.dto.InternalStatusRequest;
 import dev.talos.runs.dto.InternalStepRequest;
 import dev.talos.runs.dto.PullRequestResponse;
+import dev.talos.runs.dto.RetentionCandidatesResponse;
 import dev.talos.runs.dto.RunContextResponse;
 import dev.talos.runs.dto.RunResponse;
 import dev.talos.runs.dto.StepResponse;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -65,6 +67,12 @@ public class InternalRunController {
 	@GetMapping("/{id}/context")
 	public RunContextResponse getContext(@PathVariable UUID id) {
 		return runService.getContext(id);
+	}
+
+	/** Phase 11 (Section 8.3): terminal runs older than maxAgeDays with no OPEN PR, for the orchestrator's retention sweep. */
+	@GetMapping("/retention-candidates")
+	public RetentionCandidatesResponse retentionCandidates(@RequestParam(defaultValue = "7") int maxAgeDays) {
+		return runService.getRetentionCandidates(maxAgeDays);
 	}
 
 	/** Section 8.4's push credential flow: guards run.status == APPROVED (Phase 9's "unapproved run cannot push" test). */

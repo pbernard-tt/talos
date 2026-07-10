@@ -6,7 +6,9 @@ import dev.talos.approvals.dto.ApprovalRequestedPayload;
 import dev.talos.audit.AuditService;
 import dev.talos.common.ApiException;
 import dev.talos.events.EventPublisher;
+import dev.talos.integrations.PullRequest;
 import dev.talos.integrations.PullRequestRepository;
+import dev.talos.integrations.PullRequestStatus;
 import dev.talos.policy.PolicyScanService;
 import dev.talos.projects.Project;
 import dev.talos.projects.ProjectConfig;
@@ -22,6 +24,8 @@ import dev.talos.runs.dto.InternalLogsRequest;
 import dev.talos.runs.dto.InternalStepRequest;
 import dev.talos.runs.dto.LogEntryResponse;
 import dev.talos.runs.dto.PullRequestResponse;
+import dev.talos.runs.dto.RetentionCandidateResponse;
+import dev.talos.runs.dto.RetentionCandidatesResponse;
 import dev.talos.runs.dto.RunCancelRequestedPayload;
 import dev.talos.runs.dto.RunContextResponse;
 import dev.talos.runs.dto.RunDetailResponse;
@@ -47,7 +51,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class RunService {
@@ -316,6 +322,34 @@ public class RunService {
 				.orElse(null);
 		return new RunContextResponse(RunResponse.from(run), TaskSummary.from(task), ProjectSummary.from(project),
 				activeConfig);
+	}
+
+	/**
+	 * Phase 11 (Section 8.3): terminal runs completed more than maxAgeDays ago with no OPEN pull
+	 * request. The orchestrator (the only service that can reach both this and the runner
+	 * supervisor) uses this to decide which workspace directories to delete.
+	 */
+	public RetentionCandidatesResponse getRetentionCandidates(int maxAgeDays) {
+		Instant cutoff = Instant.now().minus(Duration.ofDays(maxAgeDays));
+		List<AgentRun> terminalRuns = agentRunRepository
+				.findByStatusInAndCompletedAtBefore(RunTransitionValidator.terminalStatuses(), cutoff);
+		if (terminalRuns.isEmpty()) {
+			return new RetentionCandidatesResponse(List.of());
+		}
+
+		List<UUID> runIds = terminalRuns.stream().map(AgentRun::getId).toList();
+		Set<UUID> runIdsWithOpenPr = pullRequestRepository.findByRunIdInAndStatus(runIds, PullRequestStatus.OPEN)
+				.stream().map(PullRequest::getRunId).collect(Collectors.toSet());
+
+		Map<UUID, String> projectSlugById = projectRepository
+				.findAllById(terminalRuns.stream().map(AgentRun::getProjectId).distinct().toList())
+				.stream().collect(Collectors.toMap(Project::getId, Project::getSlug));
+
+		List<RetentionCandidateResponse> candidates = terminalRuns.stream()
+				.filter(run -> !runIdsWithOpenPr.contains(run.getId()))
+				.map(run -> new RetentionCandidateResponse(run.getId(), projectSlugById.get(run.getProjectId())))
+				.toList();
+		return new RetentionCandidatesResponse(candidates);
 	}
 
 	/** Package-visibility relaxed for ApprovalService (Phase 8), which drives transitionRun on approve/reject. */

@@ -25,4 +25,6 @@ public interface AgentRunRepository extends JpaRepository<AgentRun, UUID> {
 	boolean existsByTaskIdAndStatusNotIn(UUID taskId, Collection<RunStatus> statuses);
 
 	List<AgentRun> findByStatusInAndTimeoutAtBefore(Collection<RunStatus> statuses, Instant instant);
+
+	List<AgentRun> findByStatusInAndCompletedAtBefore(Collection<RunStatus> statuses, Instant instant);
 }

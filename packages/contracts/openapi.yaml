@@ -944,6 +944,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /internal/v1/runs/retention-candidates:
+    get:
+      operationId: internalGetRunRetentionCandidates
+      summary: >
+        Phase 11 (Section 8.3): terminal runs completed more than maxAgeDays ago with no OPEN pull
+        request. The orchestrator is the only service that can reach both this endpoint and the
+        runner supervisor, so it drives the actual workspace deletion via POST
+        /workspaces/cleanup after calling this.
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - name: maxAgeDays
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 7
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetentionCandidatesResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1775,6 +1803,25 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    RetentionCandidate:
+      type: object
+      required: [runId, projectSlug]
+      properties:
+        runId:
+          type: string
+          format: uuid
+        projectSlug:
+          type: string
+
+    RetentionCandidatesResponse:
+      type: object
+      required: [candidates]
+      properties:
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetentionCandidate"
 
     GitTokenResponse:
       type: object

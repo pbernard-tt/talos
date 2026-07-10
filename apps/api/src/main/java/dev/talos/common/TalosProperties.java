@@ -11,5 +11,7 @@ public record TalosProperties(
 		String adminPassword,
 		String secretsKey,
 		String githubWebhookSecret,
-		String policyFile) {
+		String policyFile,
+		Integer loginRateLimitMaxAttempts,
+		Integer loginRateLimitWindowSeconds) {
 }

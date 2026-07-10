@@ -4,6 +4,7 @@ import dev.talos.common.TalosProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -11,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Two filter chains: /internal/v1/** authenticates via a shared service token (Section 10.1),
@@ -24,12 +26,16 @@ public class SecurityConfig {
 	private final JwtService jwtService;
 	private final JsonAuthenticationEntryPoint authenticationEntryPoint;
 	private final TalosProperties talosProperties;
+	private final StringRedisTemplate redisTemplate;
+	private final ObjectMapper objectMapper;
 
 	public SecurityConfig(JwtService jwtService, JsonAuthenticationEntryPoint authenticationEntryPoint,
-			TalosProperties talosProperties) {
+			TalosProperties talosProperties, StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
 		this.jwtService = jwtService;
 		this.authenticationEntryPoint = authenticationEntryPoint;
 		this.talosProperties = talosProperties;
+		this.redisTemplate = redisTemplate;
+		this.objectMapper = objectMapper;
 	}
 
 	@Bean
@@ -66,7 +72,11 @@ public class SecurityConfig {
 						.requestMatchers("/actuator/health").permitAll()
 						.requestMatchers("/api/v1/auth/login").permitAll()
 						.anyRequest().authenticated())
-				.addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+				.addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(
+						new LoginRateLimitFilter(redisTemplate, objectMapper,
+								talosProperties.loginRateLimitMaxAttempts(), talosProperties.loginRateLimitWindowSeconds()),
+						JwtAuthenticationFilter.class);
 		return http.build();
 	}
 }

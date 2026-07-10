@@ -27,7 +27,7 @@ class SecretServiceTest {
 	void setUp() {
 		String base64Key = Base64.getEncoder().encodeToString("a-32-byte-test-secrets-key-!!!!!".getBytes());
 		secretService = new SecretService(secretValueRepository, new TalosProperties(null, null, null, null,
-				base64Key, null, null));
+				base64Key, null, null, null, null));
 	}
 
 	@Test
