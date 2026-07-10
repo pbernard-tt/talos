@@ -1,6 +1,23 @@
 from fakes import FakeApiClient, FakeRunLock, FakeRunnerClient
 
+from talos_orchestrator.config import Settings
 from talos_orchestrator.pipeline import RunPipeline
+
+SETTINGS = Settings(
+    api_base_url="http://api",
+    internal_api_token="",
+    rabbitmq_url="amqp://x",
+    redis_url="redis://x",
+    runner_base_url="http://runner",
+    max_active_runs=1,
+    run_timeout_minutes=60,
+    worker_image_base="workers/base-agent-runner:latest",
+    worker_image_java="workers/java-runner:latest",
+    worker_image_node="workers/node-runner:latest",
+    worker_image_python="workers/python-runner:latest",
+    retention_max_age_days=7,
+    retention_interval_seconds=21600,
+)
 
 CONTEXT = {
     "run": {"status": "QUEUED"},
@@ -55,7 +72,7 @@ def _pipeline(
         push_result=push_result,
     )
     run_lock = FakeRunLock(acquire_result=acquire_result)
-    pipeline = RunPipeline(api_client, runner_client, run_lock)
+    pipeline = RunPipeline(api_client, runner_client, run_lock, SETTINGS)
     return pipeline, api_client, runner_client, run_lock
 
 
@@ -95,6 +112,24 @@ async def test_happy_path_walks_all_statuses_and_releases_lock():
     assert any(step[0] == "TESTS" and step[1] == "COMPLETED" for step in api_client.step_calls)
     assert any(step[0] == "REVIEW" and step[1] == "COMPLETED" for step in api_client.step_calls)
     assert api_client.log_entries  # the "hi" log line was batched and flushed
+
+
+async def test_execute_run_resolves_container_image_from_project_stack_type():
+    context = {**CONTEXT, "project": {**CONTEXT["project"], "stackType": "python"}}
+    pipeline, api_client, runner_client, run_lock = _pipeline(context=context)
+
+    await pipeline.handle_run_requested(REQUEST_PAYLOAD)
+
+    assert runner_client.execute_run_calls[-1]["container_image"] == "workers/python-runner:latest"
+
+
+async def test_execute_run_falls_back_to_base_image_for_unknown_stack_type():
+    context = {**CONTEXT, "project": {**CONTEXT["project"], "stackType": "rust"}}
+    pipeline, api_client, runner_client, run_lock = _pipeline(context=context)
+
+    await pipeline.handle_run_requested(REQUEST_PAYLOAD)
+
+    assert runner_client.execute_run_calls[-1]["container_image"] == "workers/base-agent-runner:latest"
 
 
 async def test_claude_run_stores_assembled_prompt_for_audit():
@@ -184,7 +219,7 @@ async def test_agent_failure_after_run_already_cancelled_does_not_raise():
     api_client = FakeApiClient(CONTEXT, reject_status_updates_to={"FAILED"})
     runner_client = FakeRunnerClient(PREPARE_RESULT, stopped_events, PASSING_TEST_EVENTS, DIFF_RESULT)
     run_lock = FakeRunLock()
-    pipeline = RunPipeline(api_client, runner_client, run_lock)
+    pipeline = RunPipeline(api_client, runner_client, run_lock, SETTINGS)
 
     await pipeline.handle_run_requested(REQUEST_PAYLOAD)  # must not raise
 

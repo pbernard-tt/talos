@@ -18,6 +18,7 @@ from talos_orchestrator.api_client import ApiClient
 from talos_orchestrator.config import load_settings
 from talos_orchestrator.locks import RunLock
 from talos_orchestrator.pipeline import RunPipeline
+from talos_orchestrator.retention import run_periodically as run_retention_periodically
 from talos_orchestrator.runner_client import RunnerClient
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ async def _amain() -> None:
     api_client = ApiClient(settings)
     runner_client = RunnerClient(settings)
     run_lock = RunLock(settings)
-    pipeline = RunPipeline(api_client, runner_client, run_lock)
+    pipeline = RunPipeline(api_client, runner_client, run_lock, settings)
     redis_client = redis.from_url(settings.redis_url)
 
     connection = await aio_pika.connect_robust(settings.rabbitmq_url)
@@ -92,9 +93,13 @@ async def _amain() -> None:
         logger.info(
             "talos-orchestrator consuming %s, %s, and %s", RUN_REQUESTS_QUEUE, CANCELLATIONS_QUEUE, APPROVALS_QUEUE
         )
+        # Phase 11 (Section 8.3): periodic workspace retention sweep. Only the orchestrator can reach
+        # both talos-api and talos-runner-supervisor, so it can't live in talos-api itself.
+        retention_task = asyncio.create_task(run_retention_periodically(api_client, runner_client, settings))
         try:
             await asyncio.Future()  # run until cancelled
         finally:
+            retention_task.cancel()
             await api_client.aclose()
             await runner_client.aclose()
             await run_lock.aclose()

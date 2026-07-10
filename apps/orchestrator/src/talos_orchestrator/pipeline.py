@@ -11,6 +11,7 @@ from typing import Any
 
 from talos_orchestrator.adapters import capabilities_for
 from talos_orchestrator.api_client import ApiClient
+from talos_orchestrator.config import Settings
 from talos_orchestrator.log_batcher import LogBatcher
 from talos_orchestrator.locks import RunLock
 from talos_orchestrator.prompt_assembler import assemble_prompt
@@ -20,12 +21,27 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_TIMEOUT_SECONDS = 1800
 
+# Phase 11 (Section 8/12.1): per-run container image resolved from project.stackType. Anything not
+# listed here (or no stackType at all) falls back to the general-purpose base image.
+_STACK_TYPE_IMAGE_ATTR = {
+    "spring-boot": "worker_image_java",
+    "angular": "worker_image_node",
+    "node": "worker_image_node",
+    "python": "worker_image_python",
+}
+
+
+def _container_image_for(stack_type: str | None, settings: Settings) -> str:
+    attr = _STACK_TYPE_IMAGE_ATTR.get((stack_type or "").lower())
+    return getattr(settings, attr) if attr else settings.worker_image_base
+
 
 class RunPipeline:
-    def __init__(self, api_client: ApiClient, runner_client: RunnerClient, run_lock: RunLock) -> None:
+    def __init__(self, api_client: ApiClient, runner_client: RunnerClient, run_lock: RunLock, settings: Settings) -> None:
         self._api_client = api_client
         self._runner_client = runner_client
         self._run_lock = run_lock
+        self._settings = settings
 
     async def handle_run_requested(self, payload: dict[str, Any]) -> None:
         run_id = payload["run_id"]
@@ -183,9 +199,17 @@ class RunPipeline:
         )
         await self._api_client.record_step(run_id, "AGENT", "RUNNING")
 
+        container_image = _container_image_for(project.get("stackType"), self._settings)
         agent_result: dict[str, Any] | None = None
         async for event in self._runner_client.execute_run(
-            run_id, agent_key, workspace_path, prompt, env={}, auth_mode=auth_mode, timeout_seconds=timeout_seconds
+            run_id,
+            agent_key,
+            workspace_path,
+            prompt,
+            env={},
+            auth_mode=auth_mode,
+            timeout_seconds=timeout_seconds,
+            container_image=container_image,
         ):
             if event.get("type") == "result":
                 agent_result = event

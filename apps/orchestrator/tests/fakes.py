@@ -32,6 +32,8 @@ class FakeApiClient:
         # Simulates the API's 422 ILLEGAL_RUN_TRANSITION when the run is already terminal (e.g. a
         # concurrent /cancel already moved it to CANCELLED before the pipeline tries to report FAILED).
         self._reject_status_updates_to = reject_status_updates_to or set()
+        self.retention_candidates: list[dict[str, Any]] = []
+        self.retention_candidates_calls: list[int] = []
 
     async def get_context(self, run_id: str) -> dict[str, Any]:
         return self.context
@@ -88,6 +90,10 @@ class FakeApiClient:
         self.pull_request_calls.append((run_id, branch_name, commit_sha))
         return self.pull_request
 
+    async def get_retention_candidates(self, max_age_days: int) -> list[dict[str, Any]]:
+        self.retention_candidates_calls.append(max_age_days)
+        return self.retention_candidates
+
 
 class FakeRunnerClient:
     def __init__(
@@ -105,11 +111,15 @@ class FakeRunnerClient:
         self.push_result = push_result or {"pushed": True, "needsRebase": False, "commitSha": "abc123def"}
         self.stop_calls: list[str] = []
         self.push_calls: list[tuple[Any, ...]] = []
+        self.execute_run_calls: list[dict[str, Any]] = []
+        self.cleanup_calls: list[tuple[str, list[str], int | None]] = []
+        self.cleanup_result: dict[str, Any] = {"deletedRunIds": []}
 
     async def prepare_workspace(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         return self.prepare_result
 
     async def execute_run(self, *args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
+        self.execute_run_calls.append(kwargs)
         for event in self.execute_events:
             yield event
 
@@ -135,6 +145,10 @@ class FakeRunnerClient:
     ) -> dict[str, Any]:
         self.push_calls.append((run_id, workspace_path, branch_name, default_branch, commit_message, token, repo_url))
         return self.push_result
+
+    async def cleanup(self, project_slug: str, run_ids: list[str], max_age_days: int | None = None) -> dict[str, Any]:
+        self.cleanup_calls.append((project_slug, run_ids, max_age_days))
+        return self.cleanup_result
 
 
 class FakeRunLock:

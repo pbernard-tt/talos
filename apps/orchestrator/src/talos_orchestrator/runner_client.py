@@ -51,6 +51,7 @@ class RunnerClient:
         env: dict[str, str],
         auth_mode: str,
         timeout_seconds: int,
+        container_image: str | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
         body = {
             "adapterKey": adapter_key,
@@ -60,6 +61,8 @@ class RunnerClient:
             "authMode": auth_mode,
             "timeoutSeconds": timeout_seconds,
         }
+        if container_image is not None:
+            body["containerImage"] = container_image
         async with self._client.stream("POST", f"/runs/{run_id}/execute", json=body) as response:
             response.raise_for_status()
             async for line in response.aiter_lines():

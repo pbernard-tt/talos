@@ -93,6 +93,15 @@ class ApiClient:
         response.raise_for_status()
         return response.json()
 
+    async def get_retention_candidates(self, max_age_days: int) -> list[dict[str, Any]]:
+        """Phase 11 (Section 8.3): terminal runs older than max_age_days with no OPEN pull request --
+        the runner supervisor's own workspace directories for these, not the database rows."""
+        response = await self._client.get(
+            "/internal/v1/runs/retention-candidates", params={"maxAgeDays": max_age_days}
+        )
+        response.raise_for_status()
+        return response.json()["candidates"]
+
     async def create_pull_request(self, run_id: str, branch_name: str, commit_sha: str) -> dict[str, Any]:
         """Opens the PR and completes the run server-side (APPROVED -> COMPLETED, Section 8.2)."""
         response = await self._client.post(
