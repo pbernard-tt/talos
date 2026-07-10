@@ -21,14 +21,16 @@ public class IntegrationService {
 	private final IntegrationCredentialRepository integrationCredentialRepository;
 	private final SecretService secretService;
 	private final GitHubClient gitHubClient;
+	private final DeployProvider deployProvider;
 
 	public IntegrationService(IntegrationRepository integrationRepository,
 			IntegrationCredentialRepository integrationCredentialRepository, SecretService secretService,
-			GitHubClient gitHubClient) {
+			GitHubClient gitHubClient, DeployProvider deployProvider) {
 		this.integrationRepository = integrationRepository;
 		this.integrationCredentialRepository = integrationCredentialRepository;
 		this.secretService = secretService;
 		this.gitHubClient = gitHubClient;
+		this.deployProvider = deployProvider;
 	}
 
 	@Transactional
@@ -50,10 +52,14 @@ public class IntegrationService {
 	public TestIntegrationResponse test(UUID id) {
 		Integration integration = getOrThrow(id);
 		String token = resolveToken(integration);
-		if (!"github".equals(integration.getType())) {
+		boolean ok = switch (integration.getType()) {
+			case "github" -> gitHubClient.testConnection(token);
+			case "dokploy" -> deployProvider.testConnection(baseUrl(integration), token);
+			default -> false;
+		};
+		if (!"github".equals(integration.getType()) && !"dokploy".equals(integration.getType())) {
 			return new TestIntegrationResponse(false, "No test implemented for integration type " + integration.getType());
 		}
-		boolean ok = gitHubClient.testConnection(token);
 		return new TestIntegrationResponse(ok, ok ? "Connection succeeded" : "Connection failed");
 	}
 
@@ -71,6 +77,31 @@ public class IntegrationService {
 				.orElseThrow(() -> new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "NO_GITHUB_INTEGRATION",
 						"No enabled GitHub integration is configured"));
 		return resolveToken(integration);
+	}
+
+	/**
+	 * Resolves the (single, MVP-scope) enabled Dokploy integration's base URL + decrypted API key.
+	 * Same relaxed-visibility rationale as {@link #resolveGitHubToken()}.
+	 */
+	public DokployCredentials resolveDokployCredentials() {
+		Integration integration = integrationRepository.findAll().stream()
+				.filter(i -> "dokploy".equals(i.getType()) && i.isEnabled())
+				.findFirst()
+				.orElseThrow(() -> new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "NO_DOKPLOY_INTEGRATION",
+						"No enabled Dokploy integration is configured"));
+		return new DokployCredentials(baseUrl(integration), resolveToken(integration));
+	}
+
+	private String baseUrl(Integration integration) {
+		Object baseUrl = integration.getConfigJson().get("baseUrl");
+		if (!(baseUrl instanceof String baseUrlString) || baseUrlString.isBlank()) {
+			throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "INTEGRATION_MISSING_BASE_URL",
+					"Integration %s has no configJson.baseUrl".formatted(integration.getId()));
+		}
+		return baseUrlString;
+	}
+
+	public record DokployCredentials(String baseUrl, String token) {
 	}
 
 	private String resolveToken(Integration integration) {

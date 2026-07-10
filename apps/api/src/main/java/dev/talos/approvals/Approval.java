@@ -55,18 +55,28 @@ public class Approval {
 	@Column(name = "created_at", nullable = false, insertable = false, updatable = false)
 	private Instant createdAt;
 
+	/** Phase 10: which environment a DEPLOY-type approval is for; null for RUN_RESULT approvals. */
+	@Column(length = 50)
+	private String environment;
+
 	protected Approval() {
 		// JPA
 	}
 
 	public Approval(UUID taskId, UUID runId, String approvalType, String requestedAction, UUID requestedBy,
 			Instant expiresAt) {
+		this(taskId, runId, approvalType, requestedAction, requestedBy, expiresAt, null);
+	}
+
+	public Approval(UUID taskId, UUID runId, String approvalType, String requestedAction, UUID requestedBy,
+			Instant expiresAt, String environment) {
 		this.taskId = taskId;
 		this.runId = runId;
 		this.approvalType = approvalType;
 		this.requestedAction = requestedAction;
 		this.requestedBy = requestedBy;
 		this.expiresAt = expiresAt;
+		this.environment = environment;
 	}
 
 	public UUID getId() {
@@ -115,6 +125,10 @@ public class Approval {
 
 	public Instant getCreatedAt() {
 		return createdAt;
+	}
+
+	public String getEnvironment() {
+		return environment;
 	}
 
 	/** Section 10.2's approve/reject/request-changes actions (Phase 8): a PENDING approval decided exactly once. */

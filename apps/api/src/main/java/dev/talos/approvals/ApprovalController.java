@@ -36,8 +36,9 @@ public class ApprovalController {
 	public PageResponse<ApprovalResponse> list(
 			@RequestParam(required = false) ApprovalStatus status,
 			@RequestParam(required = false) UUID runId,
+			@RequestParam(required = false) String type,
 			@PageableDefault(size = 20) Pageable pageable) {
-		return PageResponse.of(approvalService.list(status, runId, pageable).map(ApprovalResponse::from));
+		return PageResponse.of(approvalService.list(status, runId, type, pageable).map(ApprovalResponse::from));
 	}
 
 	@GetMapping("/{id}")

@@ -1,6 +1,7 @@
 package dev.talos.projects;
 
 import dev.talos.common.PageResponse;
+import dev.talos.integrations.dto.ProjectEnvironmentResponse;
 import dev.talos.projects.dto.CreateProjectRequest;
 import dev.talos.projects.dto.ProjectConfigResponse;
 import dev.talos.projects.dto.ProjectDetailResponse;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -59,5 +61,10 @@ public class ProjectController {
 	@PostMapping("/{id}/sync-config")
 	public ProjectConfigResponse syncConfig(@PathVariable UUID id, @Valid @RequestBody SyncConfigRequest request) {
 		return ProjectConfigResponse.from(projectService.syncConfig(id, request));
+	}
+
+	@GetMapping("/{id}/environments")
+	public List<ProjectEnvironmentResponse> environments(@PathVariable UUID id) {
+		return projectService.listEnvironments(id);
 	}
 }

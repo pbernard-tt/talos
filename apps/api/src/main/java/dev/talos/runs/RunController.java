@@ -2,6 +2,9 @@ package dev.talos.runs;
 
 import dev.talos.auth.AuthenticatedUser;
 import dev.talos.common.PageResponse;
+import dev.talos.integrations.DeployService;
+import dev.talos.integrations.dto.ProjectEnvironmentResponse;
+import dev.talos.runs.dto.DeployTriggerResponse;
 import dev.talos.runs.dto.DiffResponse;
 import dev.talos.runs.dto.LogEntryResponse;
 import dev.talos.runs.dto.PullRequestResponse;
@@ -28,10 +31,12 @@ public class RunController {
 
 	private final RunService runService;
 	private final RunEventBroadcaster broadcaster;
+	private final DeployService deployService;
 
-	public RunController(RunService runService, RunEventBroadcaster broadcaster) {
+	public RunController(RunService runService, RunEventBroadcaster broadcaster, DeployService deployService) {
 		this.runService = runService;
 		this.broadcaster = broadcaster;
+		this.deployService = deployService;
 	}
 
 	@GetMapping
@@ -62,6 +67,16 @@ public class RunController {
 	@GetMapping("/{id}/pull-request")
 	public PullRequestResponse pullRequest(@PathVariable UUID id) {
 		return runService.getPullRequest(id);
+	}
+
+	@PostMapping("/{id}/deploy")
+	public DeployTriggerResponse deploy(@PathVariable UUID id, @AuthenticationPrincipal AuthenticatedUser principal) {
+		return DeployTriggerResponse.from(deployService.requestDeploy(runService.getOrThrow(id), principal.id()));
+	}
+
+	@GetMapping("/{id}/deploy")
+	public ProjectEnvironmentResponse deployStatus(@PathVariable UUID id) {
+		return ProjectEnvironmentResponse.from(deployService.getStatus(runService.getOrThrow(id)));
 	}
 
 	@PostMapping("/{id}/cancel")

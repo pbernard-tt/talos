@@ -18,12 +18,13 @@ public record ApprovalResponse(
 		Instant approvedAt,
 		String notes,
 		Instant expiresAt,
-		Instant createdAt) {
+		Instant createdAt,
+		String environment) {
 
 	public static ApprovalResponse from(Approval approval) {
 		return new ApprovalResponse(approval.getId(), approval.getTaskId(), approval.getRunId(),
 				approval.getApprovalType(), approval.getRequestedAction(), approval.getStatus(),
 				approval.getRequestedBy(), approval.getApprovedBy(), approval.getApprovedAt(), approval.getNotes(),
-				approval.getExpiresAt(), approval.getCreatedAt());
+				approval.getExpiresAt(), approval.getCreatedAt(), approval.getEnvironment());
 	}
 }

@@ -1,6 +1,8 @@
 package dev.talos.projects;
 
 import dev.talos.common.ApiException;
+import dev.talos.integrations.ProjectEnvironmentRepository;
+import dev.talos.integrations.dto.ProjectEnvironmentResponse;
 import dev.talos.projects.dto.CreateProjectRequest;
 import dev.talos.projects.dto.ProjectConfigResponse;
 import dev.talos.projects.dto.ProjectDetailResponse;
@@ -25,13 +27,16 @@ public class ProjectService {
 	private final ProjectRepository projectRepository;
 	private final ProjectConfigRepository projectConfigRepository;
 	private final AgentRunRepository agentRunRepository;
+	private final ProjectEnvironmentRepository projectEnvironmentRepository;
 	private final TalosConfigParser configParser;
 
 	public ProjectService(ProjectRepository projectRepository, ProjectConfigRepository projectConfigRepository,
-			AgentRunRepository agentRunRepository, TalosConfigParser configParser) {
+			AgentRunRepository agentRunRepository, ProjectEnvironmentRepository projectEnvironmentRepository,
+			TalosConfigParser configParser) {
 		this.projectRepository = projectRepository;
 		this.projectConfigRepository = projectConfigRepository;
 		this.agentRunRepository = agentRunRepository;
+		this.projectEnvironmentRepository = projectEnvironmentRepository;
 		this.configParser = configParser;
 	}
 
@@ -64,6 +69,11 @@ public class ProjectService {
 				.map(RunSummary::from)
 				.toList();
 		return ProjectDetailResponse.from(project, activeConfig, configHistory, recentRuns);
+	}
+
+	public List<ProjectEnvironmentResponse> listEnvironments(UUID id) {
+		getOrThrow(id);
+		return projectEnvironmentRepository.findByProjectId(id).stream().map(ProjectEnvironmentResponse::from).toList();
 	}
 
 	@Transactional
