@@ -102,9 +102,26 @@ services:
       # Dev-only placeholder, committed deliberately -- see the api service's comment above.
       TALOS_INTERNAL_API_TOKEN: dev-only-internal-api-token-do-not-use-in-production
       TALOS_MAX_WORKSPACE_AGE_DAYS: "7"
+      # Phase 11 (Section 8): per-run `docker run` containers -- volume/network names must match the
+      # `name:` fields declared below so they resolve regardless of this file's compose project name.
+      TALOS_RUN_WORKSPACES_VOLUME: talos_workspaces
+      TALOS_RUN_PROVIDER_HOMES_VOLUME: talos_provider_homes
+      TALOS_RUN_NETWORK: talos_run_network
+      TALOS_RUN_MEMORY_LIMIT: 1g
+      TALOS_RUN_CPU_LIMIT: "1"
+      TALOS_RUN_PIDS_LIMIT: "256"
     volumes:
       - talos_workspaces:/var/talos/workspaces
       - talos_provider_homes:/var/talos/provider-homes
+      # Lets this container launch per-run `docker run` containers on the host daemon (decision:
+      # talos-runner-supervisor keeps Docker socket access; the containers it spawns get none --
+      # verified by packages/agent-adapter-spec/tests/test_container_execution.py). group_add below
+      # grants the container's non-root `talos` user permission to use the socket; override
+      # TALOS_DOCKER_GID if your host's `docker` group GID differs (check with `stat -c '%g'
+      # /var/run/docker.sock` or `getent group docker`).
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "${TALOS_DOCKER_GID:-999}"
     ports:
       - "8081:8081"
     healthcheck:
@@ -142,5 +159,22 @@ volumes:
   talos_postgres_data:
   talos_rabbitmq_data:
   talos_redis_data:
+  # Explicit `name:` (rather than letting Compose prefix with the project name) so
+  # talos-runner-supervisor's `docker run --mount type=volume,source=talos_workspaces,...` resolves
+  # the same volume Compose created here, independent of this file's project name.
   talos_workspaces:
+    name: talos_workspaces
   talos_provider_homes:
+    name: talos_provider_homes
+
+networks:
+  # Phase 11 (Section 8): the network every per-run `docker run` container joins instead of this
+  # compose file's default network -- no route to postgres/rabbitmq/redis/api, only normal outbound
+  # internet via Docker's default NAT (needed for `npm install`/`mvnw`/etc.). Declared here purely
+  # for documentation: no service below attaches to it (attaching talos-runner-supervisor itself
+  # would let per-run containers reach its own HTTP API), so Compose never creates or manages it --
+  # talos-runner-supervisor creates it lazily via its own Docker socket access on first containerized
+  # run (packages/agent-adapter-spec/src/talos_agent_adapter_spec/container.py:ensure_network).
+  talos_run_network:
+    name: talos_run_network
+    external: true
