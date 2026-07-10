@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talos.dev/schemas/chat/inbound-command.json",
+  "title": "chat.inbound-command",
+  "description": "Section 16 Phase 12 Track B: the normalized shape every chat trigger adapter (apps/telegram-adapter, apps/whatsapp-adapter) parses its channel-specific inbound message into, before calling the public REST API. Keeping this shared and channel-agnostic is what lets a second channel (WhatsApp) reuse the same command handling without growing the API surface per channel. This schema governs the adapter-internal representation only -- it is never itself sent over talos.events or persisted; each adapter validates its own parser output against it in tests.",
+  "type": "object",
+  "required": ["channel", "chat_id", "command"],
+  "additionalProperties": false,
+  "properties": {
+    "channel": { "type": "string", "enum": ["TELEGRAM", "WHATSAPP"] },
+    "chat_id": {
+      "type": "string",
+      "description": "Channel-native chat/sender identifier, checked against the operator allow-list before any command executes."
+    },
+    "command": {
+      "type": "string",
+      "enum": ["CREATE_TASK", "TASK_STATUS", "RUN_STATUS", "LIST_APPROVALS"]
+    },
+    "project_name": {
+      "type": "string",
+      "description": "CREATE_TASK only: resolved against GET /api/v1/projects by name (case-insensitive) to find project_id."
+    },
+    "title": { "type": "string", "description": "CREATE_TASK only: the new task's title." },
+    "description": { "type": "string", "description": "CREATE_TASK only: optional task body." },
+    "task_id": { "type": "string", "format": "uuid", "description": "TASK_STATUS only." },
+    "run_id": { "type": "string", "format": "uuid", "description": "RUN_STATUS only." }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "command": { "const": "CREATE_TASK" } } },
+      "then": { "required": ["project_name", "title"] }
+    },
+    {
+      "if": { "properties": { "command": { "const": "TASK_STATUS" } } },
+      "then": { "required": ["task_id"] }
+    },
+    {
+      "if": { "properties": { "command": { "const": "RUN_STATUS" } } },
+      "then": { "required": ["run_id"] }
+    }
+  ]
+}

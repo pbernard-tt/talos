@@ -12,5 +12,6 @@ public record CreateTaskRequest(
 		@NotBlank String title,
 		String description,
 		TaskPriority priority,
-		TaskRiskLevel riskLevel) {
+		TaskRiskLevel riskLevel,
+		String source) {
 }

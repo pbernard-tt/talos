@@ -747,6 +747,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /chat/rejected-sender:
+    post:
+      operationId: recordChatRejectedSender
+      summary: >
+        Section 16 Phase 12 Track B: called by a chat trigger adapter (apps/telegram-adapter,
+        apps/whatsapp-adapter) instead of creating a task, when a message arrives from a chat ID
+        not on the operator allow-list. talos-api is the sole PostgreSQL writer, so this is the
+        one write the adapter needs to satisfy the "produces ... an audit row" acceptance
+        criterion -- it records provenance only, never the disallowed message's contents.
+      tags: [chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRejectedSenderRequest"
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Caller's JWT is not integration-scoped for this endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /internal/v1/runs/{id}/status:
     post:
       operationId: internalUpdateRunStatus
@@ -1047,6 +1073,16 @@ components:
               type: object
               additionalProperties: true
 
+    ChatRejectedSenderRequest:
+      type: object
+      required: [channel, chatId]
+      properties:
+        channel:
+          type: string
+          enum: [TELEGRAM, WHATSAPP]
+        chatId:
+          type: string
+
     LoginRequest:
       type: object
       required: [email, password]
@@ -1291,6 +1327,11 @@ components:
           $ref: "#/components/schemas/TaskPriority"
         riskLevel:
           $ref: "#/components/schemas/TaskRiskLevel"
+        source:
+          type: string
+          description: >-
+            Provenance, e.g. DASHBOARD (default) | WEBHOOK | TELEGRAM | WHATSAPP (Section 16 Phase
+            12 Track B). Unrecognized values fall back to DASHBOARD.
 
     PatchTaskRequest:
       type: object

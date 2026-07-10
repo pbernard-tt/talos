@@ -87,6 +87,10 @@ services:
       TALOS_ADMIN_PASSWORD: talos-dev-admin
       TALOS_SECRETS_KEY: ZGV2LW9ubHktMzItYnl0ZS1wbGFjZWhvbGRlci1rZXk=
       TALOS_GITHUB_WEBHOOK_SECRET: dev-only-github-webhook-secret
+      # Section 16 Phase 12 Track B: seeded chat trigger service accounts. Must match the
+      # telegram-adapter/whatsapp-adapter services' own TALOS_*_SERVICE_EMAIL/PASSWORD below.
+      TALOS_TELEGRAM_SERVICE_EMAIL: telegram-bot@talos.local
+      TALOS_TELEGRAM_SERVICE_PASSWORD: talos-dev-telegram-password
     ports:
       - "8080:8080"
 
@@ -154,6 +158,32 @@ services:
       TALOS_RUNNER_BASE_URL: http://runner-supervisor:8081
       TALOS_MAX_ACTIVE_RUNS: "1"
       TALOS_RUN_TIMEOUT_MINUTES: "60"
+
+  telegram-adapter:
+    build:
+      context: ../apps/telegram-adapter
+      dockerfile: Dockerfile
+    container_name: talos-telegram-adapter
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    environment:
+      TALOS_API_BASE_URL: http://api:8080
+      TALOS_WEB_BASE_URL: http://localhost:4200
+      TALOS_RABBITMQ_URL: amqp://talos:talos@rabbitmq:5672
+      TALOS_REDIS_URL: redis://redis:6379
+      # Real values required to actually run this service -- see docs/deployment.md. Left blank by
+      # default so `docker compose up` still succeeds without a Telegram bot configured (Section 16
+      # Phase 12 Track B is optional post-MVP, not a Section 10 hard dependency).
+      TALOS_TELEGRAM_BOT_TOKEN: ""
+      TALOS_TELEGRAM_ALLOWED_CHAT_IDS: ""
+      TALOS_TELEGRAM_SERVICE_EMAIL: telegram-bot@talos.local
+      TALOS_TELEGRAM_SERVICE_PASSWORD: talos-dev-telegram-password
 
 volumes:
   talos_postgres_data:

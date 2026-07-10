@@ -1,5 +1,6 @@
 package dev.talos.auth;
 
+import dev.talos.audit.AuditService;
 import dev.talos.common.TalosProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,14 +29,17 @@ public class SecurityConfig {
 	private final TalosProperties talosProperties;
 	private final StringRedisTemplate redisTemplate;
 	private final ObjectMapper objectMapper;
+	private final AuditService auditService;
 
 	public SecurityConfig(JwtService jwtService, JsonAuthenticationEntryPoint authenticationEntryPoint,
-			TalosProperties talosProperties, StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+			TalosProperties talosProperties, StringRedisTemplate redisTemplate, ObjectMapper objectMapper,
+			AuditService auditService) {
 		this.jwtService = jwtService;
 		this.authenticationEntryPoint = authenticationEntryPoint;
 		this.talosProperties = talosProperties;
 		this.redisTemplate = redisTemplate;
 		this.objectMapper = objectMapper;
+		this.auditService = auditService;
 	}
 
 	@Bean
@@ -76,7 +80,8 @@ public class SecurityConfig {
 				.addFilterBefore(
 						new LoginRateLimitFilter(redisTemplate, objectMapper,
 								talosProperties.loginRateLimitMaxAttempts(), talosProperties.loginRateLimitWindowSeconds()),
-						JwtAuthenticationFilter.class);
+						JwtAuthenticationFilter.class)
+				.addFilterAfter(new IntegrationScopeFilter(auditService, objectMapper), JwtAuthenticationFilter.class);
 		return http.build();
 	}
 }

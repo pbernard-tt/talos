@@ -16,10 +16,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class TaskService {
+
+	/** Section 16 Phase 12 Track B: provenance values a client may set explicitly; anything else falls back to DASHBOARD. */
+	private static final Set<String> KNOWN_SOURCES = Set.of("DASHBOARD", "WEBHOOK", "TELEGRAM", "WHATSAPP");
 
 	private final TaskRepository taskRepository;
 	private final ProjectRepository projectRepository;
@@ -39,7 +43,10 @@ public class TaskService {
 		if (!projectRepository.existsById(request.projectId())) {
 			throw new ApiException(HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "Project not found");
 		}
-		Task task = new Task(request.projectId(), request.title(), request.description(), actorUserId);
+		String source = request.source() != null && KNOWN_SOURCES.contains(request.source())
+				? request.source()
+				: "DASHBOARD";
+		Task task = new Task(request.projectId(), request.title(), request.description(), actorUserId, source);
 		task.updatePartial(null, null, request.priority(), request.riskLevel(), null);
 		task = taskRepository.save(task);
 		auditService.record(actorUserId, "task.created", "task", task.getId(), Map.of("title", task.getTitle()));

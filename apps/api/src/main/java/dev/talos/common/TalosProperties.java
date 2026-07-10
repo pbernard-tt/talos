@@ -13,5 +13,11 @@ public record TalosProperties(
 		String githubWebhookSecret,
 		String policyFile,
 		Integer loginRateLimitMaxAttempts,
-		Integer loginRateLimitWindowSeconds) {
+		Integer loginRateLimitWindowSeconds,
+		// Section 16 Phase 12 Track B: seeded chat trigger service accounts (IntegrationServiceAccountSeeder).
+		// Their JWTs are marked integrationScoped and restricted by IntegrationScopeFilter.
+		String telegramServiceEmail,
+		String telegramServicePassword,
+		String whatsappServiceEmail,
+		String whatsappServicePassword) {
 }

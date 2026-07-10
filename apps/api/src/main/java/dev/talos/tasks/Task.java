@@ -67,10 +67,15 @@ public class Task {
 	}
 
 	public Task(UUID projectId, String title, String description, UUID requestedBy) {
+		this(projectId, title, description, requestedBy, "DASHBOARD");
+	}
+
+	public Task(UUID projectId, String title, String description, UUID requestedBy, String source) {
 		this.projectId = projectId;
 		this.title = title;
 		this.description = description;
 		this.requestedBy = requestedBy;
+		this.source = source;
 	}
 
 	public UUID getId() {

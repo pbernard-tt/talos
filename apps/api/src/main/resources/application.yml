@@ -41,3 +41,7 @@ talos:
   policy-file: ${TALOS_POLICY_FILE:}
   login-rate-limit-max-attempts: ${TALOS_LOGIN_RATE_LIMIT_MAX_ATTEMPTS:10}
   login-rate-limit-window-seconds: ${TALOS_LOGIN_RATE_LIMIT_WINDOW_SECONDS:60}
+  telegram-service-email: ${TALOS_TELEGRAM_SERVICE_EMAIL:}
+  telegram-service-password: ${TALOS_TELEGRAM_SERVICE_PASSWORD:}
+  whatsapp-service-email: ${TALOS_WHATSAPP_SERVICE_EMAIL:}
+  whatsapp-service-password: ${TALOS_WHATSAPP_SERVICE_PASSWORD:}

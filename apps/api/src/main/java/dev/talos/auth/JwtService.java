@@ -23,9 +23,11 @@ public class JwtService {
 	private static final Duration TOKEN_TTL = Duration.ofHours(24);
 
 	private final SecretKey key;
+	private final TalosProperties properties;
 
 	public JwtService(TalosProperties properties) {
 		this.key = Keys.hmacShaKeyFor(properties.jwtSecret().getBytes(StandardCharsets.UTF_8));
+		this.properties = properties;
 	}
 
 	public record IssuedToken(String token, Instant expiresAt) {
@@ -38,6 +40,7 @@ public class JwtService {
 				.subject(user.getId().toString())
 				.claim("email", user.getEmail())
 				.claim("role", user.getRole().name())
+				.claim("integration_scoped", isIntegrationServiceAccount(user.getEmail()))
 				.issuedAt(Date.from(now))
 				.expiration(Date.from(expiresAt))
 				.signWith(key)
@@ -53,9 +56,17 @@ public class JwtService {
 			UUID userId = UUID.fromString(claims.getSubject());
 			String email = claims.get("email", String.class);
 			Role role = Role.valueOf(claims.get("role", String.class));
-			return Optional.of(new AuthenticatedUser(userId, email, role));
+			Boolean integrationScoped = claims.get("integration_scoped", Boolean.class);
+			return Optional.of(new AuthenticatedUser(userId, email, role, Boolean.TRUE.equals(integrationScoped)));
 		} catch (JwtException | IllegalArgumentException e) {
 			return Optional.empty();
 		}
+	}
+
+	private boolean isIntegrationServiceAccount(String email) {
+		if (email == null || email.isBlank()) {
+			return false;
+		}
+		return email.equals(properties.telegramServiceEmail()) || email.equals(properties.whatsappServiceEmail());
 	}
 }
