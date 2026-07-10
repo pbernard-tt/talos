@@ -728,6 +728,7 @@ Note: `APPROVED` and `REJECTED` are real run states (absent from earlier drafts)
 | `GET /api/v1/runs/{id}/logs` | `?afterSequence=` → log page |
 | `GET /api/v1/runs/{id}/events/stream` | SSE (Section 10.3) |
 | `GET /api/v1/runs/{id}/diff` | → `{files: [GitChange], diff: "unified text"}` |
+| `GET /api/v1/runs/{id}/pull-request` | Phase 9 → PullRequest (404 until PullRequestService has opened one) |
 | `POST /api/v1/runs/{id}/cancel` | → Run (CANCELLED) |
 | `POST /api/v1/runs/{id}/rerun-tests` | → 202 |
 | `GET /api/v1/approvals` | filters `status` → page of Approval |
@@ -755,6 +756,8 @@ POST /internal/v1/runs/{id}/logs        {entries: [{stream, sequence, message, t
 POST /internal/v1/runs/{id}/changes     {files: [...], diffArtifactRef}
 POST /internal/v1/runs/{id}/artifacts   multipart {name, file}
 GET  /internal/v1/runs/{id}/context     → run + task + project + active parsed config
+GET  /internal/v1/runs/{id}/git-token   → {token, authMode, repoUrl, defaultBranch}   # Phase 9; 409 unless run APPROVED
+POST /internal/v1/runs/{id}/pull-request {branchName, commitSha} → PullRequest         # Phase 9; opens the PR, completes the run
 ```
 
 ### 10.5 Runner supervisor endpoints (called only by orchestrator)

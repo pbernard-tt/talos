@@ -1,3 +1,34 @@
+## 2026-07-09 — Phase 9: Git push and PR workflow
+
+**Ask:** Continue Revision 2 implementation with Phase 9: approval → commit → push → GitHub PR, recorded and linked — the orchestrator consuming `approval.decided` (published since Phase 8 but never consumed), a runner-supervisor push step, and talos-api-owned GitHub PR creation.
+
+**Changed (contracts):**
+- `packages/contracts/openapi.yaml` — new `Integration`/`IntegrationCreateRequest`/`TestIntegrationResponse`/`PullRequest`/`PullRequestStatus`/`GitTokenResponse`/`InternalPullRequestRequest` schemas; `GET/POST /integrations`, `POST /integrations/{id}/test`, `GET /runs/{id}/pull-request`, `GET /internal/v1/runs/{id}/git-token`, `POST /internal/v1/runs/{id}/pull-request`; version bumped to `0.9.0`.
+- `packages/contracts/runner-api.yaml` — new `POST /runs/{id}/push` + `PushRequest`/`PushResponse`; version bumped to `0.2.0`. Also fixed a pre-existing YAML syntax bug (an unquoted `{type: log, message}` in a description broke this file for any real parser — never caught because nothing validates it against a schema the way `openapi.yaml` is validated against springdoc).
+- `packages/contracts/events/pr.created.json` (new) — Section 11's `pr.created` (API → notifiers).
+
+**Changed (backend):**
+- `dev.talos.secrets.SecretService` (new) — AES-256-GCM encrypt/decrypt on top of the `SecretValue`/`IntegrationCredential` entities that existed since Phase 2 with no service layer.
+- `dev.talos.integrations` (new package) — `GitHubClient`/`GitHubClientImpl` (`java.net.http.HttpClient`), `GitHubRepoRef` (parses owner/repo from a GitHub `repo_url`), `IntegrationService`/`IntegrationController`, `GitCredentialsService` (409s unless `run.status == APPROVED`), `PullRequestService` (PR body template, stores `PullRequest`, publishes `pr.created`, completes the run). `PullRequest`/`PullRequestRepository`/`PullRequestStatus` already existed since Phase 2 as unused scaffolding.
+- `dev.talos.runs.InternalRunController` — `GET /{id}/git-token`, `POST /{id}/pull-request`. `dev.talos.runs.RunController` — `GET /{id}/pull-request`. `dev.talos.runs.RunService` — `getPullRequest()`.
+- `infra/docker-compose.dev.yml` — fixed `TALOS_SECRETS_KEY`'s dev placeholder, which decoded to 35 bytes, not a valid AES-256 key length (16/24/32); caught by `SecretServiceTest`/`IntegrationControllerIntegrationTest` failing with a 500 the first time they ran against it.
+
+**Changed (runner supervisor):**
+- `git_push.py` (new) — stage/commit (preserving any commit the agent already made)/push; token delivered only via a transient `GIT_ASKPASS` env var, never in the remote URL, on disk, or logged; non-fast-forward rejection returns `needs_rebase` rather than raising. `POST /runs/{id}/push` (`app.py`).
+
+**Changed (orchestrator):**
+- `main.py` — binds `talos.orchestrator.approvals` to routing key `approval.decided` (declared since Phase 8, never bound to a queue before now).
+- `pipeline.py` — `handle_approval_decided`: no-ops for non-`APPROVED` decisions, guards the run is still `APPROVED` (redelivery race, mirrors the existing `QUEUED` check), records `PUSH`/`PR` steps, fetches the token, pushes, opens the PR (which completes the run server-side), or flags `FAILED`/`NEEDS_REBASE` on a rejected push.
+- `api_client.py`/`runner_client.py` — `get_git_token`, `create_pull_request`, `push`.
+
+**Changed (frontend):**
+- `run.store.ts`/`run-detail.page.html` — fetches and displays the PR link once a run reaches `COMPLETED`.
+- Angular client regenerated from the updated `openapi.yaml`.
+
+**Coverage:** `SecretServiceTest` (round-trip, distinct nonce/ciphertext per call), `GitHubClientTest` (embedded `com.sun.net.httpserver.HttpServer` mock — success, 401, PR-create success, PR-create 422 without leaking the token in the exception message), `IntegrationControllerIntegrationTest` (create/list/test, secret-never-in-response masking test), `RunControllerIntegrationTest` additions (both 409 "unapproved run cannot push" proofs; the full approve → git-token → push → pull-request → `COMPLETED` flow with a real `pull_requests` row), `EventPublisherIntegrationTest` addition (`pr.created` validates against its schema). `test_git_push.py` (commit+push happy path, agent-commit preserved, non-fast-forward → `needs_rebase`, refuses the default branch) plus two new runner-supervisor endpoint tests. `test_pipeline.py` additions (happy path, `REJECTED` no-op, non-`APPROVED` race guard, `NEEDS_REBASE` path).
+
+**Verification:** `apps/api`: `sg docker -c "./gradlew test"` — full suite green. `apps/orchestrator`: `uv run pytest` — 22/22 passed. `apps/runner-supervisor`: `uv run pytest` — 22/22 passed. `apps/web`: `npm run build` and `npx ng test --watch=false` — both green. `docker compose -f infra/docker-compose.dev.yml up -d --build` — live walk against a real local bare git repo (mounted into the runner-supervisor's own workspace volume): confirmed `git-token`/`pull-request` both 409 before approval, approved the run, confirmed the branch was actually pushed to the bare repo with the correct commit sha (verified via `git log` on the bare repo directly), and confirmed the PR step correctly failed (non-GitHub fixture URL) rather than hanging, landing the run on `FAILED` with a clear message. Grepped all four log surfaces (talos-api, talos-orchestrator, talos-runner-supervisor, persisted `agent_run_logs`) for the raw credential used in the walk: zero matches. Naming guard clean. **Not checked:** live PR creation against a real GitHub repository (no scratch repo/PAT available — explicitly optional per the plan; covered by the mock-server test instead); interactive browser verification of the PR-link UI addition (no browser automation tool available this session).
+
 ## 2026-07-09 — Phase 8: Review and approval flow
 
 **Ask:** Continue Revision 2 implementation with Phase 8: Review Center + approvals gating everything downstream — post-run policy scan, auto-created approvals on `WAITING_APPROVAL`, approve/reject/request-changes, task status sync, audit, and the `/runs/:id`/`/review/:runId` Angular pages.
