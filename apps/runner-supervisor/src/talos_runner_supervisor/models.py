@@ -78,3 +78,23 @@ class CleanupResponse(BaseModel):
     deleted_run_ids: list[str] = Field(alias="deletedRunIds")
 
     model_config = {"populate_by_name": True}
+
+
+class PushRequest(BaseModel):
+    workspace_path: str = Field(alias="workspacePath")
+    branch_name: str = Field(alias="branchName")
+    default_branch: str = Field(alias="defaultBranch")
+    commit_message: str = Field(alias="commitMessage")
+    token: str
+    repo_url: str = Field(alias="repoUrl")
+
+    model_config = {"populate_by_name": True}
+
+
+class PushResponse(BaseModel):
+    pushed: bool
+    needs_rebase: bool = Field(alias="needsRebase")
+    commit_sha: str | None = Field(default=None, alias="commitSha")
+    reason: str | None = None
+
+    model_config = {"populate_by_name": True}

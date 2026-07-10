@@ -179,3 +179,43 @@ def test_cleanup_without_run_ids_deletes_nothing(client):
     resp = client.post("/workspaces/cleanup", json={})
     assert resp.status_code == 200
     assert resp.json()["deletedRunIds"] == []
+
+
+def test_push_endpoint_commitsAndPushes(client, origin_repo):
+    workspace_path = _prepare(client, origin_repo, task_id="push1")
+    (Path(workspace_path) / "new-file.txt").write_text("hello\n")
+
+    resp = client.post(
+        "/runs/run-push/push",
+        json={
+            "workspacePath": workspace_path,
+            "branchName": "agent/task-push1-add-hello-endpoint",
+            "defaultBranch": "main",
+            "commitMessage": "talos: Add hello endpoint (task push1, run run-push)",
+            "token": "unused-for-a-local-path-remote",
+            "repoUrl": str(origin_repo),
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["pushed"] is True
+    assert body["needsRebase"] is False
+    assert body["commitSha"]
+
+
+def test_push_endpoint_refusesDefaultBranch_returns422(client, origin_repo):
+    workspace_path = _prepare(client, origin_repo, task_id="push2")
+
+    resp = client.post(
+        "/runs/run-push2/push",
+        json={
+            "workspacePath": workspace_path,
+            "branchName": "main",
+            "defaultBranch": "main",
+            "commitMessage": "x",
+            "token": "x",
+            "repoUrl": str(origin_repo),
+        },
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"]["error"]["code"] == "GIT_PUSH_FAILED"

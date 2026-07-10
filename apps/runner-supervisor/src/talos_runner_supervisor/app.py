@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from talos_runner_supervisor.config import Settings, load_settings
 from talos_runner_supervisor.diff_capture import capture_diff
 from talos_runner_supervisor.execute import RunAlreadyExecutingError, execute_run
+from talos_runner_supervisor.git_push import GitPushError, push as git_push
 from talos_runner_supervisor.models import (
     CleanupRequest,
     CleanupResponse,
@@ -22,6 +23,8 @@ from talos_runner_supervisor.models import (
     GitChange,
     PrepareWorkspaceRequest,
     PrepareWorkspaceResponse,
+    PushRequest,
+    PushResponse,
     RunTestsRequest,
 )
 from talos_runner_supervisor.run_registry import registry
@@ -102,6 +105,27 @@ async def diff(run_id: str, request: DiffRequest) -> DiffResponse:
         files=[GitChange(filePath=f.file_path, changeType=f.change_type, additions=f.additions, deletions=f.deletions) for f in files],
         diff=diff_text,
         diffArtifactPath=diff_artifact_path,
+    )
+
+
+@app.post("/runs/{run_id}/push", response_model=PushResponse)
+async def push(run_id: str, request: PushRequest) -> PushResponse:
+    worktree_dir = Path(request.workspace_path)
+    if not worktree_dir.exists():
+        raise HTTPException(status_code=404, detail={"error": {"code": "WORKSPACE_NOT_FOUND", "message": str(worktree_dir)}})
+    try:
+        result = git_push(
+            worktree_dir,
+            branch_name=request.branch_name,
+            default_branch=request.default_branch,
+            commit_message=request.commit_message,
+            token=request.token,
+            repo_url=request.repo_url,
+        )
+    except GitPushError as exc:
+        raise HTTPException(status_code=422, detail={"error": {"code": "GIT_PUSH_FAILED", "message": str(exc)}}) from exc
+    return PushResponse(
+        pushed=result.pushed, needsRebase=result.needs_rebase, commitSha=result.commit_sha, reason=result.reason
     )
 
 

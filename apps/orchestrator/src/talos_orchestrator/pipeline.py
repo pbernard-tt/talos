@@ -84,6 +84,60 @@ class RunPipeline:
         run_id = payload["run_id"]
         await self._runner_client.stop(run_id)
 
+    async def handle_approval_decided(self, payload: dict[str, Any]) -> None:
+        """Section 8.2's APPROVED -> COMPLETED edge (Orchestrator: commit/push/PR). REJECTED and
+        CHANGES_REQUESTED need no action here -- the API already drove the run to its terminal
+        REJECTED state before publishing this event."""
+        if payload.get("status") != "APPROVED":
+            return
+        run_id = payload["run_id"]
+
+        context = await self._api_client.get_context(run_id)
+        run = context["run"]
+        if run["status"] != "APPROVED":
+            logger.warning(
+                "run %s: approval.decided but status is %s, not APPROVED -- skipping push/PR", run_id, run["status"]
+            )
+            return
+
+        task = context["task"]
+        project = context["project"]
+        branch_name = run["branchName"]
+        commit_message = f"talos: {task['title']} (task {task['id']}, run {run_id})"
+
+        try:
+            await self._api_client.record_step(run_id, "PUSH", "RUNNING")
+            credentials = await self._api_client.get_git_token(run_id)
+            push_result = await self._runner_client.push(
+                run_id,
+                run["workspacePath"],
+                branch_name,
+                project["defaultBranch"],
+                commit_message,
+                credentials["token"],
+                project["repoUrl"],
+            )
+            if not push_result.get("pushed"):
+                # Section 8.4: a rejected (non-fast-forward) push never auto-merges/force-pushes --
+                # flag NEEDS_REBASE via error_message (Section 8.2's run state machine has no
+                # dedicated status for it) and stop; a human re-approves after rebasing.
+                reason = push_result.get("reason") or "push rejected (non-fast-forward)"
+                await self._api_client.record_step(run_id, "PUSH", "FAILED", summary=reason)
+                await self._api_client.update_status(run_id, "FAILED", f"NEEDS_REBASE: {reason}")
+                return
+            commit_sha = push_result.get("commitSha") or ""
+            await self._api_client.record_step(run_id, "PUSH", "COMPLETED", summary=f"pushed {commit_sha[:8]}")
+
+            await self._api_client.record_step(run_id, "PR", "RUNNING")
+            pr = await self._api_client.create_pull_request(run_id, branch_name, commit_sha)
+            await self._api_client.record_step(run_id, "PR", "COMPLETED", summary=pr.get("url"))
+        except Exception as exc:  # noqa: BLE001 -- mirrors handle_run_requested's catch-all -> FAILED
+            logger.exception("run %s: push/PR failed", run_id)
+            try:
+                await self._api_client.update_status(run_id, "FAILED", str(exc))
+            except Exception:
+                logger.warning("run %s: could not record FAILED after push/PR failure", run_id)
+
     async def _run(
         self,
         run_id: str,

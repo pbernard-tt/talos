@@ -81,6 +81,28 @@ class RunnerClient:
         response.raise_for_status()
         return response.json()
 
+    async def push(
+        self,
+        run_id: str,
+        workspace_path: str,
+        branch_name: str,
+        default_branch: str,
+        commit_message: str,
+        token: str,
+        repo_url: str,
+    ) -> dict[str, Any]:
+        body = {
+            "workspacePath": workspace_path,
+            "branchName": branch_name,
+            "defaultBranch": default_branch,
+            "commitMessage": commit_message,
+            "token": token,
+            "repoUrl": repo_url,
+        }
+        response = await self._client.post(f"/runs/{run_id}/push", json=body)
+        response.raise_for_status()
+        return response.json()
+
     async def stop(self, run_id: str) -> None:
         response = await self._client.post(f"/runs/{run_id}/stop")
         if response.status_code == 404:

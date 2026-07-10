@@ -27,6 +27,7 @@ DLX_EXCHANGE = "talos.events.dlx"
 DLQ_QUEUE = "talos.dlq"
 RUN_REQUESTS_QUEUE = "talos.orchestrator.run-requests"
 CANCELLATIONS_QUEUE = "talos.orchestrator.cancellations"
+APPROVALS_QUEUE = "talos.orchestrator.approvals"
 
 # Section 11: "retried up to 3 redeliveries, then dead-lettered to talos.dlq" -- quorum queues'
 # native x-delivery-limit does this declaratively, no manual retry-count bookkeeping needed.
@@ -75,14 +76,22 @@ async def _amain() -> None:
         cancellations_queue = await channel.declare_queue(CANCELLATIONS_QUEUE, durable=True, arguments=_QUEUE_ARGS)
         await cancellations_queue.bind(exchange, routing_key="run.cancel.requested")
 
+        approvals_queue = await channel.declare_queue(APPROVALS_QUEUE, durable=True, arguments=_QUEUE_ARGS)
+        await approvals_queue.bind(exchange, routing_key="approval.decided")
+
         await run_requests_queue.consume(
             functools.partial(_handle, redis_client=redis_client, handler=pipeline.handle_run_requested)
         )
         await cancellations_queue.consume(
             functools.partial(_handle, redis_client=redis_client, handler=pipeline.handle_cancel_requested)
         )
+        await approvals_queue.consume(
+            functools.partial(_handle, redis_client=redis_client, handler=pipeline.handle_approval_decided)
+        )
 
-        logger.info("talos-orchestrator consuming %s and %s", RUN_REQUESTS_QUEUE, CANCELLATIONS_QUEUE)
+        logger.info(
+            "talos-orchestrator consuming %s, %s, and %s", RUN_REQUESTS_QUEUE, CANCELLATIONS_QUEUE, APPROVALS_QUEUE
+        )
         try:
             await asyncio.Future()  # run until cancelled
         finally:

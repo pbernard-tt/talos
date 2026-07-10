@@ -6,7 +6,7 @@ info:
     implementation plan). Called only by talos-orchestrator over the internal Docker network --
     never by the browser, never by talos-api. No authentication scheme is defined because the
     runner supervisor is not reachable outside the Docker network in the MVP.
-  version: "0.1.0"
+  version: "0.2.0"
 servers:
   - url: /
 paths:
@@ -94,7 +94,7 @@ paths:
               $ref: "#/components/schemas/RunTestsRequest"
       responses:
         "200":
-          description: application/x-ndjson stream of {type: log, message} lines, terminated by one {type: result, exitCode}.
+          description: "application/x-ndjson stream of {type: log, message} lines, terminated by one {type: result, exitCode}."
           content:
             application/x-ndjson:
               schema:
@@ -129,6 +129,38 @@ paths:
                 $ref: "#/components/schemas/DiffResponse"
         "404":
           $ref: "#/components/responses/Error"
+
+  /runs/{id}/push:
+    post:
+      operationId: pushRun
+      summary: >
+        Phase 9's push step: stage/commit (preserving any commit the agent already made) and push
+        the run's branch. token is delivered only as a transient GIT_ASKPASS env var for this one
+        subprocess call -- never embedded in the remote URL, never written to disk, never logged
+        (Section 8.4).
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          description: e.g. branchName == defaultBranch (hard-blocked regardless of caller).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /runs/{id}/stop:
     post:
@@ -321,3 +353,39 @@ components:
           type: string
         diffArtifactPath:
           type: string
+
+    PushRequest:
+      type: object
+      required: [workspacePath, branchName, defaultBranch, commitMessage, token, repoUrl]
+      properties:
+        workspacePath:
+          type: string
+        branchName:
+          type: string
+        defaultBranch:
+          type: string
+        commitMessage:
+          type: string
+        token:
+          type: string
+          description: Decrypted GitHub credential (Section 8.4) -- never logged, never persisted.
+        repoUrl:
+          type: string
+
+    PushResponse:
+      type: object
+      required: [pushed, needsRebase]
+      properties:
+        pushed:
+          type: boolean
+        needsRebase:
+          type: boolean
+          description: >
+            True on a non-fast-forward/rejected push (Section 8.4's NEEDS_REBASE case) -- the
+            caller flags the run FAILED with a NEEDS_REBASE error message rather than retrying.
+        commitSha:
+          type: string
+          nullable: true
+        reason:
+          type: string
+          nullable: true

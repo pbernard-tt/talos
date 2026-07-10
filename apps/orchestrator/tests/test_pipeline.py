@@ -36,17 +36,43 @@ REQUEST_PAYLOAD = {
 }
 
 
-def _pipeline(context=None, execute_events=None, test_events=None, diff_result=None, acquire_result=True):
-    api_client = FakeApiClient(context or CONTEXT)
+def _pipeline(
+    context=None,
+    execute_events=None,
+    test_events=None,
+    diff_result=None,
+    acquire_result=True,
+    git_token=None,
+    pull_request=None,
+    push_result=None,
+):
+    api_client = FakeApiClient(context or CONTEXT, git_token=git_token, pull_request=pull_request)
     runner_client = FakeRunnerClient(
         PREPARE_RESULT,
         execute_events if execute_events is not None else SUCCESSFUL_EXECUTE_EVENTS,
         test_events if test_events is not None else PASSING_TEST_EVENTS,
         diff_result or DIFF_RESULT,
+        push_result=push_result,
     )
     run_lock = FakeRunLock(acquire_result=acquire_result)
     pipeline = RunPipeline(api_client, runner_client, run_lock)
     return pipeline, api_client, runner_client, run_lock
+
+
+APPROVED_CONTEXT = {
+    "run": {"status": "APPROVED", "workspacePath": "/ws/demo/runs/run1/worktree",
+            "branchName": "agent/task-task1-add-hello"},
+    "task": {"id": "task1", "title": "Add hello", "description": "echo hi > new.txt"},
+    "project": {"id": "proj1", "slug": "demo", "defaultBranch": "main", "repoUrl": "git@github.com:org/demo.git"},
+    "activeConfig": {"commands": {"test": "echo testing"}, "context": {"ignore_paths": []}},
+}
+
+APPROVAL_DECIDED_PAYLOAD = {
+    "approval_id": "approval1",
+    "run_id": "run1",
+    "status": "APPROVED",
+    "decided_by": "user1",
+}
 
 
 async def test_happy_path_walks_all_statuses_and_releases_lock():
@@ -171,3 +197,76 @@ async def test_cancel_forwards_stop_to_runner():
     await pipeline.handle_cancel_requested({"run_id": "run1"})
 
     assert runner_client.stop_calls == ["run1"]
+
+
+async def test_approval_decided_rejected_status_is_a_noop():
+    pipeline, api_client, runner_client, run_lock = _pipeline(context=APPROVED_CONTEXT)
+
+    await pipeline.handle_approval_decided({**APPROVAL_DECIDED_PAYLOAD, "status": "REJECTED"})
+
+    assert runner_client.push_calls == []
+    assert api_client.pull_request_calls == []
+
+
+async def test_approval_decided_non_approved_run_status_skips_push():
+    """Race guard mirroring the QUEUED check in handle_run_requested: the run may no longer be
+    APPROVED by the time this event is processed."""
+    context = {**APPROVED_CONTEXT, "run": {**APPROVED_CONTEXT["run"], "status": "CANCELLED"}}
+    pipeline, api_client, runner_client, run_lock = _pipeline(context=context)
+
+    await pipeline.handle_approval_decided(APPROVAL_DECIDED_PAYLOAD)
+
+    assert runner_client.push_calls == []
+    assert api_client.pull_request_calls == []
+    assert api_client.status_calls == []
+
+
+async def test_approval_decided_pushesAndOpensPr_recordingPushAndPrSteps():
+    pipeline, api_client, runner_client, run_lock = _pipeline(context=APPROVED_CONTEXT)
+
+    await pipeline.handle_approval_decided(APPROVAL_DECIDED_PAYLOAD)
+
+    assert runner_client.push_calls == [
+        (
+            "run1",
+            "/ws/demo/runs/run1/worktree",
+            "agent/task-task1-add-hello",
+            "main",
+            "talos: Add hello (task task1, run run1)",
+            "ghp_test-token",
+            "git@github.com:org/demo.git",
+        )
+    ]
+    assert api_client.pull_request_calls == [("run1", "agent/task-task1-add-hello", "abc123def")]
+    assert ("PUSH", "RUNNING", None) in api_client.step_calls
+    assert any(step[0] == "PUSH" and step[1] == "COMPLETED" for step in api_client.step_calls)
+    assert ("PR", "RUNNING", None) in api_client.step_calls
+    assert any(
+        step[0] == "PR" and step[1] == "COMPLETED" and step[2] == "https://github.com/org/demo/pull/7"
+        for step in api_client.step_calls
+    )
+    # PullRequestService completes the run server-side -- the orchestrator never calls
+    # /internal/v1/runs/{id}/status itself on the happy path.
+    assert api_client.status_calls == []
+
+
+async def test_approval_decided_nonFastForwardPush_flagsNeedsRebase():
+    push_result = {"pushed": False, "needsRebase": True, "commitSha": "abc123def", "reason": "! [rejected] (non-fast-forward)"}
+    pipeline, api_client, runner_client, run_lock = _pipeline(context=APPROVED_CONTEXT, push_result=push_result)
+
+    await pipeline.handle_approval_decided(APPROVAL_DECIDED_PAYLOAD)
+
+    assert api_client.pull_request_calls == []
+    assert ("PUSH", "FAILED", "! [rejected] (non-fast-forward)") in api_client.step_calls
+    assert api_client.status_calls == [
+        {
+            "status": "FAILED",
+            "errorMessage": "NEEDS_REBASE: ! [rejected] (non-fast-forward)",
+            "testStatus": None,
+            "workspacePath": None,
+            "branchName": None,
+            "prompt": None,
+            "summary": None,
+            "exitCode": None,
+        }
+    ]

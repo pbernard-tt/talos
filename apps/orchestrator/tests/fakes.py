@@ -9,12 +9,26 @@ from typing import Any, AsyncIterator
 
 
 class FakeApiClient:
-    def __init__(self, context: dict[str, Any], reject_status_updates_to: set[str] | None = None) -> None:
+    def __init__(
+        self,
+        context: dict[str, Any],
+        reject_status_updates_to: set[str] | None = None,
+        git_token: dict[str, Any] | None = None,
+        pull_request: dict[str, Any] | None = None,
+    ) -> None:
         self.context = context
         self.status_calls: list[dict[str, Any]] = []
         self.step_calls: list[tuple[str, str, str | None]] = []
         self.log_entries: list[dict[str, Any]] = []
         self.changes_calls: list[tuple[list[dict[str, Any]], str | None, str | None]] = []
+        self.git_token = git_token or {
+            "token": "ghp_test-token",
+            "authMode": "pat",
+            "repoUrl": "git@github.com:org/demo.git",
+            "defaultBranch": "main",
+        }
+        self.pull_request = pull_request or {"id": "pr1", "prNumber": 7, "url": "https://github.com/org/demo/pull/7"}
+        self.pull_request_calls: list[tuple[str, str, str]] = []
         # Simulates the API's 422 ILLEGAL_RUN_TRANSITION when the run is already terminal (e.g. a
         # concurrent /cancel already moved it to CANCELLED before the pipeline tries to report FAILED).
         self._reject_status_updates_to = reject_status_updates_to or set()
@@ -67,6 +81,13 @@ class FakeApiClient:
     ) -> None:
         self.changes_calls.append((files, diff_artifact_ref, diff_patch))
 
+    async def get_git_token(self, run_id: str) -> dict[str, Any]:
+        return self.git_token
+
+    async def create_pull_request(self, run_id: str, branch_name: str, commit_sha: str) -> dict[str, Any]:
+        self.pull_request_calls.append((run_id, branch_name, commit_sha))
+        return self.pull_request
+
 
 class FakeRunnerClient:
     def __init__(
@@ -75,12 +96,15 @@ class FakeRunnerClient:
         execute_events: list[dict[str, Any]],
         test_events: list[dict[str, Any]],
         diff_result: dict[str, Any],
+        push_result: dict[str, Any] | None = None,
     ) -> None:
         self.prepare_result = prepare_result
         self.execute_events = execute_events
         self.test_events = test_events
         self.diff_result = diff_result
+        self.push_result = push_result or {"pushed": True, "needsRebase": False, "commitSha": "abc123def"}
         self.stop_calls: list[str] = []
+        self.push_calls: list[tuple[Any, ...]] = []
 
     async def prepare_workspace(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         return self.prepare_result
@@ -98,6 +122,19 @@ class FakeRunnerClient:
 
     async def stop(self, run_id: str) -> None:
         self.stop_calls.append(run_id)
+
+    async def push(
+        self,
+        run_id: str,
+        workspace_path: str,
+        branch_name: str,
+        default_branch: str,
+        commit_message: str,
+        token: str,
+        repo_url: str,
+    ) -> dict[str, Any]:
+        self.push_calls.append((run_id, workspace_path, branch_name, default_branch, commit_message, token, repo_url))
+        return self.push_result
 
 
 class FakeRunLock:
