@@ -1,3 +1,19 @@
+## 2026-07-10 — Root README, production onboarding, and MIT license
+
+**Ask:** Beef up the root README with clearer feature explanation and production deployment guidance, and add an open source license so a GitHub visitor can fork/clone and get Talos running quickly in their own production environment.
+
+**Changed (docs):**
+- `README.md` — rewrote the root landing page around product capabilities, non-goals, architecture, local smoke-test setup, Dokploy production quickstart, required production environment variables, worker image build commands, documentation links, and license pointer.
+- `docs/deployment.md` — expanded the production runbook to include domain environment variables, the required VPS-side `workers/*` image build step, Docker socket group setup, safer secret-generation guidance, worker image override variables, rollback handling for worker image changes, and backup notes for `TALOS_SECRETS_KEY`.
+
+**Changed (infra):**
+- `infra/dokploy/docker-compose.prod.yml` — parameterized Traefik host rules and the web runtime API URL with `TALOS_WEB_DOMAIN` / `TALOS_API_DOMAIN`; explicitly declared the orchestrator's `TALOS_WORKER_IMAGE_*` defaults.
+
+**Changed (license):**
+- `LICENSE` — added the MIT License for the project.
+
+**Verification:** `docker compose -f infra/dokploy/docker-compose.prod.yml config --quiet` passed with sample production environment variables; `docker compose -f infra/docker-compose.dev.yml config --quiet` passed with `TALOS_DOCKER_GID=999`; `git diff --check` passed; source-scoped naming guard (`grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github --exclude-dir=node_modules --exclude=CLAUDE.md --exclude=AGENTS.md`) returned no matches. The exact local guard without `--exclude-dir=node_modules` was not used as the pass condition because this workspace has ignored dependency content under `apps/web/node_modules` (`git check-ignore` confirms it is ignored) containing a third-party minified match; CI runs from a clean checkout and does not include that ignored directory. Not checked: live deployment to a real Dokploy instance, worker image rebuilds, or full app test suites; this change is docs/compose/license only, so compose rendering and naming/whitespace checks were the relevant validation.
+
 ## 2026-07-10 — Plan Revision 2.1: Post-MVP (Phases 12+) expanded into per-feature phase specs
 
 **Ask:** Expand the Post-MVP (Phases 12+) outline in Section 16 of the implementation plan — previously a single sentence — into detailed specifications for each mentioned feature.

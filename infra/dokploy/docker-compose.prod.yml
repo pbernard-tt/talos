@@ -9,6 +9,9 @@
 # invocation) -- point the Dokploy app's git source at this repo and its build context/dockerfile
 # path per service below.
 #
+# Set TALOS_WEB_DOMAIN and TALOS_API_DOMAIN on the Dokploy Compose app (for example,
+# talos.example.com and api.talos.example.com). Do not include https:// in either value.
+#
 # Deploy order (Section 18): postgres -> rabbitmq/redis -> api (runs Flyway migrations on boot) ->
 # orchestrator/runner-supervisor -> web. Dokploy deploys each app independently; bring dependencies
 # up first the first time, then each app's own Dokploy "Deploy" trigger (what DeployService calls)
@@ -86,9 +89,9 @@ services:
       retries: 10
       start_period: 30s
     labels:
-      # Dokploy/Traefik routing -- adjust the Host() rule to your domain.
+      # Dokploy/Traefik routing.
       - "traefik.enable=true"
-      - "traefik.http.routers.talos-api.rule=Host(`api.talos.example.com`)"
+      - "traefik.http.routers.talos-api.rule=Host(`${TALOS_API_DOMAIN}`)"
       - "traefik.http.services.talos-api.loadbalancer.server.port=8080"
 
   runner-supervisor:
@@ -150,6 +153,10 @@ services:
       TALOS_RUNNER_BASE_URL: http://runner-supervisor:8081
       TALOS_MAX_ACTIVE_RUNS: "1"
       TALOS_RUN_TIMEOUT_MINUTES: "60"
+      TALOS_WORKER_IMAGE_BASE: workers/base-agent-runner:latest
+      TALOS_WORKER_IMAGE_JAVA: workers/java-runner:latest
+      TALOS_WORKER_IMAGE_NODE: workers/node-runner:latest
+      TALOS_WORKER_IMAGE_PYTHON: workers/python-runner:latest
     # No HTTP port: the orchestrator only consumes from RabbitMQ (Section 4.3's four paths) --
     # Dokploy's health check for this app type is process liveness, not an HTTP probe.
 
@@ -162,7 +169,7 @@ services:
       api:
         condition: service_healthy
     environment:
-      TALOS_API_URL: https://api.talos.example.com
+      TALOS_API_URL: https://${TALOS_API_DOMAIN}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/"]
       interval: 15s
@@ -171,7 +178,7 @@ services:
       start_period: 10s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.talos-web.rule=Host(`talos.example.com`)"
+      - "traefik.http.routers.talos-web.rule=Host(`${TALOS_WEB_DOMAIN}`)"
       - "traefik.http.services.talos-web.loadbalancer.server.port=80"
 
 volumes:
