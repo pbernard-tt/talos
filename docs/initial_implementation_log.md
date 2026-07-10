@@ -1,3 +1,48 @@
+## 2026-07-10 — Phase 11: Hardening and security
+
+**Ask:** Continue Revision 2 implementation with Phase 11, the last MVP phase: per-run Docker execution using `workers/` images (non-root, no docker.sock, cgroup limits, network policy) behind the unchanged runner HTTP contract; secret-masking sweep; rate limits; retention job verification; dependency + container scanning in CI; `docs/security-model.md` threat model; PostgreSQL backup/restore procedure, executed once as a drill.
+
+**Ambiguity resolved (asked, not guessed):** "runner container cannot reach the Docker daemon" — confirmed via `AskUserQuestion` this means `talos-runner-supervisor` keeps `/var/run/docker.sock` access (needed to launch per-run containers); every per-run container it spawns gets none, verified by a dedicated test.
+
+**Root cause / bugs found (live, not by a unit test):**
+1. Debian trixie's `docker.io` package does *not* include the `docker` CLI binary under `--no-install-recommends` — `docker-cli` is only a `Recommends:`. Discovered as `docker: not found` inside a freshly built `talos-runner-supervisor` image; fixed by installing the standalone `docker-cli` package (which, via `apt-cache depends`, turned out to depend only on `libc6` — no `dockerd`/`containerd`/`runc` bloat, and it `Breaks: docker.io`, confirming it's the correct minimal choice, not a workaround).
+2. `RunControllerIntegrationTest` (21 test methods sharing one Spring context/Redis instance) logged in fresh via `bearerToken()` on every test, which tripped the new login rate limiter around test #11 once its default (`10` attempts/`60s`) applied. Fixed by caching the bearer token once per class run — a legitimate test-efficiency fix, not a limiter workaround, since the token doesn't need to be re-derived per test.
+3. `aquasecurity/trivy-action`, the tool this phase adds *for* security scanning, was itself the target of a March 2026 supply-chain attack (76 of 77 version tags force-pushed to credential-stealing malware). Caught by checking current advisories before wiring it into CI rather than trusting a remembered tag name; every reference is pinned to the confirmed-safe v0.35.0 commit SHA (`57a97c7e7821a5776cebc9bb87c984fa69cba8f1`), not a mutable tag.
+
+**Changed (contracts):**
+- `packages/contracts/openapi.yaml` — new `GET /internal/v1/runs/retention-candidates` + `RetentionCandidate`/`RetentionCandidatesResponse` schemas.
+- `docs/src/talos-implementation-plan.md` — Section 7.1's `AgentSessionRequest` gained `container: ContainerConfig | None`; Appendix A gained all new Phase 11 env vars across `talos-api`/`talos-orchestrator`/`talos-runner-supervisor`.
+
+**Changed (agent-adapter-spec / container execution):**
+- `packages/agent-adapter-spec/src/talos_agent_adapter_spec/container.py` (new) — `ContainerConfig`, `build_docker_run_args` (per-run-subpath volume mounts, cap-drop, resource limits, `--env-file`), `write_env_file`, `ensure_network`, `kill_container`.
+- `custom_shell.py`/`claude_code.py` — `start()` branches on `request.container`; containerized path spawns via the container helper; `_kill_process_group()` layers the existing process-group signal (proxied into the container by `docker run`'s own `--sig-proxy`) with an unconditional `kill_container()` safety net.
+
+**Changed (backend — runner-supervisor):**
+- `Dockerfile` — stripped Java/Gradle/Claude Code (moved to `workers/`), added Docker CLI, fixed the `talos` user to `uid=1000 gid=1000` (was an unpredictable `useradd --system` UID) to match the `workers/*` images for shared-volume write compatibility.
+- `config.py`/`execute.py`/`models.py`/`app.py` — threaded `container_image`/`ContainerConfig` construction (`_volume_subpath` helper) through `/runs/{id}/execute`, calling `ensure_network` before spawning.
+
+**Changed (backend — orchestrator):**
+- `config.py` — `worker_image_{base,java,node,python}`, `retention_max_age_days`, `retention_interval_seconds`.
+- `pipeline.py` — `_container_image_for(stack_type, settings)` resolves `project.stackType` → image; `RunPipeline` now takes `settings`.
+- `runner_client.py` — `execute_run` gained `container_image`.
+- `retention.py` (new) — `run_once`/`run_periodically`, wired into `main.py` as a background `asyncio.create_task` alongside the RabbitMQ consumers.
+
+**Changed (backend — talos-api):**
+- `dev.talos.runs.RunService.getRetentionCandidates` + `AgentRunRepository.findByStatusInAndCompletedAtBefore` + `PullRequestRepository.findByRunIdInAndStatus` — terminal runs older than `maxAgeDays` with no `OPEN` PR. `InternalRunController` gained the endpoint.
+- `dev.talos.auth.LoginRateLimitFilter` (new) — Redis `INCR`+`EXPIRE` fixed-window limiter on `POST /api/v1/auth/login`, wired into `SecurityConfig` ahead of `JwtAuthenticationFilter`. `TalosProperties` gained `loginRateLimitMaxAttempts`/`loginRateLimitWindowSeconds`.
+
+**Changed (infra):**
+- `workers/{base-agent-runner,java-runner,node-runner,python-runner}/Dockerfile` (new).
+- `infra/docker-compose.dev.yml`, `infra/dokploy/docker-compose.prod.yml` — explicit `name:` on `talos_workspaces`/`talos_provider_homes`; new `external: true` `talos_run_network` (unattached, created lazily by the supervisor); `talos-runner-supervisor` gained the docker.sock bind-mount + `group_add: ["${TALOS_DOCKER_GID}"]` + the new `TALOS_RUN_*` env vars.
+- `.github/workflows/ci.yml` — `workers-docker-build` job (sequential, not matrixed, since `java/node/python-runner` build `FROM` a local `base-agent-runner` tag); `smoke` job now also builds `workers/base-agent-runner` and resolves `TALOS_DOCKER_GID` before bringing the stack up (every run is now containerized, so the image and socket access must exist for the smoke test to pass); new report-only `dependency-scan`/`container-scan` Trivy jobs.
+
+**Changed (docs):**
+- `docs/security-model.md` — real threat model (was a one-line stub): Section 12.1 recap, the container isolation boundary and its accepted residual risks, secret masking, rate limiting, retention, CI scanning (including the trivy-action supply-chain note), and the backup/restore drill transcript.
+
+**Coverage:** `packages/agent-adapter-spec` — `test_container.py` (8 unit tests, mocked), `test_container_execution.py` (6 real-Docker integration tests: own-workspace read, sibling-run `.env` invisibility, no-socket/no-CLI, secret masking, hard-kill-at-timeout, `ensure_network` idempotency). `apps/runner-supervisor` — `test_execute.py` (`_volume_subpath`). `apps/orchestrator` — `test_pipeline.py` additions (stack-type image resolution + base-image fallback), `test_retention.py` (grouping/cleanup-call behavior via fakes). `apps/api` — `RunServiceRetentionCandidatesTest` (Mockito), `LoginRateLimitIntegrationTest` (real Testcontainers Redis, trips 429).
+
+**Verification:** All four Python test suites green (`uv run pytest`: 29/24/26 passed across `agent-adapter-spec`/`runner-supervisor`/`orchestrator`). `apps/api`: `sg docker -c "./gradlew test"` — 123 passed, 0 failed. All `workers/*` images and the stripped `runner-supervisor` image built and manually smoke-tested. Full live walk against `docker compose -f infra/docker-compose.dev.yml` with `TALOS_DOCKER_GID` resolved: `scripts/smoke.sh` passed end-to-end while a `docker events` capture confirmed a real `talos-run-{run_id}` container (`workers/base-agent-runner:latest`) was created/started/exited(0)/destroyed through the full talos-api → RabbitMQ → orchestrator → runner-supervisor chain — not a manual curl test. Separately verified live: per-run container cannot resolve `talos-postgres`/`talos-api` by name while outbound internet works; no docker.sock/CLI inside a per-run container; `GET /internal/v1/runs/retention-candidates` returns correct real data; `talos_orchestrator.retention.run_once` runs end-to-end inside the live orchestrator container without error; login rate limiter returns 429 on the 11th attempt. Backup/restore drill executed for real (`pg_dump`/`pg_restore` round-trip against a fresh scratch Postgres, all 5 checked tables' row counts matched exactly, admin user intact byte-for-byte) — full transcript in `docs/security-model.md`. Trivy scanning validated locally (`aquasec/trivy:0.69.3` against `talos-runner-supervisor:latest`, exit 0, real CVEs surfaced) before trusting the pinned-SHA CI wiring. Naming guard clean. **Not checked:** a live deploy of the new images to a real Dokploy instance (none available, same limitation as Phase 10); the new CI jobs actually running on GitHub Actions infrastructure (validated by construction against working local build commands, not observed running remotely this session).
+
 ## 2026-07-10 — Phase 10: Dokploy integration
 
 **Ask:** Continue Revision 2 implementation with Phase 10: approval-gated deploy trigger for Dokploy, plus Talos's own production deployment runbook.

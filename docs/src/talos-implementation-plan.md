@@ -332,6 +332,7 @@ class AgentSessionRequest:
     auth_mode: str             # "api_key" | "subscription_local"
     provider_home: str         # isolated HOME dir holding provider credentials
     timeout_seconds: int
+    container: ContainerConfig | None = None  # Phase 11: when set, run in a per-run Docker container (Section 8) instead of a local subprocess
 
 @dataclass
 class AgentEvent:
@@ -1168,6 +1169,8 @@ Every variable ships with a commented entry in the relevant `.env.example`. No s
 | `TALOS_SECRETS_KEY` | 32-byte base64 | AES-256-GCM key for `secret_values` |
 | `TALOS_GITHUB_WEBHOOK_SECRET` | — | HMAC verification for `/webhooks/github` |
 | `TALOS_POLICY_FILE` | `/etc/talos/policy.yaml` | Phase 8: overrides the bundled default `policy.yaml` (Section 12.3); unset uses the classpath default |
+| `TALOS_LOGIN_RATE_LIMIT_MAX_ATTEMPTS` | `10` | Phase 11 (Section 12.2): attempts allowed per client IP per window before `/api/v1/auth/login` returns 429 |
+| `TALOS_LOGIN_RATE_LIMIT_WINDOW_SECONDS` | `60` | Phase 11: fixed-window size (seconds) for the login rate limiter's Redis counter |
 
 ### talos-orchestrator
 
@@ -1179,6 +1182,12 @@ Every variable ships with a commented entry in the relevant `.env.example`. No s
 | `TALOS_RUNNER_BASE_URL` | `http://talos-runner-supervisor:8081` | Runner HTTP root |
 | `TALOS_MAX_ACTIVE_RUNS` | `1` | Concurrency cap |
 | `TALOS_RUN_TIMEOUT_MINUTES` | `60` | Overall run timeout |
+| `TALOS_WORKER_IMAGE_BASE` | `workers/base-agent-runner:latest` | Phase 11 (Section 8): per-run container image for projects whose `stackType` matches no specific runner |
+| `TALOS_WORKER_IMAGE_JAVA` | `workers/java-runner:latest` | Image for `stackType: spring-boot` |
+| `TALOS_WORKER_IMAGE_NODE` | `workers/node-runner:latest` | Image for `stackType: angular` or `node` |
+| `TALOS_WORKER_IMAGE_PYTHON` | `workers/python-runner:latest` | Image for `stackType: python` |
+| `TALOS_RETENTION_MAX_AGE_DAYS` | `7` | Phase 11 (Section 8.3): terminal runs older than this with no OPEN PR are deleted by the periodic retention sweep |
+| `TALOS_RETENTION_INTERVAL_SECONDS` | `21600` | How often the retention sweep runs (default 6h) |
 
 ### talos-runner-supervisor
 
@@ -1188,6 +1197,13 @@ Every variable ships with a commented entry in the relevant `.env.example`. No s
 | `TALOS_PROVIDER_HOMES_ROOT` | `/var/talos/provider-homes` | Credential isolation volume |
 | `TALOS_INTERNAL_API_TOKEN` | (same) | Auth for artifact/log posts |
 | `TALOS_MAX_WORKSPACE_AGE_DAYS` | `7` | Retention |
+| `TALOS_RUN_WORKSPACES_VOLUME` | `talos_workspaces` | Phase 11 (Section 8): named Docker volume mounted (per-run, via `--mount ...,volume-subpath=...`) into each per-run container |
+| `TALOS_RUN_PROVIDER_HOMES_VOLUME` | `talos_provider_homes` | Named Docker volume for the per-run container's `/provider-home` mount |
+| `TALOS_RUN_NETWORK` | `talos_run_network` | Isolated Docker network every per-run container joins instead of the compose default network -- no route to postgres/rabbitmq/redis/api |
+| `TALOS_RUN_MEMORY_LIMIT` | `1g` | Per-run container `--memory` |
+| `TALOS_RUN_CPU_LIMIT` | `1` | Per-run container `--cpus` |
+| `TALOS_RUN_PIDS_LIMIT` | `256` | Per-run container `--pids-limit` |
+| `TALOS_DOCKER_GID` | host-specific, e.g. `999` | Not read by the app itself -- consumed by `infra/*.yml`'s `group_add` so the container's non-root `talos` user can use the mounted `/var/run/docker.sock`. Find it with `stat -c '%g' /var/run/docker.sock` on the host. |
 
 ### talos-web
 
