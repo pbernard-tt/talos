@@ -230,7 +230,13 @@ class RunControllerIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("REVIEW"));
 
-		transitionInternal(runId, "APPROVED");
+		// APPROVED is a human decision (Section 8.2) -- only reachable via /api/v1/approvals (Phase 8).
+		String approvalId = pendingApprovalIdForRun(token, runId);
+		mockMvc.perform(post("/api/v1/approvals/{id}/approve", approvalId)
+						.header("Authorization", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isOk());
 		transitionInternal(runId, "COMPLETED");
 
 		mockMvc.perform(get("/api/v1/tasks/{id}", taskId).header("Authorization", token))
@@ -242,6 +248,45 @@ class RunControllerIntegrationTest {
 				.andExpect(jsonPath("$.status").value("COMPLETED"))
 				.andExpect(jsonPath("$.startedAt").isNotEmpty())
 				.andExpect(jsonPath("$.completedAt").isNotEmpty());
+	}
+
+	@Test
+	void internalStatus_cannotSetApprovedOrRejectedDirectly_requiresApprovalEndpoint() throws Exception {
+		String token = bearerToken();
+		String projectId = createProject(token, false);
+		String taskId = createTask(token, projectId);
+		String runId = startRun(token, taskId, "{\"agentKey\":\"custom-shell\"}");
+		transitionInternal(runId, "PREPARING_WORKSPACE");
+		transitionInternal(runId, "RUNNING_AGENT");
+		transitionInternal(runId, "RUNNING_TESTS");
+		transitionInternal(runId, "REVIEWING");
+		transitionInternal(runId, "WAITING_APPROVAL");
+
+		mockMvc.perform(post("/internal/v1/runs/{id}/status", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"status\":\"APPROVED\"}"))
+				.andExpect(status().isUnprocessableContent())
+				.andExpect(jsonPath("$.error.code").value("APPROVAL_REQUIRED_FOR_TRANSITION"));
+
+		mockMvc.perform(post("/internal/v1/runs/{id}/status", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"status\":\"REJECTED\"}"))
+				.andExpect(status().isUnprocessableContent())
+				.andExpect(jsonPath("$.error.code").value("APPROVAL_REQUIRED_FOR_TRANSITION"));
+
+		mockMvc.perform(get("/api/v1/runs/{id}", runId).header("Authorization", token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("WAITING_APPROVAL"));
+	}
+
+	private String pendingApprovalIdForRun(String token, String runId) throws Exception {
+		String response = mockMvc.perform(get("/api/v1/approvals").header("Authorization", token)
+						.param("runId", runId))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		return JsonPath.read(response, "$.content[0].id");
 	}
 
 	@Test

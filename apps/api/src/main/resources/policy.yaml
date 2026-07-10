@@ -1,0 +1,30 @@
+# Bundled default global policy (Section 12.3). Override the whole file via TALOS_POLICY_FILE;
+# per-project additions come from talos.yaml's `rules` (Section 14), merged in at scan time.
+commands:
+  blocked:
+    - "rm -rf /"
+    - "chmod 777"
+    - "docker system prune"
+    - "curl | sh"
+  approval_required:
+    - "sudo"
+    - "systemctl"
+    - "ssh "
+    - "psql"
+    - "docker compose down"
+    - "npm audit fix --force"
+files:
+  blocked_patterns:
+    - ".env*"
+    - "*.pem"
+    - "id_rsa*"
+    - "**/secrets/**"
+  approval_required_patterns:
+    - ".github/workflows/**"
+    - "docker-compose*.yml"
+    - "src/main/resources/application-prod*.yml"
+    - "**/migrations/**"
+    - "**/db/migration/**"
+deploy:
+  production_requires_approval: true
+  staging_auto_deploy_allowed: false

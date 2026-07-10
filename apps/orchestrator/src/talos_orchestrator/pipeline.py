@@ -167,7 +167,7 @@ class RunPipeline:
         # --- review / diff capture ------------------------------------------------------
         await self._api_client.update_status(run_id, "REVIEWING", test_status=test_status)
         diff = await self._runner_client.capture_diff(run_id, workspace_path)
-        await self._api_client.record_changes(run_id, diff["files"], diff.get("diffArtifactPath"))
+        await self._api_client.record_changes(run_id, diff["files"], diff.get("diffArtifactPath"), diff.get("diff"))
         summary = f"{len(diff['files'])} file(s) changed"
         await self._api_client.record_step(run_id, "REVIEW", "COMPLETED", summary=summary)
 

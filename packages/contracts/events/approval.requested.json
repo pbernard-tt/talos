@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talos.dev/schemas/events/approval.requested.json",
+  "title": "approval.requested",
+  "description": "Section 11: API -> notifiers, published when a run reaches WAITING_APPROVAL and its approval row is auto-created (Section 8.1 step 10, Phase 8).",
+  "type": "object",
+  "required": ["event_id", "event_type", "occurred_at", "version", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "event_type": { "const": "approval.requested" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "version": { "const": 1 },
+    "payload": {
+      "type": "object",
+      "required": ["approval_id", "run_id", "task_title", "review_status"],
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": { "type": "string", "format": "uuid" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "task_title": { "type": "string" },
+        "review_status": { "type": "string", "enum": ["CLEAN", "RISK_FLAGGED"] }
+      }
+    }
+  }
+}

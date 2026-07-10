@@ -10,5 +10,6 @@ public record TalosProperties(
 		String adminEmail,
 		String adminPassword,
 		String secretsKey,
-		String githubWebhookSecret) {
+		String githubWebhookSecret,
+		String policyFile) {
 }

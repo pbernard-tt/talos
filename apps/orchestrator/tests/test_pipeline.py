@@ -63,7 +63,7 @@ async def test_happy_path_walks_all_statuses_and_releases_lock():
     ]
     assert run_lock.acquired == [("proj1", "main", "run1")]
     assert run_lock.released == [("proj1", "main", "run1")]
-    assert api_client.changes_calls == [(DIFF_RESULT["files"], DIFF_RESULT["diffArtifactPath"])]
+    assert api_client.changes_calls == [(DIFF_RESULT["files"], DIFF_RESULT["diffArtifactPath"], DIFF_RESULT["diff"])]
     assert any(step[0] == "WORKSPACE" and step[1] == "COMPLETED" for step in api_client.step_calls)
     assert any(step[0] == "AGENT" and step[1] == "COMPLETED" for step in api_client.step_calls)
     assert any(step[0] == "TESTS" and step[1] == "COMPLETED" for step in api_client.step_calls)

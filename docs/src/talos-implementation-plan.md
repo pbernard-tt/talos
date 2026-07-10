@@ -572,6 +572,7 @@ CREATE TABLE agent_runs (
   branch_name VARCHAR(300),
   workspace_path VARCHAR(500),
   summary TEXT,
+  diff_patch TEXT,                                   -- Phase 8: unified diff text (Section 8.1 step 8), served by GET /api/v1/runs/{id}/diff
   test_status VARCHAR(20) NOT NULL DEFAULT 'NOT_RUN'
     CHECK (test_status IN ('NOT_RUN','PASSED','FAILED','ERROR')),
   review_status VARCHAR(20) NOT NULL DEFAULT 'CLEAN'
@@ -632,7 +633,8 @@ CREATE TABLE git_changes (
   change_type VARCHAR(10) NOT NULL CHECK (change_type IN ('ADDED','MODIFIED','DELETED','RENAMED')),
   additions INT NOT NULL DEFAULT 0,
   deletions INT NOT NULL DEFAULT 0,
-  risk_flagged BOOLEAN NOT NULL DEFAULT false
+  risk_flagged BOOLEAN NOT NULL DEFAULT false,
+  matched_pattern VARCHAR(200)                       -- Phase 8: the policy.yaml/talos.yaml pattern that flagged this file, shown in the Review Center
 );
 
 CREATE TABLE pull_requests (
@@ -1143,6 +1145,7 @@ Every variable ships with a commented entry in the relevant `.env.example`. No s
 | `TALOS_ADMIN_EMAIL` / `TALOS_ADMIN_PASSWORD` | — | Seeded admin (password rotated after first login) |
 | `TALOS_SECRETS_KEY` | 32-byte base64 | AES-256-GCM key for `secret_values` |
 | `TALOS_GITHUB_WEBHOOK_SECRET` | — | HMAC verification for `/webhooks/github` |
+| `TALOS_POLICY_FILE` | `/etc/talos/policy.yaml` | Phase 8: overrides the bundled default `policy.yaml` (Section 12.3); unset uses the classpath default |
 
 ### talos-orchestrator
 

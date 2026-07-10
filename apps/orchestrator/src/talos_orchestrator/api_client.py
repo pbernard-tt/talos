@@ -73,10 +73,16 @@ class ApiClient:
         response.raise_for_status()
 
     async def record_changes(
-        self, run_id: str, files: list[dict[str, Any]], diff_artifact_ref: str | None = None
+        self,
+        run_id: str,
+        files: list[dict[str, Any]],
+        diff_artifact_ref: str | None = None,
+        diff_patch: str | None = None,
     ) -> None:
         body: dict[str, Any] = {"files": files}
         if diff_artifact_ref is not None:
             body["diffArtifactRef"] = diff_artifact_ref
+        if diff_patch is not None:
+            body["diffPatch"] = diff_patch
         response = await self._client.post(f"/internal/v1/runs/{run_id}/changes", json=body)
         response.raise_for_status()

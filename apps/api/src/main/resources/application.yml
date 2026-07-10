@@ -38,3 +38,4 @@ talos:
   admin-password: ${TALOS_ADMIN_PASSWORD:}
   secrets-key: ${TALOS_SECRETS_KEY:}
   github-webhook-secret: ${TALOS_GITHUB_WEBHOOK_SECRET:}
+  policy-file: ${TALOS_POLICY_FILE:}

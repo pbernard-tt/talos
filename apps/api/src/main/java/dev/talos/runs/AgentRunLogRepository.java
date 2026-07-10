@@ -10,5 +10,7 @@ import java.util.UUID;
 public interface AgentRunLogRepository extends JpaRepository<AgentRunLog, UUID> {
 	List<AgentRunLog> findByRunIdAndSequenceGreaterThanOrderBySequenceAsc(UUID runId, long sequence);
 
+	List<AgentRunLog> findByRunIdOrderBySequenceAsc(UUID runId);
+
 	Page<AgentRunLog> findByRunIdAndSequenceGreaterThan(UUID runId, long sequence, Pageable pageable);
 }

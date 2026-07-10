@@ -2,6 +2,7 @@ package dev.talos.runs;
 
 import dev.talos.auth.AuthenticatedUser;
 import dev.talos.common.PageResponse;
+import dev.talos.runs.dto.DiffResponse;
 import dev.talos.runs.dto.LogEntryResponse;
 import dev.talos.runs.dto.RunDetailResponse;
 import dev.talos.runs.dto.RunResponse;
@@ -50,6 +51,11 @@ public class RunController {
 			@RequestParam(defaultValue = "0") long afterSequence,
 			@RequestParam(defaultValue = "500") int size) {
 		return PageResponse.of(runService.getLogs(id, afterSequence, size));
+	}
+
+	@GetMapping("/{id}/diff")
+	public DiffResponse diff(@PathVariable UUID id) {
+		return runService.getDiff(id);
 	}
 
 	@PostMapping("/{id}/cancel")

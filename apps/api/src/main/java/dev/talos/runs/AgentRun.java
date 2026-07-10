@@ -49,6 +49,9 @@ public class AgentRun {
 	@Column
 	private String summary;
 
+	@Column(name = "diff_patch")
+	private String diffPatch;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "test_status", nullable = false, length = 20)
 	private TestStatus testStatus = TestStatus.NOT_RUN;
@@ -129,6 +132,18 @@ public class AgentRun {
 
 	public String getSummary() {
 		return summary;
+	}
+
+	public String getDiffPatch() {
+		return diffPatch;
+	}
+
+	public void setDiffPatch(String diffPatch) {
+		this.diffPatch = diffPatch;
+	}
+
+	public void setReviewStatus(ReviewStatus reviewStatus) {
+		this.reviewStatus = reviewStatus;
 	}
 
 	public TestStatus getTestStatus() {

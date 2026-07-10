@@ -116,4 +116,12 @@ public class Approval {
 	public Instant getCreatedAt() {
 		return createdAt;
 	}
+
+	/** Section 10.2's approve/reject/request-changes actions (Phase 8): a PENDING approval decided exactly once. */
+	public void decide(ApprovalStatus status, UUID approvedBy, String notes) {
+		this.status = status;
+		this.approvedBy = approvedBy;
+		this.approvedAt = Instant.now();
+		this.notes = notes;
+	}
 }

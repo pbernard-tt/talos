@@ -36,6 +36,9 @@ public class GitChange {
 	@Column(name = "risk_flagged", nullable = false)
 	private boolean riskFlagged = false;
 
+	@Column(name = "matched_pattern", length = 200)
+	private String matchedPattern;
+
 	protected GitChange() {
 		// JPA
 	}
@@ -76,5 +79,15 @@ public class GitChange {
 
 	public boolean isRiskFlagged() {
 		return riskFlagged;
+	}
+
+	public String getMatchedPattern() {
+		return matchedPattern;
+	}
+
+	/** Section 12.1's post-run scan (Phase 8): flags this row and records which policy.yaml/talos.yaml pattern matched. */
+	public void flag(String matchedPattern) {
+		this.riskFlagged = true;
+		this.matchedPattern = matchedPattern;
 	}
 }

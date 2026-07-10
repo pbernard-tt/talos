@@ -1,14 +1,20 @@
 package dev.talos.runs;
 
+import dev.talos.approvals.Approval;
+import dev.talos.approvals.ApprovalRepository;
+import dev.talos.approvals.dto.ApprovalRequestedPayload;
 import dev.talos.audit.AuditService;
 import dev.talos.common.ApiException;
 import dev.talos.events.EventPublisher;
+import dev.talos.policy.PolicyScanService;
 import dev.talos.projects.Project;
 import dev.talos.projects.ProjectConfig;
 import dev.talos.projects.ProjectConfigRepository;
 import dev.talos.projects.ProjectRepository;
 import dev.talos.projects.dto.ProjectSummary;
+import dev.talos.runs.dto.DiffResponse;
 import dev.talos.runs.dto.GitChangeDto;
+import dev.talos.runs.dto.GitChangeResponse;
 import dev.talos.runs.dto.InternalChangesRequest;
 import dev.talos.runs.dto.InternalLogEntry;
 import dev.talos.runs.dto.InternalLogsRequest;
@@ -54,12 +60,15 @@ public class RunService {
 	private final AuditService auditService;
 	private final EventPublisher eventPublisher;
 	private final RunEventBroadcaster broadcaster;
+	private final PolicyScanService policyScanService;
+	private final ApprovalRepository approvalRepository;
 
 	public RunService(AgentRunRepository agentRunRepository, AgentRunStepRepository agentRunStepRepository,
 			AgentRunLogRepository agentRunLogRepository, GitChangeRepository gitChangeRepository,
 			TaskRepository taskRepository, ProjectRepository projectRepository,
 			ProjectConfigRepository projectConfigRepository, AuditService auditService,
-			EventPublisher eventPublisher, RunEventBroadcaster broadcaster) {
+			EventPublisher eventPublisher, RunEventBroadcaster broadcaster, PolicyScanService policyScanService,
+			ApprovalRepository approvalRepository) {
 		this.agentRunRepository = agentRunRepository;
 		this.agentRunStepRepository = agentRunStepRepository;
 		this.agentRunLogRepository = agentRunLogRepository;
@@ -70,6 +79,8 @@ public class RunService {
 		this.auditService = auditService;
 		this.eventPublisher = eventPublisher;
 		this.broadcaster = broadcaster;
+		this.policyScanService = policyScanService;
+		this.approvalRepository = approvalRepository;
 	}
 
 	@Transactional
@@ -114,6 +125,9 @@ public class RunService {
 		Duration timeout = RunTransitionValidator.timeoutFor(newStatus);
 		Instant timeoutAt = timeout != null ? Instant.now().plus(timeout) : null;
 		run.transitionTo(newStatus, timeoutAt, errorMessage);
+		if (newStatus == RunStatus.WAITING_APPROVAL) {
+			run.setReviewStatus(policyScanService.scan(run));
+		}
 		run = agentRunRepository.save(run);
 
 		auditService.record(actorUserId, "run.status.changed", "run", run.getId(),
@@ -125,7 +139,24 @@ public class RunService {
 				new RunStatusChangedPayload(run.getId(), from.name(), newStatus.name()));
 		broadcaster.publishStatus(run.getId(), from.name(), newStatus.name());
 
+		if (newStatus == RunStatus.WAITING_APPROVAL) {
+			createApproval(run);
+		}
+
 		return run;
+	}
+
+	/** Section 8.1 step 10: auto-creates the PENDING approval a moment a run reaches WAITING_APPROVAL. */
+	private void createApproval(AgentRun run) {
+		Task task = taskRepository.findById(run.getTaskId())
+				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "TASK_NOT_FOUND", "Task not found"));
+		Approval approval = new Approval(run.getTaskId(), run.getId(), "RUN_RESULT", "Review run results", null,
+				Instant.now().plus(Duration.ofHours(24)));
+		approval = approvalRepository.save(approval);
+		auditService.record(null, "approval.requested", "approval", approval.getId(),
+				Map.of("runId", run.getId().toString(), "taskId", run.getTaskId().toString()));
+		eventPublisher.publish("approval.requested", new ApprovalRequestedPayload(approval.getId(), run.getId(),
+				task.getTitle(), run.getReviewStatus().name()));
 	}
 
 	/** Section 8.2's "Task <-> run status mapping." CANCELLED restores READY (see phase report -- no column holds "status before the run"). */
@@ -175,8 +206,19 @@ public class RunService {
 				.map(LogEntryResponse::from);
 	}
 
+	/**
+	 * Section 10.4's orchestrator-only endpoint. APPROVED/REJECTED are excluded here on purpose:
+	 * Section 8.2 marks WAITING_APPROVAL -> APPROVED/REJECTED "API, human decision" only, so those
+	 * two transitions are reachable exclusively through ApprovalService (Phase 8) -- otherwise the
+	 * orchestrator's service token alone could push a run past human review.
+	 */
 	@Transactional
 	public AgentRun updateStatus(UUID runId, dev.talos.runs.dto.InternalStatusRequest request) {
+		if (request.status() == RunStatus.APPROVED || request.status() == RunStatus.REJECTED) {
+			throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "APPROVAL_REQUIRED_FOR_TRANSITION",
+					"Run transitions to %s require a human decision via /api/v1/approvals, not the internal endpoint"
+							.formatted(request.status()));
+		}
 		AgentRun run = getOrThrow(runId);
 		run.applyPipelineDetails(request.testStatus(), request.workspacePath(), request.branchName(),
 				request.prompt(), request.summary(), request.exitCode());
@@ -199,10 +241,14 @@ public class RunService {
 
 	@Transactional
 	public void recordChanges(UUID runId, InternalChangesRequest request) {
-		getOrThrow(runId);
+		AgentRun run = getOrThrow(runId);
 		for (GitChangeDto file : request.files()) {
 			gitChangeRepository.save(new GitChange(runId, file.filePath(), file.changeType(), file.additions(),
 					file.deletions(), false));
+		}
+		if (request.diffPatch() != null) {
+			run.setDiffPatch(request.diffPatch());
+			agentRunRepository.save(run);
 		}
 		auditService.record(null, "run.changes.recorded", "run", runId,
 				Map.of("fileCount", request.files().size(), "diffArtifactRef",
@@ -241,6 +287,13 @@ public class RunService {
 		}
 	}
 
+	public DiffResponse getDiff(UUID id) {
+		AgentRun run = getOrThrow(id);
+		List<GitChangeResponse> files = gitChangeRepository.findByRunId(id).stream().map(GitChangeResponse::from)
+				.toList();
+		return new DiffResponse(files, run.getDiffPatch());
+	}
+
 	public RunContextResponse getContext(UUID runId) {
 		AgentRun run = getOrThrow(runId);
 		Task task = taskRepository.findById(run.getTaskId())
@@ -254,7 +307,8 @@ public class RunService {
 				activeConfig);
 	}
 
-	AgentRun getOrThrow(UUID id) {
+	/** Package-visibility relaxed for ApprovalService (Phase 8), which drives transitionRun on approve/reject. */
+	public AgentRun getOrThrow(UUID id) {
 		return agentRunRepository.findById(id)
 				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "RUN_NOT_FOUND", "Run not found"));
 	}

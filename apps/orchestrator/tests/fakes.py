@@ -14,7 +14,7 @@ class FakeApiClient:
         self.status_calls: list[dict[str, Any]] = []
         self.step_calls: list[tuple[str, str, str | None]] = []
         self.log_entries: list[dict[str, Any]] = []
-        self.changes_calls: list[tuple[list[dict[str, Any]], str | None]] = []
+        self.changes_calls: list[tuple[list[dict[str, Any]], str | None, str | None]] = []
         # Simulates the API's 422 ILLEGAL_RUN_TRANSITION when the run is already terminal (e.g. a
         # concurrent /cancel already moved it to CANCELLED before the pipeline tries to report FAILED).
         self._reject_status_updates_to = reject_status_updates_to or set()
@@ -59,9 +59,13 @@ class FakeApiClient:
         self.log_entries.extend(entries)
 
     async def record_changes(
-        self, run_id: str, files: list[dict[str, Any]], diff_artifact_ref: str | None = None
+        self,
+        run_id: str,
+        files: list[dict[str, Any]],
+        diff_artifact_ref: str | None = None,
+        diff_patch: str | None = None,
     ) -> None:
-        self.changes_calls.append((files, diff_artifact_ref))
+        self.changes_calls.append((files, diff_artifact_ref, diff_patch))
 
 
 class FakeRunnerClient:
