@@ -1,3 +1,6 @@
 # infra/dokploy
 
-Production deployment runbook and Dokploy service definitions (Section 18 of the implementation plan). Built in Phase 10, once the review/approval flow (Phase 8) is complete and tested — no deploy trigger exists before then; `DeployProvider` is a no-op interface until Phase 10.
+Dokploy service definitions (Section 18 of the implementation plan). `docker-compose.prod.yml` is
+the production reference composition — import it as a Dokploy "Compose" application. The full
+operator runbook (prerequisites, environment variables, deploy order, rollback) lives in
+[`docs/deployment.md`](../../docs/deployment.md).

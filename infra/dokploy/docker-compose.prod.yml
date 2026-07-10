@@ -1,0 +1,165 @@
+# Production reference composition for Dokploy's "Compose" application type (Section 18 of the
+# implementation plan). Import this file as a Dokploy Compose app, then set the ${VAR} placeholders
+# below as environment variables on that app -- Dokploy substitutes them at deploy time. Every
+# variable here is documented in Appendix A of docs/Talos_Implementation_Plan.pdf; nothing here
+# should ever be a real secret value.
+#
+# This file assumes Dokploy is building each service from this repository (build.context is
+# relative to the repo root, matching how each apps/*/Dockerfile documents its own build
+# invocation) -- point the Dokploy app's git source at this repo and its build context/dockerfile
+# path per service below.
+#
+# Deploy order (Section 18): postgres -> rabbitmq/redis -> api (runs Flyway migrations on boot) ->
+# orchestrator/runner-supervisor -> web. Dokploy deploys each app independently; bring dependencies
+# up first the first time, then each app's own Dokploy "Deploy" trigger (what DeployService calls)
+# handles redeploys thereafter.
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: talos
+      POSTGRES_USER: talos
+      POSTGRES_PASSWORD: ${TALOS_DB_PASSWORD}
+    volumes:
+      - talos_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U talos -d talos"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: talos
+      RABBITMQ_DEFAULT_PASS: ${TALOS_RABBITMQ_PASSWORD}
+    volumes:
+      - talos_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    volumes:
+      - talos_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      TALOS_DB_URL: jdbc:postgresql://postgres:5432/talos
+      TALOS_DB_USER: talos
+      TALOS_DB_PASSWORD: ${TALOS_DB_PASSWORD}
+      TALOS_RABBITMQ_URL: amqp://talos:${TALOS_RABBITMQ_PASSWORD}@rabbitmq:5672
+      TALOS_REDIS_URL: redis://redis:6379
+      TALOS_JWT_SECRET: ${TALOS_JWT_SECRET}
+      TALOS_INTERNAL_API_TOKEN: ${TALOS_INTERNAL_API_TOKEN}
+      TALOS_ADMIN_EMAIL: ${TALOS_ADMIN_EMAIL}
+      TALOS_ADMIN_PASSWORD: ${TALOS_ADMIN_PASSWORD}
+      TALOS_SECRETS_KEY: ${TALOS_SECRETS_KEY}
+      TALOS_GITHUB_WEBHOOK_SECRET: ${TALOS_GITHUB_WEBHOOK_SECRET}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    labels:
+      # Dokploy/Traefik routing -- adjust the Host() rule to your domain.
+      - "traefik.enable=true"
+      - "traefik.http.routers.talos-api.rule=Host(`api.talos.example.com`)"
+      - "traefik.http.services.talos-api.loadbalancer.server.port=8080"
+
+  runner-supervisor:
+    build:
+      context: ../..
+      dockerfile: apps/runner-supervisor/Dockerfile
+    restart: unless-stopped
+    environment:
+      TALOS_WORKSPACES_ROOT: /var/talos/workspaces
+      TALOS_PROVIDER_HOMES_ROOT: /var/talos/provider-homes
+      TALOS_INTERNAL_API_TOKEN: ${TALOS_INTERNAL_API_TOKEN}
+      TALOS_MAX_WORKSPACE_AGE_DAYS: "7"
+    volumes:
+      - talos_workspaces:/var/talos/workspaces
+      - talos_provider_homes:/var/talos/provider-homes
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  orchestrator:
+    build:
+      context: ../..
+      dockerfile: apps/orchestrator/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+      runner-supervisor:
+        condition: service_healthy
+    environment:
+      TALOS_API_BASE_URL: http://api:8080
+      TALOS_INTERNAL_API_TOKEN: ${TALOS_INTERNAL_API_TOKEN}
+      TALOS_RABBITMQ_URL: amqp://talos:${TALOS_RABBITMQ_PASSWORD}@rabbitmq:5672
+      TALOS_REDIS_URL: redis://redis:6379
+      TALOS_RUNNER_BASE_URL: http://runner-supervisor:8081
+      TALOS_MAX_ACTIVE_RUNS: "1"
+      TALOS_RUN_TIMEOUT_MINUTES: "60"
+    # No HTTP port: the orchestrator only consumes from RabbitMQ (Section 4.3's four paths) --
+    # Dokploy's health check for this app type is process liveness, not an HTTP probe.
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      TALOS_API_URL: https://api.talos.example.com
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.talos-web.rule=Host(`talos.example.com`)"
+      - "traefik.http.services.talos-web.loadbalancer.server.port=80"
+
+volumes:
+  talos_postgres_data:
+  talos_rabbitmq_data:
+  talos_redis_data:
+  talos_workspaces:
+  talos_provider_homes:
