@@ -385,8 +385,12 @@ wheels = [
 name = "talos-agent-adapter-spec"
 version = "0.1.0"
 source = { editable = "../../packages/agent-adapter-spec" }
+dependencies = [
+    { name = "httpx" },
+]
 
 [package.metadata]
+requires-dist = [{ name = "httpx", specifier = ">=0.28.1" }]
 
 [package.metadata.requires-dev]
 dev = [

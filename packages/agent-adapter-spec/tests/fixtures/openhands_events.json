@@ -1,0 +1,5 @@
+[
+  {"id": "evt_1", "kind": "ActionEvent", "tool_name": "execute_bash", "action": {"command": "echo talos-fixture-probe"}, "timestamp": "2026-07-10T12:00:00Z"},
+  {"id": "evt_2", "kind": "ObservationEvent", "content": "talos-fixture-probe\n", "timestamp": "2026-07-10T12:00:01Z"},
+  {"id": "evt_3", "kind": "MessageEvent", "llm_message": {"role": "assistant", "content": [{"type": "text", "text": "done"}]}, "timestamp": "2026-07-10T12:00:02Z"}
+]

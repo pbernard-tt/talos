@@ -1,0 +1,6 @@
+{"type":"thread.started","thread_id":"019f4d5f-a8b6-7343-a4ae-5cb64f683705"}
+{"type":"turn.started"}
+{"type":"item.started","item":{"id":"item_0","type":"command_execution","command":"/bin/bash -lc 'echo talos-fixture-probe'","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_0","type":"command_execution","command":"/bin/bash -lc 'echo talos-fixture-probe'","aggregated_output":"talos-fixture-probe\n","exit_code":0,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_1","type":"agent_message","text":"done"}}
+{"type":"turn.completed","usage":{"input_tokens":27279,"cached_input_tokens":15104,"output_tokens":177,"reasoning_output_tokens":75}}
