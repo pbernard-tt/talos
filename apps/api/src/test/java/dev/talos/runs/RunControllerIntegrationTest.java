@@ -3,6 +3,7 @@ package dev.talos.runs;
 import com.jayway.jsonpath.JsonPath;
 import dev.talos.audit.AuditEvent;
 import dev.talos.audit.AuditEventRepository;
+import dev.talos.integrations.GitHubClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,6 +12,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -22,6 +24,9 @@ import org.testcontainers.utility.DockerImageName;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -32,10 +37,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 		"talos.jwt-secret=test-only-jwt-signing-secret-not-for-production-use-32bytes+",
 		"talos.admin-email=admin@test.local",
 		"talos.admin-password=test-admin-password",
-		"talos.internal-api-token=test-internal-token-not-for-production-use-32bytes+"
+		"talos.internal-api-token=test-internal-token-not-for-production-use-32bytes+",
+		"talos.secrets-key=ZGV2LW9ubHktMzItYnl0ZS1wbGFjZWhvbGRlci1rZXk="
 })
 @AutoConfigureMockMvc
 class RunControllerIntegrationTest {
+
+	@MockitoBean
+	private GitHubClient gitHubClient;
 
 	@Container
 	@ServiceConnection
@@ -502,6 +511,93 @@ class RunControllerIntegrationTest {
 						&& runId.equals(String.valueOf(e.getEntityId())));
 		assertThat(gitChangeRepository.findByRunId(java.util.UUID.fromString(runId)))
 				.anyMatch(c -> "README.md".equals(c.getFilePath()) && c.getChangeType() == GitChangeType.MODIFIED);
+	}
+
+	private void createGitHubIntegration(String token, String secret) throws Exception {
+		mockMvc.perform(post("/api/v1/integrations")
+						.header("Authorization", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"type\":\"github\",\"name\":\"primary-github\",\"secret\":\"" + secret
+								+ "\",\"authMode\":\"pat\"}"))
+				.andExpect(status().isCreated());
+	}
+
+	/** Phase 9's required server-side proof: an unapproved run cannot obtain push credentials or open a PR. */
+	@Test
+	void gitTokenAndPullRequest_requireApprovedRun_rejectNonApprovedStatuses() throws Exception {
+		String token = bearerToken();
+		String projectId = createProject(token, false);
+		String taskId = createTask(token, projectId);
+		String runId = startRun(token, taskId, "{\"agentKey\":\"custom-shell\"}");
+
+		mockMvc.perform(get("/internal/v1/runs/{id}/git-token", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value("RUN_NOT_APPROVED"));
+
+		mockMvc.perform(post("/internal/v1/runs/{id}/pull-request", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"branchName\":\"agent/task-1-demo\",\"commitSha\":\"abc123\"}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value("RUN_NOT_APPROVED"));
+
+		transitionInternal(runId, "PREPARING_WORKSPACE");
+		transitionInternal(runId, "RUNNING_AGENT");
+		transitionInternal(runId, "RUNNING_TESTS");
+		transitionInternal(runId, "REVIEWING");
+		transitionInternal(runId, "WAITING_APPROVAL");
+
+		mockMvc.perform(get("/internal/v1/runs/{id}/git-token", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value("RUN_NOT_APPROVED"));
+	}
+
+	@Test
+	void approvedRun_gitTokenThenPullRequest_reachesCompletedWithPullRequestRow() throws Exception {
+		String token = bearerToken();
+		createGitHubIntegration(token, "ghp_super-secret-token");
+		when(gitHubClient.createPullRequest(eq("ghp_super-secret-token"), eq("org"), eq("run"), any(), any(), any(),
+				any())).thenReturn(new GitHubClient.PullRequestResult(7, "https://github.com/org/run/pull/7"));
+
+		String projectId = createProject(token, false);
+		String taskId = createTask(token, projectId);
+		String runId = startRun(token, taskId, "{\"agentKey\":\"custom-shell\"}");
+		transitionInternal(runId, "PREPARING_WORKSPACE");
+		transitionInternal(runId, "RUNNING_AGENT");
+		transitionInternal(runId, "RUNNING_TESTS");
+		transitionInternal(runId, "REVIEWING");
+		transitionInternal(runId, "WAITING_APPROVAL");
+		String approvalId = pendingApprovalIdForRun(token, runId);
+		mockMvc.perform(post("/api/v1/approvals/{id}/approve", approvalId)
+						.header("Authorization", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(get("/internal/v1/runs/{id}/git-token", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.token").value("ghp_super-secret-token"))
+				.andExpect(jsonPath("$.repoUrl").value("git@github.com:org/run.git"));
+
+		mockMvc.perform(post("/internal/v1/runs/{id}/pull-request", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"branchName\":\"agent/task-1-demo\",\"commitSha\":\"abc123\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.prNumber").value(7))
+				.andExpect(jsonPath("$.url").value("https://github.com/org/run/pull/7"));
+
+		mockMvc.perform(get("/api/v1/runs/{id}", runId).header("Authorization", token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("COMPLETED"));
+
+		mockMvc.perform(get("/api/v1/runs/{id}/pull-request", runId).header("Authorization", token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.prNumber").value(7))
+				.andExpect(jsonPath("$.provider").value("github"));
 	}
 
 	@Test

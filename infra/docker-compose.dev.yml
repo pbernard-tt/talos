@@ -85,7 +85,7 @@ services:
       TALOS_INTERNAL_API_TOKEN: dev-only-internal-api-token-do-not-use-in-production
       TALOS_ADMIN_EMAIL: admin@talos.local
       TALOS_ADMIN_PASSWORD: talos-dev-admin
-      TALOS_SECRETS_KEY: ZGV2LW9ubHktMzItYnl0ZS1wbGFjZWhvbGRlci1rZXkhISE=
+      TALOS_SECRETS_KEY: ZGV2LW9ubHktMzItYnl0ZS1wbGFjZWhvbGRlci1rZXk=
       TALOS_GITHUB_WEBHOOK_SECRET: dev-only-github-webhook-secret
     ports:
       - "8080:8080"

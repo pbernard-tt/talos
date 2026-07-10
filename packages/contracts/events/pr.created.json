@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talos.dev/schemas/events/pr.created.json",
+  "title": "pr.created",
+  "description": "Section 11: API -> notifiers, published when PullRequestService opens a PR after approval (Phase 9's push/PR workflow).",
+  "type": "object",
+  "required": ["event_id", "event_type", "occurred_at", "version", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "event_type": { "const": "pr.created" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "version": { "const": 1 },
+    "payload": {
+      "type": "object",
+      "required": ["run_id", "pr_url", "pr_number"],
+      "additionalProperties": false,
+      "properties": {
+        "run_id": { "type": "string", "format": "uuid" },
+        "pr_url": { "type": "string" },
+        "pr_number": { "type": "integer" }
+      }
+    }
+  }
+}

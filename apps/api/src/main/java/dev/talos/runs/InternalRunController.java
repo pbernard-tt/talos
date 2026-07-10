@@ -1,9 +1,14 @@
 package dev.talos.runs;
 
+import dev.talos.integrations.GitCredentialsService;
+import dev.talos.integrations.PullRequestService;
+import dev.talos.runs.dto.GitTokenResponse;
 import dev.talos.runs.dto.InternalChangesRequest;
 import dev.talos.runs.dto.InternalLogsRequest;
+import dev.talos.runs.dto.InternalPullRequestRequest;
 import dev.talos.runs.dto.InternalStatusRequest;
 import dev.talos.runs.dto.InternalStepRequest;
+import dev.talos.runs.dto.PullRequestResponse;
 import dev.talos.runs.dto.RunContextResponse;
 import dev.talos.runs.dto.RunResponse;
 import dev.talos.runs.dto.StepResponse;
@@ -25,9 +30,14 @@ import java.util.UUID;
 public class InternalRunController {
 
 	private final RunService runService;
+	private final GitCredentialsService gitCredentialsService;
+	private final PullRequestService pullRequestService;
 
-	public InternalRunController(RunService runService) {
+	public InternalRunController(RunService runService, GitCredentialsService gitCredentialsService,
+			PullRequestService pullRequestService) {
 		this.runService = runService;
+		this.gitCredentialsService = gitCredentialsService;
+		this.pullRequestService = pullRequestService;
 	}
 
 	@PostMapping("/{id}/status")
@@ -55,5 +65,20 @@ public class InternalRunController {
 	@GetMapping("/{id}/context")
 	public RunContextResponse getContext(@PathVariable UUID id) {
 		return runService.getContext(id);
+	}
+
+	/** Section 8.4's push credential flow: guards run.status == APPROVED (Phase 9's "unapproved run cannot push" test). */
+	@GetMapping("/{id}/git-token")
+	public GitTokenResponse gitToken(@PathVariable UUID id) {
+		AgentRun run = runService.getOrThrow(id);
+		return GitTokenResponse.from(gitCredentialsService.resolveForRun(run));
+	}
+
+	/** Called by the orchestrator once the runner supervisor has pushed {@code branchName}; opens the PR and completes the run. */
+	@PostMapping("/{id}/pull-request")
+	public PullRequestResponse createPullRequest(@PathVariable UUID id,
+			@Valid @RequestBody InternalPullRequestRequest request) {
+		AgentRun run = runService.getOrThrow(id);
+		return PullRequestResponse.from(pullRequestService.createForRun(run, request.branchName(), request.commitSha()));
 	}
 }

@@ -7,9 +7,10 @@ info:
     diffs the running API's springdoc output against it. Endpoints are added phase by phase per
     Section 10 of the implementation plan — this file currently covers Phase 1 (auth),
     Phase 3 (project registry), Phase 4 (task board), Phase 5 (agent run lifecycle, API side),
-    Phase 6 (cancel + internal changes ingest), and Phase 8 (review/approval flow: diff serving
-    and the approvals endpoints).
-  version: "0.8.0"
+    Phase 6 (cancel + internal changes ingest), Phase 8 (review/approval flow: diff serving and
+    the approvals endpoints), and Phase 9 (git push and PR workflow: integrations, the
+    git-token/pull-request internal endpoints, and GET /runs/{id}/pull-request).
+  version: "0.9.0"
 servers:
   - url: /api/v1
     description: "Public API (JWT via Authorization: Bearer)"
@@ -460,6 +461,74 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
+  /runs/{id}/pull-request:
+    get:
+      operationId: getRunPullRequest
+      summary: >
+        The PR opened for this run after approval (Phase 9). 404 until PullRequestService has
+        opened one.
+      tags: [runs]
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PullRequest"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /integrations:
+    get:
+      operationId: listIntegrations
+      summary: List configured integrations (Section 10.2). Secrets are never returned.
+      tags: [integrations]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Integration"
+    post:
+      operationId: createIntegration
+      summary: Configure an integration (e.g. a GitHub PAT) -- the secret is encrypted and stored behind a secret_ref (Section 12.2).
+      tags: [integrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegrationCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integration"
+
+  /integrations/{id}/test:
+    post:
+      operationId: testIntegration
+      summary: Verify the stored credential works (e.g. calls GET /user against GitHub).
+      tags: [integrations]
+      parameters:
+        - $ref: "#/components/parameters/IntegrationId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestIntegrationResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+
   /approvals:
     get:
       operationId: listApprovals
@@ -736,6 +805,72 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
+  /internal/v1/runs/{id}/git-token:
+    get:
+      operationId: internalGetRunGitToken
+      summary: >
+        Phase 9's push credential flow: the decrypted GitHub token for this run's project, plus
+        repoUrl/defaultBranch, for the runner supervisor's push step. 409 unless run.status ==
+        APPROVED -- the server-side enforcement behind "unapproved run cannot push".
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GitTokenResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          description: Run is not APPROVED.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /internal/v1/runs/{id}/pull-request:
+    post:
+      operationId: internalCreateRunPullRequest
+      summary: >
+        Called once the runner supervisor has pushed branchName: opens the PR via the GitHub REST
+        API, stores the pull_requests row, publishes pr.created, and transitions the run
+        APPROVED -> COMPLETED (Section 8.2).
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InternalPullRequestRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PullRequest"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          description: Run is not APPROVED.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -770,6 +905,13 @@ components:
         type: string
         format: uuid
     ApprovalId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IntegrationId:
       name: id
       in: path
       required: true
@@ -1482,3 +1624,101 @@ components:
           type: object
           additionalProperties: true
           description: The active project_configs.parsed_json, or absent if the project has no active config.
+
+    Integration:
+      type: object
+      description: Section 10.2 -- secrets are never included (they live behind SecretValue, referenced only by secret_ref).
+      required: [id, type, name, enabled, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          description: "'github', 'dokploy', 'anthropic', ..."
+        name:
+          type: string
+        configJson:
+          type: object
+          additionalProperties: true
+        enabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    IntegrationCreateRequest:
+      type: object
+      required: [type, name]
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        configJson:
+          type: object
+          additionalProperties: true
+        secret:
+          type: string
+          description: Plaintext credential (e.g. a GitHub fine-grained PAT); encrypted at rest and never echoed back.
+        authMode:
+          type: string
+          description: "'pat', 'deploy_key', ... (integration_credentials.auth_mode, Section 9.2)"
+
+    TestIntegrationResponse:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+
+    PullRequestStatus:
+      type: string
+      enum: [OPEN, MERGED, CLOSED]
+
+    PullRequest:
+      type: object
+      required: [id, runId, provider, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        runId:
+          type: string
+          format: uuid
+        provider:
+          type: string
+        prNumber:
+          type: integer
+        url:
+          type: string
+        status:
+          $ref: "#/components/schemas/PullRequestStatus"
+        createdAt:
+          type: string
+          format: date-time
+
+    GitTokenResponse:
+      type: object
+      description: Internal-only (Section 10.4) -- never reachable from /api/v1/**.
+      required: [token, authMode, repoUrl, defaultBranch]
+      properties:
+        token:
+          type: string
+        authMode:
+          type: string
+        repoUrl:
+          type: string
+        defaultBranch:
+          type: string
+
+    InternalPullRequestRequest:
+      type: object
+      required: [branchName, commitSha]
+      properties:
+        branchName:
+          type: string
+        commitSha:
+          type: string

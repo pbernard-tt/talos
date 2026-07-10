@@ -6,6 +6,7 @@ import dev.talos.approvals.dto.ApprovalRequestedPayload;
 import dev.talos.audit.AuditService;
 import dev.talos.common.ApiException;
 import dev.talos.events.EventPublisher;
+import dev.talos.integrations.PullRequestRepository;
 import dev.talos.policy.PolicyScanService;
 import dev.talos.projects.Project;
 import dev.talos.projects.ProjectConfig;
@@ -20,6 +21,7 @@ import dev.talos.runs.dto.InternalLogEntry;
 import dev.talos.runs.dto.InternalLogsRequest;
 import dev.talos.runs.dto.InternalStepRequest;
 import dev.talos.runs.dto.LogEntryResponse;
+import dev.talos.runs.dto.PullRequestResponse;
 import dev.talos.runs.dto.RunCancelRequestedPayload;
 import dev.talos.runs.dto.RunContextResponse;
 import dev.talos.runs.dto.RunDetailResponse;
@@ -62,13 +64,14 @@ public class RunService {
 	private final RunEventBroadcaster broadcaster;
 	private final PolicyScanService policyScanService;
 	private final ApprovalRepository approvalRepository;
+	private final PullRequestRepository pullRequestRepository;
 
 	public RunService(AgentRunRepository agentRunRepository, AgentRunStepRepository agentRunStepRepository,
 			AgentRunLogRepository agentRunLogRepository, GitChangeRepository gitChangeRepository,
 			TaskRepository taskRepository, ProjectRepository projectRepository,
 			ProjectConfigRepository projectConfigRepository, AuditService auditService,
 			EventPublisher eventPublisher, RunEventBroadcaster broadcaster, PolicyScanService policyScanService,
-			ApprovalRepository approvalRepository) {
+			ApprovalRepository approvalRepository, PullRequestRepository pullRequestRepository) {
 		this.agentRunRepository = agentRunRepository;
 		this.agentRunStepRepository = agentRunStepRepository;
 		this.agentRunLogRepository = agentRunLogRepository;
@@ -81,6 +84,7 @@ public class RunService {
 		this.broadcaster = broadcaster;
 		this.policyScanService = policyScanService;
 		this.approvalRepository = approvalRepository;
+		this.pullRequestRepository = pullRequestRepository;
 	}
 
 	@Transactional
@@ -292,6 +296,13 @@ public class RunService {
 		List<GitChangeResponse> files = gitChangeRepository.findByRunId(id).stream().map(GitChangeResponse::from)
 				.toList();
 		return new DiffResponse(files, run.getDiffPatch());
+	}
+
+	public PullRequestResponse getPullRequest(UUID id) {
+		getOrThrow(id);
+		return pullRequestRepository.findByRunId(id).stream().findFirst().map(PullRequestResponse::from)
+				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "PULL_REQUEST_NOT_FOUND",
+						"No pull request has been opened for run %s yet".formatted(id)));
 	}
 
 	public RunContextResponse getContext(UUID runId) {

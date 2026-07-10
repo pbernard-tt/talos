@@ -4,6 +4,7 @@ import dev.talos.auth.AuthenticatedUser;
 import dev.talos.common.PageResponse;
 import dev.talos.runs.dto.DiffResponse;
 import dev.talos.runs.dto.LogEntryResponse;
+import dev.talos.runs.dto.PullRequestResponse;
 import dev.talos.runs.dto.RunDetailResponse;
 import dev.talos.runs.dto.RunResponse;
 import org.springframework.data.domain.Pageable;
@@ -56,6 +57,11 @@ public class RunController {
 	@GetMapping("/{id}/diff")
 	public DiffResponse diff(@PathVariable UUID id) {
 		return runService.getDiff(id);
+	}
+
+	@GetMapping("/{id}/pull-request")
+	public PullRequestResponse pullRequest(@PathVariable UUID id) {
+		return runService.getPullRequest(id);
 	}
 
 	@PostMapping("/{id}/cancel")

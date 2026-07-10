@@ -5,6 +5,7 @@ import com.networknt.schema.Error;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
+import dev.talos.integrations.GitHubClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
@@ -20,6 +21,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -37,6 +39,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -50,10 +55,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 		"talos.jwt-secret=test-only-jwt-signing-secret-not-for-production-use-32bytes+",
 		"talos.admin-email=admin@test.local",
 		"talos.admin-password=test-admin-password",
-		"talos.internal-api-token=test-internal-token-not-for-production-use-32bytes+"
+		"talos.internal-api-token=test-internal-token-not-for-production-use-32bytes+",
+		"talos.secrets-key=ZGV2LW9ubHktMzItYnl0ZS1wbGFjZWhvbGRlci1rZXk="
 })
 @AutoConfigureMockMvc
 class EventPublisherIntegrationTest {
+
+	@MockitoBean
+	private GitHubClient gitHubClient;
 
 	@Container
 	@ServiceConnection
@@ -195,6 +204,74 @@ class EventPublisherIntegrationTest {
 		assertThat(errors).as("schema errors: %s", errors).isEmpty();
 
 		assertThat((String) JsonPath.read(body, "$.payload.run_id")).isEqualTo(runId);
+	}
+
+	@Test
+	void pullRequestCreated_publishesPrCreated_validAgainstItsJsonSchema() throws Exception {
+		when(gitHubClient.createPullRequest(any(), any(), any(), any(), any(), any(), any()))
+				.thenReturn(new GitHubClient.PullRequestResult(3, "https://github.com/org/event/pull/3"));
+
+		String queueName = "test." + UUID.randomUUID();
+		Queue queue = new Queue(queueName, false, false, true);
+		rabbitAdmin.declareQueue(queue);
+		Binding binding = BindingBuilder.bind(queue).to(new TopicExchange(RabbitConfig.EVENTS_EXCHANGE))
+				.with("pr.created");
+		rabbitAdmin.declareBinding(binding);
+
+		String token = bearerToken();
+		mockMvc.perform(post("/api/v1/integrations")
+						.header("Authorization", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"type\":\"github\",\"name\":\"primary-github\",\"secret\":\"ghp_test-token\",\"authMode\":\"pat\"}"))
+				.andExpect(status().isCreated());
+
+		String projectId = createProject(token);
+		String taskId = createTask(token, projectId);
+		String startRunResponse = mockMvc.perform(post("/api/v1/tasks/{id}/start-run", taskId)
+						.header("Authorization", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"agentKey\":\"custom-shell\"}"))
+				.andExpect(status().isCreated())
+				.andReturn().getResponse().getContentAsString();
+		String runId = JsonPath.read(startRunResponse, "$.id");
+
+		for (String status : List.of("PREPARING_WORKSPACE", "RUNNING_AGENT", "RUNNING_TESTS", "REVIEWING",
+				"WAITING_APPROVAL")) {
+			mockMvc.perform(post("/internal/v1/runs/{id}/status", runId)
+							.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+							.contentType(MediaType.APPLICATION_JSON)
+							.content("{\"status\":\"" + status + "\"}"))
+					.andExpect(status().isOk());
+		}
+		String approvalsResponse = mockMvc
+				.perform(get("/api/v1/approvals").header("Authorization", token).param("runId", runId))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		String approvalId = JsonPath.read(approvalsResponse, "$.content[0].id");
+		mockMvc.perform(post("/api/v1/approvals/{id}/approve", approvalId)
+						.header("Authorization", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(post("/internal/v1/runs/{id}/pull-request", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"branchName\":\"agent/task-1-demo\",\"commitSha\":\"abc123\"}"))
+				.andExpect(status().isOk());
+
+		Message message = rabbitTemplate.receive(queueName, 5000);
+		assertThat(message).isNotNull();
+
+		String body = new String(message.getBody(), StandardCharsets.UTF_8);
+		Schema schema = loadSchema("pr.created.json");
+		JsonNode node = OBJECT_MAPPER.readTree(body);
+		List<Error> errors = schema.validate(node);
+		assertThat(errors).as("schema errors: %s", errors).isEmpty();
+
+		assertThat((String) JsonPath.read(body, "$.payload.run_id")).isEqualTo(runId);
+		assertThat((Integer) JsonPath.read(body, "$.payload.pr_number")).isEqualTo(3);
+		assertThat((String) JsonPath.read(body, "$.payload.pr_url")).isEqualTo("https://github.com/org/event/pull/3");
 	}
 
 	private String bearerToken() throws Exception {
