@@ -16,6 +16,7 @@ cat > full.html <<'EOF'
   h1 { color: #1f4e79; font-family: 'DejaVu Sans', Helvetica, sans-serif; font-size: 26pt; margin: 0 0 4pt 0; }
   h2 { color: #1f4e79; font-family: 'DejaVu Sans', Helvetica, sans-serif; font-size: 15pt; margin: 18pt 0 6pt 0; page-break-after: avoid; }
   h3 { color: #2e74b5; font-family: 'DejaVu Sans', Helvetica, sans-serif; font-size: 12pt; margin: 12pt 0 4pt 0; page-break-after: avoid; }
+  h4 { color: #2e74b5; font-family: 'DejaVu Sans', Helvetica, sans-serif; font-size: 10.5pt; margin: 10pt 0 3pt 0; page-break-after: avoid; }
   p { margin: 5pt 0; }
   table { border-collapse: collapse; width: 100%; margin: 8pt 0; font-size: 9pt; page-break-inside: auto; }
   th { background: #1f4e79; color: #fff; text-align: left; font-family: 'DejaVu Sans', Helvetica, sans-serif; }

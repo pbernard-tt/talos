@@ -1,3 +1,20 @@
+## 2026-07-10 — Plan Revision 2.1: Post-MVP (Phases 12+) expanded into per-feature phase specs
+
+**Ask:** Expand the Post-MVP (Phases 12+) outline in Section 16 of the implementation plan — previously a single sentence — into detailed specifications for each mentioned feature.
+
+**Changed (docs):**
+- `docs/src/talos-implementation-plan.md` — title line and preamble bumped to **Revision 2.1** (2026-07-10), noting that no MVP-scope contract (Sections 7–11) changed. Section 16's Post-MVP paragraph replaced with five phase specs in the same Goal/Files/Tasks/Acceptance/Tests format as Phases 0–11:
+  - **Phase 12 — Additional adapters and remote triggers** (two tracks): Track A implements `OpenCodeAdapter`, `CodexCliAdapter`, `OpenHandsAdapter` per the Section 7.4 order (flag verification first, contract suite 7.2 green, smoke run passes with only `assigned_agent_key` changed); Track B adds `apps/telegram-adapter` then `apps/whatsapp-adapter` as ordinary REST clients + Section 11 notifier consumers — chat can create tasks (`source=TELEGRAM`) and receive notifications, but approval decisions remain dashboard-only by design.
+  - **Phase 13 — Memory**: creates the Section 9.4 deferred tables + pgvector; API owns ingestion/embedding/retrieval (sole-writer constraint); orchestrator injects project-scoped memory as a new Section 7.3 prompt stage; disable switch must reproduce pre-Phase-13 prompts byte-identical.
+  - **Phase 14 (provisional) — Cost tracking and recommendations**: normalized usage on `AdapterResult`, per-provider aggregation, null-cost handling for `subscription_local`; recommendations advisory-only, never auto-executing.
+  - **Phase 15 (provisional) — Multi-user RBAC enforcement**: enforces the existing OWNER/MAINTAINER/REVIEWER/VIEWER roles server-side with a tested role × endpoint matrix and self-approval prohibition.
+  - **Phase 16 (provisional) — MinIO artifact storage**: `ArtifactStore` interface with local-volume default and MinIO implementation; uploads via API only; worker containers never see object-store credentials.
+- Phase numbers 12/13 were already fixed by cross-references elsewhere in the plan (Sections 5, 7.4, 9.4); 14–16 are explicitly marked provisional.
+- `docs/src/build-pdf.sh` — added an `h4` style (the new sub-phase headings are h4; the stylesheet previously stopped at h3).
+- Regenerated `docs/src/talos-implementation-plan.pdf` and the canonical copy `docs/Talos_Implementation_Plan.pdf`.
+
+**Verification:** `bash docs/src/build-pdf.sh` succeeded; `pdftotext | grep` confirmed the new Phase 12–16 headings render in the PDF; `md5sum` confirmed `docs/Talos_Implementation_Plan.pdf` matches the rebuilt `docs/src` output; naming guard (`grep -ri agentos .` scoped form) returns nothing. Not checked: nothing code-level — this change touches only documentation and the PDF build stylesheet.
+
 ## 2026-07-10 — Phase 11: Hardening and security
 
 **Ask:** Continue Revision 2 implementation with Phase 11, the last MVP phase: per-run Docker execution using `workers/` images (non-root, no docker.sock, cgroup limits, network policy) behind the unchanged runner HTTP contract; secret-masking sweep; rate limits; retention job verification; dependency + container scanning in CI; `docs/security-model.md` threat model; PostgreSQL backup/restore procedure, executed once as a drill.

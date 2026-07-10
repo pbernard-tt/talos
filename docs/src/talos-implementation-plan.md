@@ -4,12 +4,14 @@
 
 ## Implementation Plan for an Agent-Agnostic Coding Orchestration Platform
 
-*Prepared for Paul Bernard | Revision 2 | 2026-07-09*
+*Prepared for Paul Bernard | Revision 2.1 | 2026-07-10*
 
 > **Purpose**
 > This document describes how to build a self-hosted, visual AI agent harness for managing coding work across many repositories, projects, portfolios, and agent providers. The platform does not build a new coding agent. It orchestrates existing agents such as Claude Code, OpenAI Codex, OpenCode, OpenHands, Gemini CLI, and similar tools through adapters, command-line harnesses, APIs, or protocols such as ACP/MCP where available.
 >
 > **Revision 2** resolves every open technology choice, fixes naming inconsistencies, and adds the contracts a less capable implementation model needs: full database DDL, REST request/response conventions, event payload schemas, the agent adapter interface in its implementation language, run/task state machines with ownership and timeouts, per-phase acceptance criteria, and an environment variable reference. Where this revision conflicts with earlier drafts, this revision wins.
+>
+> **Revision 2.1** (2026-07-10) expands the Section 16 Post-MVP outline into per-feature phase specifications (Phases 12–16). No MVP-scope contract (Sections 7–11) changed.
 
 </div>
 
@@ -1055,7 +1057,63 @@ Global rules: every phase ends with all tests green, `docker compose -f infra/do
 - **Acceptance:** security suite passes — agent cannot read a planted `.env` outside the workspace; blocked-pattern diff flagged; runner container cannot reach the Docker daemon; run hard-killed at timeout; restore drill documented.
 
 ### Post-MVP (Phases 12+)
-Remote triggers (Telegram first, then WhatsApp), additional adapters (OpenCode, Codex CLI, OpenHands), memory (`memory_documents`/`memory_chunks` + pgvector), recommendations, cost tracking per provider, multi-user RBAC enforcement, MinIO artifact storage.
+
+The MVP ends at Phase 11. The phases below are sequenced and specified to the same headings as Phases 0–11, but at lower resolution: each receives a full ticket-level breakdown in a plan revision immediately before it starts. Phase numbers 12 and 13 are fixed by cross-references elsewhere in this document; 14–16 are provisional and may be reordered. Every hard constraint from Section 20 continues to apply — in particular, nothing outside `packages/agent-adapter-spec` may couple to a provider, `talos-api` remains the only PostgreSQL writer, and no new communication path is added to the Section 4.3 spine.
+
+#### Phase 12 — Additional adapters and remote triggers
+
+Two independent tracks, gated together. Track A proves the agent-agnostic claim with real second and third adapters; Track B adds chat-based task intake and notifications.
+
+**Track A — adapters (`OpenCodeAdapter`, `CodexCliAdapter`, `OpenHandsAdapter`).**
+- **Goal:** Replace the Phase 6 `NotImplementedError` stubs with working adapters, per the fixed order in Section 7.4. Per that section, each adapter's first ticket is verifying current invocation flags/APIs against provider documentation and recording the verified CLI version in the module docstring — none of the invocations below may be assumed still-accurate at implementation time.
+- **Files:** adapter modules in `packages/agent-adapter-spec`; recorded stream fixtures per adapter; provider homes `/var/talos/provider-homes/{opencode,codex,openhands}/` (Section 7.5).
+- **Tasks:**
+  - `OpenCodeAdapter` — wrap the OpenCode CLI in non-interactive mode with JSON output; map its event stream to `TOOL_USE`/`LOG` adapter events; model/provider selection lives in config inside the provider home, so Talos stays provider-flexible without new schema. `api_key` auth mode only.
+  - `CodexCliAdapter` — wrap `codex exec` non-interactive mode, parsing its JSON/JSONL output into adapter events. `provider_auth_mode=api_key` is the automation path; ChatGPT sign-in is `subscription_local`, personal use only, never exposed to other users (Section 13).
+  - `OpenHandsAdapter` — the first non-subprocess adapter: an HTTP/ACP client against a locally deployed OpenHands instance. It still implements the same `AgentAdapter` ABC; `execute()` proxies the remote event stream into the standard event iterator, and `stop()` cancels the remote session. Because OpenHands sandboxes execution itself, this adapter may later serve as an alternative execution backend, but in Phase 12 it runs in the standard workspace model. This ticket is last in the phase and may slip to a later phase without blocking the gate (Section 7.4 lists it as "Phase 12+").
+  - Capability check before each launch (CLI present in image, version compatible, credentials present in provider home), failing the run with a clear `SYSTEM` log line rather than a mid-run crash.
+- **Acceptance:** the Section 7.2 contract suite passes for every registered adapter in CI (recorded fixtures for the real agents); the Phase 6 fixture-repo smoke run reaches `WAITING_APPROVAL` with each new adapter with *only* `assigned_agent_key` changed and zero orchestrator/runner code modified; each adapter module docstring names its verified CLI/API version.
+- **Tests:** contract suite per adapter; fixture-drift parser tests; capability-check unit tests.
+
+**Track B — remote triggers (Telegram first, then WhatsApp).**
+- **Goal:** Create and monitor tasks from chat without weakening any governance rule. Approval *decisions* stay in the dashboard — chat receives notifications with deep links, never approve/reject commands (a spoofed or stolen chat session must not be able to authorize a push or deploy).
+- **Files:** `apps/telegram-adapter`, then `apps/whatsapp-adapter` — each its own Docker image and Dokploy app, per the Section 5 tree; a shared inbound-command schema in `packages/contracts` so the API surface does not grow per channel.
+- **Design:** each trigger service is an ordinary API client plus a notifier — exactly the two roles the existing spine already provides for. Inbound: it authenticates to the public REST API with a dedicated service-account JWT (least-privilege: task create/read only; it never touches `/internal/v1`). Outbound: it consumes the "API → notifiers" routing keys from Section 11 (`approval.requested`, `pr.created`, `run.status.changed`) on its own quorum queue, idempotent on `event_id` like every consumer.
+- **Tasks:** Telegram Bot API integration (webhook or long-poll); strict allow-list of operator chat IDs, all other senders ignored and audited; bot token stored in `secret_values` as an integration credential and masked in all logs; commands for "create task in project X" (persisting `tasks.source='TELEGRAM'`), "status of task/run", "list pending approvals"; notification messages carrying dashboard deep links. WhatsApp follows as a second implementation of the same command schema via the WhatsApp Business Cloud API, with signed-webhook verification.
+- **Acceptance:** a message from an allow-listed chat creates a `BACKLOG` task with `source=TELEGRAM` visible on the Kanban board; a message from any other chat ID produces no task and an audit row; `approval.requested` on a run produces a chat notification within seconds; the bot token never appears in any log; no approval can be granted from chat.
+- **Tests:** command parser units; allow-list enforcement; end-to-end against a mocked Bot API; notifier consumption integration test.
+
+#### Phase 13 — Memory (`memory_documents`/`memory_chunks` + pgvector)
+
+- **Goal:** Retrieval-augmented project memory so runs stop rediscovering project context. This phase creates the tables deferred in Section 9.4 — they must not exist before it.
+- **Files:** migration enabling the pgvector extension and creating `memory_documents` and `memory_chunks` (chunk text, embedding vector, source reference, project FK); `dev.talos.memory`; an orchestrator prompt-assembly extension.
+- **Design:** the API owns ingestion, embedding, and retrieval (constraint: sole DB writer). Embeddings are computed by the API's memory service through a configured embedding provider key (BYOK; never a subscription credential). The orchestrator retrieves via a new internal endpoint (`GET /internal/v1/projects/{id}/memory/search`) and injects results into the Section 7.3 prompt as a new stage between project context (2) and the task (3); the assembled prompt including memory is still persisted to `agent_runs.prompt`, so auditability is unchanged.
+- **Tasks:** ingestion pipeline for completed-run summaries/diff digests, operator notes, and `context.docs`; chunking + embedding with a per-project token budget for injected memory; retrieval strictly project-scoped — no cross-project reads; memory text passes the same secret-masking sweep as logs; a per-project switch (`talos.yaml`) that disables memory entirely.
+- **Acceptance:** completed runs and ingested docs produce embedded chunks; retrieval returns only same-project chunks; a new run's prompt contains relevant memory within budget; with memory disabled, the assembled prompt is byte-identical to pre-Phase-13 output.
+- **Tests:** chunker/budget units; project-isolation test; prompt-assembly regression test against recorded Phase 7 prompts.
+
+#### Phase 14 (provisional) — Cost tracking and recommendations
+
+- **Goal:** Per-provider cost visibility, then advisory recommendations built on that history. Cost tracking lands first because recommendations consume its data.
+- **Cost tracking:** extend `AdapterResult` with normalized usage metadata (input/output tokens, provider-reported cost, model); persist per run (new `agent_runs` columns or a `run_costs` table — decided at phase start); aggregate per provider / project / month; a dashboard cost widget. `subscription_local` runs record token counts with a null dollar cost and are labeled as such (Section 13) — never estimate a price for subscription usage.
+- **Recommendations:** advisory-only signals computed from run history (outcomes, durations, review flags, costs): suggested agent for a task, risk flag ("this file area has failed review twice"), cheapest-capable-agent hint. Surfaced in the task form and Command Center. Recommendations never auto-select an agent and never auto-execute anything — the operator always confirms.
+- **Acceptance:** after fixture runs on two providers, monthly per-provider totals match the fixtures' known usage exactly; a run with no usage metadata degrades gracefully (row with nulls, no pipeline failure); ignoring a recommendation changes no behavior.
+- **Tests:** usage-normalization units per adapter; aggregation queries; recommendation-signal units on seeded history.
+
+#### Phase 15 (provisional) — Multi-user RBAC enforcement
+
+- **Goal:** Replace MVP owner-mode (Section 12.2: every check passes for the admin) with real enforcement of the roles that have existed in the schema since Phase 1: `OWNER`, `MAINTAINER`, `REVIEWER`, `VIEWER` (Section 9.3).
+- **Tasks:** user management endpoints (create/invite, deactivate, role assignment — OWNER only); role claim in the JWT; a server-side authorization matrix — `VIEWER` read-only; `REVIEWER` adds approve/reject/request-changes; `MAINTAINER` adds project/task CRUD and run start; `OWNER` adds integrations, secrets, user management, and deploy triggers; self-approval prohibition — the user who requested a run cannot approve it (OWNER may override; the override is audited); `audit_events.actor` verified on every mutation; UI hides actions the current role cannot perform, but enforcement is server-side.
+- **Acceptance:** role × endpoint-class matrix covered by tests; a `VIEWER` attempting an approval receives 403 plus an audit row; a fresh single-user install behaves exactly as before (seeded admin is `OWNER`); no endpoint relies on UI hiding for protection.
+- **Tests:** exhaustive matrix (MockMvc per role); self-approval test; migration test that existing installs map the admin to `OWNER`.
+
+#### Phase 16 (provisional) — MinIO artifact storage
+
+- **Goal:** Move run artifacts (transcripts, patches, test reports, generated docs — Section 4.2) from the local volume to S3-compatible object storage, behind an interface so the local volume remains the default for small installs.
+- **Files:** an `ArtifactStore` interface in `dev.talos` with `LocalVolumeArtifactStore` (current behavior, default) and `MinioArtifactStore` implementations; `talos-minio` Dokploy app (the Section 18 table already reserves its row).
+- **Tasks:** bucket layout per artifact class; uploads by the API only (runner/orchestrator continue to hand artifacts to the API — no new communication path, and worker containers never receive object-store credentials); downloads streamed through the existing REST endpoints (no browser-visible presigned credentials in the first cut); the Phase 11 retention sweep extended to delete from the object store; a one-shot migration command copying existing local artifacts.
+- **Acceptance:** with MinIO configured, a run's artifacts land in the bucket and download byte-identical through the same REST endpoints; with it unconfigured, behavior is exactly pre-Phase-16; retention removes expired artifacts from both stores; MinIO credentials appear in no log and no worker environment.
+- **Tests:** `ArtifactStore` contract test run against both implementations; retention integration test; migration round-trip test.
 
 <div class="pagebreak"></div>
 
