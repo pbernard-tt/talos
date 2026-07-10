@@ -84,12 +84,39 @@ jobs:
       - name: Build ${{ matrix.name }}
         run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.name }}:ci ${{ matrix.context }}
 
+  # Phase 11 (Section 8): the workers/ images that per-run agent containers execute in. Not matrixed
+  # like docker-build above -- java/node/python-runner each build FROM workers/base-agent-runner:latest
+  # (a local tag, not a registry image), and matrix jobs run on isolated runners with no shared Docker
+  # daemon, so base-agent-runner must be built first in the *same* job as everything that depends on it.
+  workers-docker-build:
+    runs-on: ubuntu-latest
+    needs: [python]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build workers/base-agent-runner
+        run: docker build -f workers/base-agent-runner/Dockerfile -t workers/base-agent-runner:latest .
+      - name: Build workers/java-runner
+        run: docker build -f workers/java-runner/Dockerfile -t workers/java-runner:latest .
+      - name: Build workers/node-runner
+        run: docker build -f workers/node-runner/Dockerfile -t workers/node-runner:latest .
+      - name: Build workers/python-runner
+        run: docker build -f workers/python-runner/Dockerfile -t workers/python-runner:latest .
+
   # Section 17: "End-to-end smoke: scripts/smoke.sh ... Every PR from Phase 6".
   smoke:
     runs-on: ubuntu-latest
-    needs: [docker-build]
+    needs: [docker-build, workers-docker-build]
     steps:
       - uses: actions/checkout@v4
+      # Phase 11: every run now executes inside a per-run workers/ container (Section 8), so the
+      # image talos-orchestrator resolves by default (workers/base-agent-runner:latest, since the
+      # smoke fixture project's stackType doesn't match a specific stack) must already exist locally
+      # -- `docker compose up --build` only rebuilds the services defined in the compose file, not
+      # images referenced indirectly by env var, and jobs don't share Docker state with each other.
+      - name: Build workers/base-agent-runner
+        run: docker build -f workers/base-agent-runner/Dockerfile -t workers/base-agent-runner:latest .
+      - name: Determine host docker group GID for talos-runner-supervisor's socket access
+        run: echo "TALOS_DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)" >> "$GITHUB_ENV"
       - name: Start infra + app services
         run: docker compose -f infra/docker-compose.dev.yml up -d --build
       - name: Run smoke test
@@ -100,3 +127,69 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose -f infra/docker-compose.dev.yml down -v
+
+  # Phase 11 (Section 8/12.1): dependency + container scanning, report-only (exit-code: '0') for
+  # this pass -- not hard-blocking PRs on pre-existing base-image CVEs unrelated to Talos's own code
+  # is a deliberate MVP choice (documented as a deviation in docs/security-model.md).
+  #
+  # trivy-action is pinned to a commit SHA, not a mutable version tag: a March 2026 supply-chain
+  # attack force-pushed 76 of 77 trivy-action tags (and all setup-trivy tags) to malware that stole
+  # CI/CD secrets. 57a97c7... is the tag v0.35.0 commit, confirmed unaffected/safe post-incident.
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem/dependency scan
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          exit-code: "0"
+          severity: CRITICAL,HIGH
+
+  container-scan:
+    runs-on: ubuntu-latest
+    needs: [docker-build, workers-docker-build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build talos-web
+        run: docker build -f apps/web/Dockerfile -t talos-web:ci apps/web
+      - name: Build talos-api
+        run: docker build -f apps/api/Dockerfile -t talos-api:ci .
+      - name: Build talos-orchestrator
+        run: docker build -f apps/orchestrator/Dockerfile -t talos-orchestrator:ci .
+      - name: Build talos-runner-supervisor
+        run: docker build -f apps/runner-supervisor/Dockerfile -t talos-runner-supervisor:ci .
+      - name: Build workers/base-agent-runner
+        run: docker build -f workers/base-agent-runner/Dockerfile -t workers/base-agent-runner:latest .
+      - name: Build workers/java-runner
+        run: docker build -f workers/java-runner/Dockerfile -t workers/java-runner:latest .
+      - name: Build workers/node-runner
+        run: docker build -f workers/node-runner/Dockerfile -t workers/node-runner:latest .
+      - name: Build workers/python-runner
+        run: docker build -f workers/python-runner/Dockerfile -t workers/python-runner:latest .
+      - name: Scan talos-web
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with: { image-ref: "talos-web:ci", format: table, exit-code: "0", severity: CRITICAL,HIGH }
+      - name: Scan talos-api
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with: { image-ref: "talos-api:ci", format: table, exit-code: "0", severity: CRITICAL,HIGH }
+      - name: Scan talos-orchestrator
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with: { image-ref: "talos-orchestrator:ci", format: table, exit-code: "0", severity: CRITICAL,HIGH }
+      - name: Scan talos-runner-supervisor
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with: { image-ref: "talos-runner-supervisor:ci", format: table, exit-code: "0", severity: CRITICAL,HIGH }
+      - name: Scan workers/base-agent-runner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with: { image-ref: "workers/base-agent-runner:latest", format: table, exit-code: "0", severity: CRITICAL,HIGH }
+      - name: Scan workers/java-runner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with: { image-ref: "workers/java-runner:latest", format: table, exit-code: "0", severity: CRITICAL,HIGH }
+      - name: Scan workers/node-runner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with: { image-ref: "workers/node-runner:latest", format: table, exit-code: "0", severity: CRITICAL,HIGH }
+      - name: Scan workers/python-runner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with: { image-ref: "workers/python-runner:latest", format: table, exit-code: "0", severity: CRITICAL,HIGH }
