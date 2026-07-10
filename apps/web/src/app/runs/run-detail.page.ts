@@ -2,11 +2,17 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialog } from '@angular/material/dialog';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
+import {
+  ApprovalActionDialogComponent,
+  ApprovalActionDialogData,
+  ApprovalActionDialogResult,
+} from '../approvals/approval-action-dialog.component';
 import { RunStore } from './run.store';
 
 const CANCELLABLE_STATUSES = new Set([
@@ -35,6 +41,7 @@ export class RunDetailPage implements OnInit, OnDestroy {
   protected readonly store = inject(RunStore);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   private runId: string | null = null;
 
@@ -64,5 +71,72 @@ export class RunDetailPage implements OnInit, OnDestroy {
       .cancel(this.runId)
       .then(() => this.snackBar.open('Run cancelled.', 'Dismiss', { duration: 4000 }))
       .catch(() => this.snackBar.open('Could not cancel the run.', 'Dismiss', { duration: 4000 }));
+  }
+
+  /** POST /runs/{id}/deploy (Phase 10) -- disabled in the template unless the run is COMPLETED. */
+  requestDeploy(): void {
+    if (!this.runId) {
+      return;
+    }
+    this.store
+      .requestDeploy(this.runId)
+      .then(() => {
+        const message = this.store.pendingDeployApproval()
+          ? 'Deploy requires approval.'
+          : 'Deploy triggered.';
+        this.snackBar.open(message, 'Dismiss', { duration: 4000 });
+      })
+      .catch(() => this.snackBar.open('Could not request a deploy.', 'Dismiss', { duration: 4000 }));
+  }
+
+  approveDeploy(): void {
+    const approvalId = this.store.pendingDeployApproval()?.id;
+    if (!approvalId) {
+      return;
+    }
+    this.openDialog({
+      title: 'Approve deploy',
+      message: 'Approving triggers the deploy immediately via Dokploy.',
+      notesRequired: false,
+      confirmLabel: 'Approve',
+    }).subscribe((result) => {
+      if (!result) {
+        return;
+      }
+      this.store
+        .approveDeploy(approvalId, result.notes)
+        .then(() => this.snackBar.open('Deploy approved and triggered.', 'Dismiss', { duration: 4000 }))
+        .catch(() => this.snackBar.open('Could not approve the deploy.', 'Dismiss', { duration: 4000 }));
+    });
+  }
+
+  rejectDeploy(): void {
+    const approvalId = this.store.pendingDeployApproval()?.id;
+    if (!approvalId) {
+      return;
+    }
+    this.openDialog({
+      title: 'Reject deploy',
+      message: 'Rejecting cancels this deploy request. Nothing is deployed.',
+      notesRequired: true,
+      confirmLabel: 'Reject',
+    }).subscribe((result) => {
+      if (!result?.notes) {
+        return;
+      }
+      this.store
+        .rejectDeploy(approvalId, result.notes)
+        .then(() => this.snackBar.open('Deploy rejected.', 'Dismiss', { duration: 4000 }))
+        .catch(() => this.snackBar.open('Could not reject the deploy.', 'Dismiss', { duration: 4000 }));
+    });
+  }
+
+  private openDialog(data: ApprovalActionDialogData) {
+    return this.dialog
+      .open<ApprovalActionDialogComponent, ApprovalActionDialogData, ApprovalActionDialogResult>(
+        ApprovalActionDialogComponent,
+        { data },
+      )
+      .afterClosed();
   }
 }

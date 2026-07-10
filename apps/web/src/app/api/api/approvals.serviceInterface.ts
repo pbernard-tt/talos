@@ -35,6 +35,7 @@ export interface GetApprovalRequestParams {
 export interface ListApprovalsRequestParams {
     status?: ApprovalStatus;
     runId?: string;
+    type?: string;
     page?: number;
     size?: number;
 }

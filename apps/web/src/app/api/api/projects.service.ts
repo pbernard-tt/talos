@@ -27,6 +27,8 @@ import { ProjectConfig } from '../model/projectConfig';
 // @ts-ignore
 import { ProjectDetail } from '../model/projectDetail';
 // @ts-ignore
+import { ProjectEnvironment } from '../model/projectEnvironment';
+// @ts-ignore
 import { ProjectStatus } from '../model/projectStatus';
 // @ts-ignore
 import { SyncConfigRequest } from '../model/syncConfigRequest';
@@ -41,6 +43,7 @@ import {
     ProjectsServiceInterface,
     CreateProjectRequestParams,
     GetProjectRequestParams,
+    ListProjectEnvironmentsRequestParams,
     ListProjectsRequestParams,
     SyncProjectConfigRequestParams,
     UpdateProjectRequestParams
@@ -175,6 +178,66 @@ export class ProjectsService extends BaseService implements ProjectsServiceInter
         let localVarPath = `/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<ProjectDetail>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * The project\&#39;s deploy targets and their most recent Dokploy deployment status (Phase 10).
+     * @endpoint get /projects/{id}/environments
+     * @param requestParameters
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public listProjectEnvironments(requestParameters: ListProjectEnvironmentsRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectEnvironment>>;
+    public listProjectEnvironments(requestParameters: ListProjectEnvironmentsRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectEnvironment>>>;
+    public listProjectEnvironments(requestParameters: ListProjectEnvironmentsRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectEnvironment>>>;
+    public listProjectEnvironments(requestParameters: ListProjectEnvironmentsRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const id = requestParameters?.id;
+        if (id === null || id === undefined) {
+            throw new Error('Required parameter id was null or undefined when calling listProjectEnvironments.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/environments`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<Array<ProjectEnvironment>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

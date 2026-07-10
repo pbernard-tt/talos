@@ -23,6 +23,10 @@ export interface Approval {
     notes?: string;
     expiresAt?: string;
     createdAt: string;
+    /**
+     * Phase 10 -- set only on DEPLOY-type approvals; which environment this approval gates.
+     */
+    environment?: string;
 }
 export namespace Approval {
 }

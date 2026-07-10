@@ -89,4 +89,39 @@
       }
     </div>
   </section>
+
+  @if (run.status === 'COMPLETED') {
+    <section class="deploy">
+      <h3>Deploy</h3>
+      @if (store.pendingDeployApproval(); as approval) {
+        <mat-chip-set>
+          <mat-chip>deploy: {{ approval.status }}</mat-chip>
+          <mat-chip>{{ approval.environment }}</mat-chip>
+        </mat-chip-set>
+        <p>Deploy to {{ approval.environment }} is pending approval.</p>
+        <div class="actions">
+          <button mat-flat-button color="primary" (click)="approveDeploy()">Approve deploy</button>
+          <button mat-stroked-button color="warn" (click)="rejectDeploy()">Reject deploy</button>
+        </div>
+      } @else if (store.deployStatus(); as deployStatus) {
+        <mat-chip-set>
+          <mat-chip>{{ deployStatus.environment }}</mat-chip>
+          <mat-chip>{{ deployStatus.lastDeployStatus || 'NOT_DEPLOYED' }}</mat-chip>
+        </mat-chip-set>
+        <div class="actions">
+          <!-- Deploy button disabled without approval (Section 12.2): re-requesting while a prior
+               deploy is still RUNNING is a no-op server-side re-trigger, not a bypass -- the gate
+               is entirely in requestDeploy()'s approval-required check, which always runs first. -->
+          <button mat-flat-button color="primary" (click)="requestDeploy()"
+              [disabled]="deployStatus.lastDeployStatus === 'RUNNING'">
+            Deploy again
+          </button>
+        </div>
+      } @else {
+        <div class="actions">
+          <button mat-flat-button color="primary" (click)="requestDeploy()">Deploy</button>
+        </div>
+      }
+    </section>
+  }
 }

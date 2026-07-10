@@ -27,6 +27,8 @@ model/approvalStatus.ts
 model/approveRequest.ts
 model/createProjectRequest.ts
 model/createTaskRequest.ts
+model/deployStatus.ts
+model/deployTriggerResponse.ts
 model/diff.ts
 model/errorError.ts
 model/gitChange.ts
@@ -57,6 +59,7 @@ model/patchTaskRequest.ts
 model/project.ts
 model/projectConfig.ts
 model/projectDetail.ts
+model/projectEnvironment.ts
 model/projectStatus.ts
 model/projectSummary.ts
 model/pullRequest.ts

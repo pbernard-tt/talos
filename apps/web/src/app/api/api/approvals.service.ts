@@ -200,6 +200,7 @@ export class ApprovalsService extends BaseService implements ApprovalsServiceInt
     public listApprovals(requestParameters?: ListApprovalsRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         const status = requestParameters?.status;
         const runId = requestParameters?.runId;
+        const type = requestParameters?.type;
         const page = requestParameters?.page;
         const size = requestParameters?.size;
 
@@ -218,6 +219,15 @@ export class ApprovalsService extends BaseService implements ApprovalsServiceInt
             localVarQueryParameters,
             'runId',
             <any>runId,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'type',
+            <any>type,
             QueryParamStyle.Form,
             true,
         );

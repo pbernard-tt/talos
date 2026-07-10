@@ -11,9 +11,11 @@ import { HttpHeaders }                                       from '@angular/comm
 
 import { Observable }                                        from 'rxjs';
 
+import { DeployTriggerResponse } from '../model/models';
 import { Diff } from '../model/models';
 import { PageLogEntry } from '../model/models';
 import { PageRunSummary } from '../model/models';
+import { ProjectEnvironment } from '../model/models';
 import { PullRequest } from '../model/models';
 import { Run } from '../model/models';
 import { RunDetail } from '../model/models';
@@ -28,7 +30,15 @@ export interface CancelRunRequestParams {
     id: string;
 }
 
+export interface DeployRunRequestParams {
+    id: string;
+}
+
 export interface GetRunRequestParams {
+    id: string;
+}
+
+export interface GetRunDeployStatusRequestParams {
     id: string;
 }
 
@@ -76,12 +86,28 @@ export interface RunsServiceInterface {
     cancelRun(requestParameters: CancelRunRequestParams, extraHttpRequestParams?: any): Observable<Run>;
 
     /**
+     * Request a deploy of a COMPLETED run\&#39;s code (Phase 10). Creates a PENDING DEPLOY approval and does NOT call the deploy provider when approval is required (production always is, Section 12.2; staging follows talos.yaml\&#39;s deploy.approval_required) -- this is the server-side enforcement behind \&quot;deploy button disabled without approval\&quot;. Otherwise triggers immediately. 
+     * 
+     * @endpoint post /runs/{id}/deploy
+* @param requestParameters
+     */
+    deployRun(requestParameters: DeployRunRequestParams, extraHttpRequestParams?: any): Observable<DeployTriggerResponse>;
+
+    /**
      * Get a run and its steps.
      * 
      * @endpoint get /runs/{id}
 * @param requestParameters
      */
     getRun(requestParameters: GetRunRequestParams, extraHttpRequestParams?: any): Observable<RunDetail>;
+
+    /**
+     * The current deploy target/status for this run\&#39;s project (re-resolved from talos.yaml each call). 404 if never requested.
+     * 
+     * @endpoint get /runs/{id}/deploy
+* @param requestParameters
+     */
+    getRunDeployStatus(requestParameters: GetRunDeployStatusRequestParams, extraHttpRequestParams?: any): Observable<ProjectEnvironment>;
 
     /**
      * Get the run\&#39;s changed-file summary and full unified diff text (Section 8.1 step 8; Phase 8 Review Center). diff is null until the orchestrator\&#39;s REVIEWING step has recorded it via /internal/v1/runs/{id}/changes. 

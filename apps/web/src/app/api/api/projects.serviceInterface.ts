@@ -16,6 +16,7 @@ import { PageProjectSummary } from '../model/models';
 import { Project } from '../model/models';
 import { ProjectConfig } from '../model/models';
 import { ProjectDetail } from '../model/models';
+import { ProjectEnvironment } from '../model/models';
 import { ProjectStatus } from '../model/models';
 import { SyncConfigRequest } from '../model/models';
 import { UpdateProjectRequest } from '../model/models';
@@ -29,6 +30,10 @@ export interface CreateProjectRequestParams {
 }
 
 export interface GetProjectRequestParams {
+    id: string;
+}
+
+export interface ListProjectEnvironmentsRequestParams {
     id: string;
 }
 
@@ -68,6 +73,14 @@ export interface ProjectsServiceInterface {
 * @param requestParameters
      */
     getProject(requestParameters: GetProjectRequestParams, extraHttpRequestParams?: any): Observable<ProjectDetail>;
+
+    /**
+     * The project\&#39;s deploy targets and their most recent Dokploy deployment status (Phase 10).
+     * 
+     * @endpoint get /projects/{id}/environments
+* @param requestParameters
+     */
+    listProjectEnvironments(requestParameters: ListProjectEnvironmentsRequestParams, extraHttpRequestParams?: any): Observable<Array<ProjectEnvironment>>;
 
     /**
      * List projects.
