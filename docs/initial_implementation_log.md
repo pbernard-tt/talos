@@ -1,3 +1,33 @@
+## 2026-07-09 — Phase 8: Review and approval flow
+
+**Ask:** Continue Revision 2 implementation with Phase 8: Review Center + approvals gating everything downstream — post-run policy scan, auto-created approvals on `WAITING_APPROVAL`, approve/reject/request-changes, task status sync, audit, and the `/runs/:id`/`/review/:runId` Angular pages.
+
+**Root cause / gap found:** `POST /internal/v1/runs/{id}/status` (orchestrator-only, service-token auth) accepted `APPROVED`/`REJECTED` as target statuses with no restriction — Section 8.2 marks that edge "API, human decision" only, so the orchestrator's service token alone could have pushed a run past human review. Closed by rejecting both targets there with `422 APPROVAL_REQUIRED_FOR_TRANSITION`; they're now reachable exclusively through the new approval endpoints.
+
+**Changed (contracts):**
+- `packages/contracts/openapi.yaml` — `GET /runs/{id}/diff`, `GET/POST /approvals*` (list with new `runId` filter, detail, approve/reject/request-changes), `InternalChangesRequest` gained optional `diffPatch`; new `Diff`/`GitChangeSummary`/`Approval`/`ApprovalDetail`/`ApproveRequest`/`RejectRequest`/`RequestChangesRequest`/`PageApproval`/`ApprovalStatus` schemas; version bumped to `0.8.0`.
+- `packages/contracts/events/approval.requested.json`, `approval.decided.json` (new) — Section 11's two approval events.
+
+**Changed (backend):**
+- `dev.talos.policy` (new package) — `PolicyRules`, `PolicyConfig` (bundled classpath `policy.yaml` default, `TALOS_POLICY_FILE` override), `PolicyMatcher` (gitignore-style file globs + command substrings), `PolicyScanService` (the Section 12.1 post-run scan).
+- `dev.talos.approvals` — `ApprovalService`/`ApprovalController` (new); `Approval.decide()` (new mutator); `ApprovalRepository` gained paged `findByStatus`/`findByRunId`/`findByStatusAndRunId`.
+- `dev.talos.runs.RunService` — `transitionRun()` now runs the policy scan and auto-creates the `PENDING` approval when the target status is `WAITING_APPROVAL`; `updateStatus()` rejects `APPROVED`/`REJECTED` targets (see Root cause); `recordChanges()` persists `diffPatch`; new `getDiff()`.
+- `dev.talos.runs.AgentRun`/`GitChange` — new `diff_patch`/`matched_pattern` columns (`V003__review_and_approvals.sql`), documented as a Phase 8 DDL addition (Section 9.2 predates this phase and had no column for either).
+- `dev.talos.runs.dto` — `GitChangeResponse` (new; output-only counterpart to `GitChangeDto` — see Deviations in the phase report for why they're split), `DiffResponse` (new).
+
+**Changed (orchestrator):**
+- `api_client.py`/`pipeline.py` — `record_changes` now forwards the runner supervisor's already-computed unified diff text instead of discarding it.
+
+**Changed (frontend):**
+- `apps/web/src/app/runs/` (new) — `RunStore`, `RunEventStreamService` (fetch + `ReadableStream` SSE reader — native `EventSource` can't send the `Authorization` header this endpoint requires), `RunDetailPage` (`/runs/:id`).
+- `apps/web/src/app/approvals/` (new) — `ApprovalStore`, `ApprovalActionDialogComponent` (Section 15's confirmation-dialog UX rule), `ReviewPage` (`/review/:runId`).
+- `task-drawer.component.html` — task's run list now links to `/runs/:id` (previously dead-end text).
+- Angular client regenerated from the updated `openapi.yaml`.
+
+**Coverage:** `PolicyMatcherTest` (one case per pattern class), `ApprovalControllerIntegrationTest` (auto-creation, the `.env` RISK_FLAGGED-with-matched-pattern scenario, approve/reject/request-changes, double-decision 409, task status sync), `RunControllerIntegrationTest` updated to reach `APPROVED` via the approval endpoint and to prove the internal-endpoint bypass now 422s, `test_pipeline.py` updated for diff-text forwarding, `review.page.spec.ts` (new — approve/cancel/reject-requires-notes/request-changes dialog flows).
+
+**Verification:** `apps/api`: `sg docker -c "./gradlew test"` — all 13 test classes green. `apps/orchestrator`: `uv run pytest` — 18/18 passed. `apps/web`: `npm run build` and `npx ng test --watch=false` — both green. `docker compose -f infra/docker-compose.dev.yml up -d --build` — Flyway applied `V003` cleanly against the existing dev database; a full live curl walk against the running stack (start run → RUNNING_AGENT → ... → REVIEWING → record a `backend/.env` change → WAITING_APPROVAL → approve) confirmed all three acceptance criteria: `reviewStatus` `RISK_FLAGGED` with `matchedPattern: ".env*"` on the diff endpoint, the internal-endpoint bypass attempt returned 422, and approving moved the run to `APPROVED`. Naming guard clean. **Not checked:** interactive browser verification of the two new pages — no browser automation tool was available this session; see phase report.
+
 ## 2026-07-09 — Phase 7: Claude Code adapter and prompt assembly
 
 **Ask:** Continue Revision 2 implementation with Phase 7: implement `ClaudeCodeAdapter`, the Section 7.3 prompt assembler, provider-home bootstrap documentation, and the real-agent acceptance.
