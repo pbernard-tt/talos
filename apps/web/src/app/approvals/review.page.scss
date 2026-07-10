@@ -1,0 +1,42 @@
+.state-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.risk-panel,
+.files,
+.diff,
+.actions {
+  padding: 16px;
+}
+
+.warning {
+  color: var(--mat-sys-error, #b3261e);
+  font-weight: 500;
+}
+
+mat-chip.risk {
+  background-color: var(--mat-sys-error-container, #f9dedc);
+}
+
+mat-list-item.risk {
+  --mdc-list-list-item-label-text-color: var(--mat-sys-error, #b3261e);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.diff-view {
+  max-height: 640px;
+  overflow: auto;
+  background: var(--mat-sys-surface-container, #f3f3f3);
+  font-family: monospace;
+  font-size: 12px;
+  padding: 12px;
+  border-radius: 4px;
+  white-space: pre;
+}

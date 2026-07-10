@@ -22,6 +22,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./tasks/board.page').then((m) => m.BoardPage),
   },
+  {
+    path: 'runs/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./runs/run-detail.page').then((m) => m.RunDetailPage),
+  },
+  {
+    path: 'review/:runId',
+    canActivate: [authGuard],
+    loadComponent: () => import('./approvals/review.page').then((m) => m.ReviewPage),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'projects' },
   { path: '**', redirectTo: 'projects' },
 ];

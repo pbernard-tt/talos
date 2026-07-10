@@ -11,6 +11,7 @@ import { HttpHeaders }                                       from '@angular/comm
 
 import { Observable }                                        from 'rxjs';
 
+import { InternalChangesRequest } from '../model/models';
 import { InternalLogsRequest } from '../model/models';
 import { InternalStatusRequest } from '../model/models';
 import { InternalStepRequest } from '../model/models';
@@ -29,6 +30,11 @@ export interface InternalGetRunContextRequestParams {
 export interface InternalIngestRunLogsRequestParams {
     id: string;
     internalLogsRequest: InternalLogsRequest;
+}
+
+export interface InternalRecordRunChangesRequestParams {
+    id: string;
+    internalChangesRequest: InternalChangesRequest;
 }
 
 export interface InternalRecordRunStepRequestParams {
@@ -61,6 +67,14 @@ export interface InternalServiceInterface {
 * @param requestParameters
      */
     internalIngestRunLogs(requestParameters: InternalIngestRunLogsRequestParams, extraHttpRequestParams?: any): Observable<{}>;
+
+    /**
+     * Record the file-level diff summary captured by the runner supervisor (Section 8.1 step 8).
+     * 
+     * @endpoint post /internal/v1/runs/{id}/changes
+* @param requestParameters
+     */
+    internalRecordRunChanges(requestParameters: InternalRecordRunChangesRequestParams, extraHttpRequestParams?: any): Observable<{}>;
 
     /**
      * Record a run step\&#39;s start or completion.

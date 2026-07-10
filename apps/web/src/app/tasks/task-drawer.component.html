@@ -25,10 +25,10 @@
   } @else {
     <mat-list>
       @for (run of task.runs; track run.id) {
-        <mat-list-item>
+        <a mat-list-item [routerLink]="['/runs', run.id]">
           <span matListItemTitle>{{ run.agentKey }}</span>
           <span matListItemLine>{{ run.status }} &middot; {{ run.createdAt }}</span>
-        </mat-list-item>
+        </a>
       }
     </mat-list>
   }

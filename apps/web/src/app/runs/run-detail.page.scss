@@ -1,0 +1,55 @@
+.state-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.summary,
+.steps,
+.changed-files,
+.logs {
+  padding: 16px;
+}
+
+.error {
+  color: var(--mat-sys-error, #b3261e);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+mat-chip.risk {
+  background-color: var(--mat-sys-error-container, #f9dedc);
+}
+
+mat-list-item.risk {
+  --mdc-list-list-item-label-text-color: var(--mat-sys-error, #b3261e);
+}
+
+.log-pane {
+  max-height: 480px;
+  overflow-y: auto;
+  background: var(--mat-sys-surface-container, #f3f3f3);
+  font-family: monospace;
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.log-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log-line.stderr {
+  color: var(--mat-sys-error, #b3261e);
+}
+
+.log-line.system {
+  color: var(--mat-sys-outline, #6b6b6b);
+  font-style: italic;
+}

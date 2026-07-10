@@ -1,0 +1,70 @@
+<mat-toolbar>
+  @if (store.detail(); as detail) {
+    <button mat-button [routerLink]="['/runs', detail.approval.runId]">&larr; Run</button>
+  } @else {
+    <button mat-button [routerLink]="['/board']">&larr; Board</button>
+  }
+  <span>Review</span>
+</mat-toolbar>
+
+@if (store.loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (store.error()) {
+  <div class="state-container">
+    <p>{{ store.error() }}</p>
+  </div>
+} @else if (store.detail(); as detail) {
+  <section class="risk-panel">
+    <mat-chip-set>
+      <mat-chip>{{ detail.approval.status }}</mat-chip>
+      <mat-chip [class.risk]="detail.run.reviewStatus === 'RISK_FLAGGED'">review: {{ detail.run.reviewStatus }}</mat-chip>
+      <mat-chip>tests: {{ detail.run.testStatus }}</mat-chip>
+    </mat-chip-set>
+    @if (detail.run.reviewStatus === 'RISK_FLAGGED') {
+      <p class="warning">This run touched files matching a policy pattern &mdash; review carefully before approving.</p>
+    }
+  </section>
+
+  <section class="files">
+    <h3>Changed files</h3>
+    @if (detail.changes.length === 0) {
+      <p>No files changed.</p>
+    } @else {
+      <mat-list>
+        @for (file of detail.changes; track file.filePath) {
+          <mat-list-item [class.risk]="file.riskFlagged">
+            <span matListItemTitle>{{ file.filePath }} ({{ file.changeType }})</span>
+            <span matListItemLine>
+              +{{ file.additions }} -{{ file.deletions }}
+              @if (file.riskFlagged) {
+                &middot; flagged: {{ file.matchedPattern }}
+              }
+            </span>
+          </mat-list-item>
+        }
+      </mat-list>
+    }
+  </section>
+
+  <section class="diff">
+    <h3>Unified diff</h3>
+    <pre class="diff-view">{{ store.diffText() || 'Diff not available yet.' }}</pre>
+  </section>
+
+  <section class="actions">
+    @if (detail.approval.status === 'PENDING') {
+      <button mat-flat-button color="primary" (click)="approve()">Approve</button>
+      <button mat-stroked-button (click)="requestChanges()">Request changes</button>
+      <button mat-stroked-button color="warn" (click)="reject()">Reject</button>
+    } @else {
+      <p>
+        Decision recorded: {{ detail.approval.status }}
+        @if (detail.approval.notes) {
+          &mdash; "{{ detail.approval.notes }}"
+        }
+      </p>
+    }
+  </section>
+}

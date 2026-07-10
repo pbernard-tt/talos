@@ -1,0 +1,85 @@
+<mat-toolbar>
+  <button mat-button [routerLink]="['/board']">&larr; Board</button>
+  <span>Run detail</span>
+</mat-toolbar>
+
+@if (store.loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (store.error()) {
+  <div class="state-container">
+    <p>{{ store.error() }}</p>
+  </div>
+} @else if (store.run(); as run) {
+  <section class="summary">
+    <mat-chip-set>
+      <mat-chip>{{ run.status }}</mat-chip>
+      <mat-chip>tests: {{ run.testStatus }}</mat-chip>
+      <mat-chip [class.risk]="run.reviewStatus === 'RISK_FLAGGED'">review: {{ run.reviewStatus }}</mat-chip>
+    </mat-chip-set>
+    <p><strong>Agent:</strong> {{ run.agentKey }} ({{ run.providerAuthMode }})</p>
+    @if (run.branchName) {
+      <p><strong>Branch:</strong> {{ run.branchName }}</p>
+    }
+    @if (run.summary) {
+      <p><strong>Summary:</strong> {{ run.summary }}</p>
+    }
+    @if (run.errorMessage) {
+      <p class="error"><strong>Error:</strong> {{ run.errorMessage }}</p>
+    }
+
+    <div class="actions">
+      @if (isCancellable(run.status)) {
+        <button mat-stroked-button color="warn" (click)="cancel()">Cancel run</button>
+      }
+      @if (run.status === 'WAITING_APPROVAL') {
+        <button mat-flat-button color="primary" [routerLink]="['/review', run.id]">Review and approve</button>
+      }
+    </div>
+  </section>
+
+  <section class="steps">
+    <h3>Steps</h3>
+    <mat-list>
+      @for (step of run.steps; track step.id) {
+        <mat-list-item>
+          <span matListItemTitle>{{ step.stepType }} &middot; {{ step.status }}</span>
+          @if (step.summary) {
+            <span matListItemLine>{{ step.summary }}</span>
+          }
+        </mat-list-item>
+      }
+    </mat-list>
+  </section>
+
+  <section class="changed-files">
+    <h3>Changed files</h3>
+    @if (store.diff()?.files?.length) {
+      <mat-list>
+        @for (file of store.diff()?.files; track file.filePath) {
+          <mat-list-item [class.risk]="file.riskFlagged">
+            <span matListItemTitle>{{ file.filePath }} ({{ file.changeType }})</span>
+            <span matListItemLine>
+              +{{ file.additions }} -{{ file.deletions }}
+              @if (file.riskFlagged) {
+                &middot; flagged: {{ file.matchedPattern }}
+              }
+            </span>
+          </mat-list-item>
+        }
+      </mat-list>
+    } @else {
+      <p>No file changes recorded yet.</p>
+    }
+  </section>
+
+  <section class="logs">
+    <h3>Live log</h3>
+    <div class="log-pane">
+      @for (log of store.logs(); track log.sequence) {
+        <div class="log-line" [class]="log.stream.toLowerCase()">{{ log.message }}</div>
+      }
+    </div>
+  </section>
+}

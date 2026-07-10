@@ -11,6 +11,7 @@ import { HttpHeaders }                                       from '@angular/comm
 
 import { Observable }                                        from 'rxjs';
 
+import { Diff } from '../model/models';
 import { PageLogEntry } from '../model/models';
 import { PageRunSummary } from '../model/models';
 import { Run } from '../model/models';
@@ -22,7 +23,15 @@ import { StartRunRequest } from '../model/models';
 import { Configuration }                                     from '../configuration';
 
 
+export interface CancelRunRequestParams {
+    id: string;
+}
+
 export interface GetRunRequestParams {
+    id: string;
+}
+
+export interface GetRunDiffRequestParams {
     id: string;
 }
 
@@ -54,12 +63,28 @@ export interface RunsServiceInterface {
     configuration: Configuration;
 
     /**
+     * Cancel a non-terminal run (Section 8.2 cancel edge). Transitions the run to CANCELLED immediately and publishes run.cancel.requested so the orchestrator can kill the process tree for a run it is actively processing (Phase 6 extension of Section 11 -- see packages/contracts/events/run.cancel.requested.json). 
+     * 
+     * @endpoint post /runs/{id}/cancel
+* @param requestParameters
+     */
+    cancelRun(requestParameters: CancelRunRequestParams, extraHttpRequestParams?: any): Observable<Run>;
+
+    /**
      * Get a run and its steps.
      * 
      * @endpoint get /runs/{id}
 * @param requestParameters
      */
     getRun(requestParameters: GetRunRequestParams, extraHttpRequestParams?: any): Observable<RunDetail>;
+
+    /**
+     * Get the run\&#39;s changed-file summary and full unified diff text (Section 8.1 step 8; Phase 8 Review Center). diff is null until the orchestrator\&#39;s REVIEWING step has recorded it via /internal/v1/runs/{id}/changes. 
+     * 
+     * @endpoint get /runs/{id}/diff
+* @param requestParameters
+     */
+    getRunDiff(requestParameters: GetRunDiffRequestParams, extraHttpRequestParams?: any): Observable<Diff>;
 
     /**
      * Get a page of a run\&#39;s logs, optionally after a given sequence number.

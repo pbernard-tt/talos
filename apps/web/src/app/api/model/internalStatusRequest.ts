@@ -7,12 +7,22 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { TestStatus } from './testStatus';
 import { RunStatus } from './runStatus';
 
 
+/**
+ * Phase 6 extension: optional fields let the orchestrator attach whichever run details it just produced (workspace_path/branchName after workspace prep, prompt/exitCode after agent execution, testStatus after the test command) to the same transition call that reports the status change, instead of a separate endpoint per field. 
+ */
 export interface InternalStatusRequest { 
     status: RunStatus;
     errorMessage?: string;
+    testStatus?: TestStatus;
+    workspacePath?: string;
+    branchName?: string;
+    prompt?: string;
+    summary?: string;
+    exitCode?: number;
 }
 export namespace InternalStatusRequest {
 }

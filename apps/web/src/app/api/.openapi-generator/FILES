@@ -3,6 +3,8 @@ README.md
 api.base.service.ts
 api.module.ts
 api/api.ts
+api/approvals.service.ts
+api/approvals.serviceInterface.ts
 api/auth.service.ts
 api/auth.serviceInterface.ts
 api/internal.service.ts
@@ -17,9 +19,18 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/approval.ts
+model/approvalDetail.ts
+model/approvalStatus.ts
+model/approveRequest.ts
 model/createProjectRequest.ts
 model/createTaskRequest.ts
+model/diff.ts
 model/errorError.ts
+model/gitChange.ts
+model/gitChangeSummary.ts
+model/gitChangeType.ts
+model/internalChangesRequest.ts
 model/internalLogEntry.ts
 model/internalLogsRequest.ts
 model/internalStatusRequest.ts
@@ -31,6 +42,7 @@ model/loginResponse.ts
 model/modelError.ts
 model/models.ts
 model/moveTaskRequest.ts
+model/pageApproval.ts
 model/pageLogEntry.ts
 model/pageProjectSummary.ts
 model/pageRunSummary.ts
@@ -41,6 +53,8 @@ model/projectConfig.ts
 model/projectDetail.ts
 model/projectStatus.ts
 model/projectSummary.ts
+model/rejectRequest.ts
+model/requestChangesRequest.ts
 model/reviewStatus.ts
 model/run.ts
 model/runContext.ts
