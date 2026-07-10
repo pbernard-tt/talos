@@ -143,6 +143,8 @@ talos/
     api/                    # Spring Boot API; sole PostgreSQL writer
     orchestrator/           # Python run pipeline coordinator
     runner-supervisor/      # Python workspace/container/adapter executor
+    telegram-adapter/       # Chat task intake + notifications via the Telegram Bot API (optional)
+    whatsapp-adapter/       # Chat task intake + notifications via the WhatsApp Cloud API (optional)
   workers/                  # Per-run execution images: base, Java, Node, Python
   packages/
     contracts/              # OpenAPI + event JSON Schemas

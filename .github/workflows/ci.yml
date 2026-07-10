@@ -50,7 +50,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        project: [packages/agent-adapter-spec, apps/orchestrator, apps/runner-supervisor]
+        project:
+          [
+            packages/agent-adapter-spec,
+            apps/orchestrator,
+            apps/runner-supervisor,
+            apps/telegram-adapter,
+            apps/whatsapp-adapter,
+          ]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
@@ -79,6 +86,12 @@ jobs:
           - name: talos-runner-supervisor
             dockerfile: apps/runner-supervisor/Dockerfile
             context: .
+          - name: talos-telegram-adapter
+            dockerfile: apps/telegram-adapter/Dockerfile
+            context: apps/telegram-adapter
+          - name: talos-whatsapp-adapter
+            dockerfile: apps/whatsapp-adapter/Dockerfile
+            context: apps/whatsapp-adapter
     steps:
       - uses: actions/checkout@v4
       - name: Build ${{ matrix.name }}
@@ -161,6 +174,10 @@ jobs:
         run: docker build -f apps/orchestrator/Dockerfile -t talos-orchestrator:ci .
       - name: Build talos-runner-supervisor
         run: docker build -f apps/runner-supervisor/Dockerfile -t talos-runner-supervisor:ci .
+      - name: Build talos-telegram-adapter
+        run: docker build -f apps/telegram-adapter/Dockerfile -t talos-telegram-adapter:ci apps/telegram-adapter
+      - name: Build talos-whatsapp-adapter
+        run: docker build -f apps/whatsapp-adapter/Dockerfile -t talos-whatsapp-adapter:ci apps/whatsapp-adapter
       - name: Build workers/base-agent-runner
         run: docker build -f workers/base-agent-runner/Dockerfile -t workers/base-agent-runner:latest .
       - name: Build workers/java-runner
@@ -181,6 +198,12 @@ jobs:
       - name: Scan talos-runner-supervisor
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
         with: { image-ref: "talos-runner-supervisor:ci", format: table, exit-code: "0", severity: CRITICAL,HIGH }
+      - name: Scan talos-telegram-adapter
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with: { image-ref: "talos-telegram-adapter:ci", format: table, exit-code: "0", severity: CRITICAL,HIGH }
+      - name: Scan talos-whatsapp-adapter
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with: { image-ref: "talos-whatsapp-adapter:ci", format: table, exit-code: "0", severity: CRITICAL,HIGH }
       - name: Scan workers/base-agent-runner
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
         with: { image-ref: "workers/base-agent-runner:latest", format: table, exit-code: "0", severity: CRITICAL,HIGH }
