@@ -1,3 +1,22 @@
+## 2026-07-11 — Review gap #10: TALOS_MAX_ACTIVE_RUNS now enforced
+
+**Ask:** Review item #10 (medium): `orchestrator/config.py` parsed `TALOS_MAX_ACTIVE_RUNS` but no
+other module read it; concurrency was actually bounded by a hardcoded `prefetch_count=1` in
+`main.py`, so setting the env var to anything else silently changed nothing.
+
+**Changed (`apps/orchestrator`):**
+- `main.py` — new `_prefetch_count(settings)` (floors at 1), `channel.set_qos(prefetch_count=1)` →
+  `channel.set_qos(prefetch_count=_prefetch_count(settings))`. One channel, one QoS setting shared
+  by all three queues consumed on it (run-requests, cancellations, approvals) — an approximation
+  of "N concurrent active runs" since acking a cancellation/approval is fast and doesn't hold a
+  slot for long, matching the review's own suggested fix ("wire it... prefetch value") rather than
+  building a separate per-queue semaphore.
+
+**Verification:** new `test_main_prefetch.py` (2 cases: matches a configured value, floors a
+misconfigured 0 at 1). Full orchestrator suite green, 35 (was 33). Not checked: behavior under a
+real multi-message backlog against a live broker (would need a RabbitMQ-container test harness
+this module doesn't have today).
+
 ## 2026-07-11 — Review gap #8: rerun-tests dropped from scope (operator decision)
 
 **Ask:** Review item #8 (medium): `POST /api/v1/runs/{id}/rerun-tests` is in the plan's Section

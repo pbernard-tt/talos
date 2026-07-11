@@ -148,7 +148,7 @@ Section 10.1: "a CI check diffs the running API's springdoc output against it
 web honest against the YAML, but nothing keeps the YAML honest against the running API. Given how
 many post-MVP endpoints were added (memory, costs, users, chat), drift risk is real.
 
-### 10. `TALOS_MAX_ACTIVE_RUNS` is read but never enforced
+### 10. `TALOS_MAX_ACTIVE_RUNS` is read but never enforced — **RESOLVED 2026-07-11** (see implementation log)
 
 `orchestrator/config.py:35` parses it; no other module references it. Concurrency is actually
 bounded by `prefetch_count=1` on the single consumer, so today the setting is silently ignored —

@@ -38,6 +38,15 @@ _QUEUE_ARGS = {"x-queue-type": "quorum", "x-delivery-limit": 3, "x-dead-letter-e
 _IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60
 
 
+def _prefetch_count(settings) -> int:
+    """Review gap #10: TALOS_MAX_ACTIVE_RUNS was parsed but never enforced (prefetch_count was
+    hardcoded to 1). One channel, one QoS setting shared by all three queues consumed on it
+    (run-requests, cancellations, approvals) -- an approximation of "N concurrent active runs",
+    since acking a cancellation/approval message is fast and doesn't hold a slot for long. Floored
+    at 1 so a misconfigured 0 doesn't stall the consumer entirely."""
+    return max(1, settings.max_active_runs)
+
+
 async def _handle(
     message: AbstractIncomingMessage,
     redis_client: redis.Redis,
@@ -64,7 +73,7 @@ async def _amain() -> None:
     connection = await aio_pika.connect_robust(settings.rabbitmq_url)
     async with connection:
         channel = await connection.channel()
-        await channel.set_qos(prefetch_count=1)
+        await channel.set_qos(prefetch_count=_prefetch_count(settings))
 
         exchange = await channel.declare_exchange(EVENTS_EXCHANGE, aio_pika.ExchangeType.TOPIC, durable=True)
         dlx = await channel.declare_exchange(DLX_EXCHANGE, aio_pika.ExchangeType.TOPIC, durable=True)
