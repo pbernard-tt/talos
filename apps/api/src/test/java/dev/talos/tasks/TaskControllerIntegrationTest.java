@@ -13,9 +13,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
 
@@ -44,10 +46,15 @@ class TaskControllerIntegrationTest {
 	@ServiceConnection
 	static PostgreSQLContainer postgres = new PostgreSQLContainer(org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg17").asCompatibleSubstituteFor("postgres"));
 
+	@Container
+	static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7"))
+			.withExposedPorts(6379);
+
 	@DynamicPropertySource
 	static void disableUnusedIntegrations(DynamicPropertyRegistry registry) {
 		registry.add("spring.rabbitmq.addresses", () -> "amqp://guest:guest@localhost:5672");
-		registry.add("spring.data.redis.url", () -> "redis://localhost:6379");
+		registry.add("spring.data.redis.url",
+				() -> "redis://" + redis.getHost() + ":" + redis.getMappedPort(6379));
 	}
 
 	@Autowired
