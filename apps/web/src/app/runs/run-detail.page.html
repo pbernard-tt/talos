@@ -28,6 +28,17 @@
     @if (run.errorMessage) {
       <p class="error"><strong>Error:</strong> {{ run.errorMessage }}</p>
     }
+    @if (run.inputTokens != null || run.outputTokens != null) {
+      <p>
+        <strong>Usage:</strong>
+        {{ run.inputTokens ?? 0 }} in / {{ run.outputTokens ?? 0 }} out tokens
+        @if (run.costUsd != null) {
+          &middot; ${{ run.costUsd }} ({{ run.costModel }})
+        } @else if (run.providerAuthMode === 'subscription_local') {
+          &middot; subscription usage (cost not tracked)
+        }
+      </p>
+    }
     @if (store.pullRequest(); as pullRequest) {
       <p>
         <strong>Pull request:</strong>

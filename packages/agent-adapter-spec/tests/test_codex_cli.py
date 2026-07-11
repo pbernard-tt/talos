@@ -50,6 +50,22 @@ async def test_recorded_usage_surfaces_as_system_line_with_metadata(tmp_path):
     assert "stream" not in usage_events[0].metadata
 
 
+async def test_recorded_usage_normalizes_onto_agent_result(tmp_path):
+    adapter = _adapter(tmp_path)
+    for line in FIXTURE.read_text().splitlines():
+        await adapter._handle_stdout_line(line)
+    _drain(adapter)
+
+    adapter._exit_code = 0
+    adapter._done.set()
+    result = await adapter.result()
+
+    assert result.input_tokens == 27279
+    assert result.output_tokens == 177
+    # Codex's usage never carries a dollar amount -- never fabricate one.
+    assert result.total_cost_usd is None
+
+
 async def test_turn_failed_maps_to_error_event_and_summary(tmp_path):
     adapter = _adapter(tmp_path)
     await adapter._handle_stdout_line(json.dumps({"type": "turn.failed", "error": {"message": "boom"}}))

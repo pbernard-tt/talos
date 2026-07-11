@@ -238,7 +238,15 @@ class RunPipeline:
         await self._api_client.record_step(run_id, "AGENT", "COMPLETED")
 
         # --- tests ---------------------------------------------------------------------
-        await self._api_client.update_status(run_id, "RUNNING_TESTS", exit_code=agent_result.get("exit_code"))
+        await self._api_client.update_status(
+            run_id,
+            "RUNNING_TESTS",
+            exit_code=agent_result.get("exit_code"),
+            input_tokens=agent_result.get("input_tokens"),
+            output_tokens=agent_result.get("output_tokens"),
+            cost_usd=agent_result.get("total_cost_usd"),
+            cost_model=agent_result.get("model"),
+        )
         await self._api_client.record_step(run_id, "TESTS", "RUNNING")
 
         test_command = (active_config.get("commands") or {}).get("test")

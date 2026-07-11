@@ -26,11 +26,14 @@ export class ProjectDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
 
   protected readonly runColumns = ['agentKey', 'status', 'createdAt'];
+  protected readonly costColumns = ['agentKey', 'month', 'totalCostUsd', 'totalInputTokens', 'totalOutputTokens', 'runCount'];
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       void this.store.loadDetail(id);
+      void this.store.loadMonthlyCosts(id);
+      void this.store.loadRecommendations(id);
     }
   }
 }

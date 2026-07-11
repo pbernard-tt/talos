@@ -1092,7 +1092,7 @@ Two independent tracks, gated together. Track A proves the agent-agnostic claim 
 - **Acceptance:** completed runs and ingested docs produce embedded chunks; retrieval returns only same-project chunks; a new run's prompt contains relevant memory within budget; with memory disabled, the assembled prompt is byte-identical to pre-Phase-13 output.
 - **Tests:** chunker/budget units; project-isolation test; prompt-assembly regression test against recorded Phase 7 prompts.
 
-#### Phase 14 (provisional) — Cost tracking and recommendations
+#### Phase 14 — Cost tracking and recommendations
 
 - **Goal:** Per-provider cost visibility, then advisory recommendations built on that history. Cost tracking lands first because recommendations consume its data.
 - **Cost tracking:** extend `AdapterResult` with normalized usage metadata (input/output tokens, provider-reported cost, model); persist per run (new `agent_runs` columns or a `run_costs` table — decided at phase start); aggregate per provider / project / month; a dashboard cost widget. `subscription_local` runs record token counts with a null dollar cost and are labeled as such (Section 13) — never estimate a price for subscription usage.

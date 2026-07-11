@@ -54,6 +54,10 @@ class FakeApiClient:
         prompt: str | None = None,
         summary: str | None = None,
         exit_code: int | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        cost_usd: float | None = None,
+        cost_model: str | None = None,
     ) -> dict[str, Any]:
         if status in self._reject_status_updates_to:
             raise RuntimeError(f"422 ILLEGAL_RUN_TRANSITION: run already terminal, cannot move to {status}")
@@ -67,6 +71,10 @@ class FakeApiClient:
                 "prompt": prompt,
                 "summary": summary,
                 "exitCode": exit_code,
+                "inputTokens": input_tokens,
+                "outputTokens": output_tokens,
+                "costUsd": cost_usd,
+                "costModel": cost_model,
             }
         )
         return {}

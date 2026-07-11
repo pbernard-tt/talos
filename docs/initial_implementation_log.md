@@ -1,3 +1,78 @@
+## 2026-07-10 — Phase 14: Cost tracking and recommendations
+
+**Ask:** Implement Phase 14 per Section 16 of the plan: extend `AgentResult` with normalized usage
+metadata, persist per-run cost, aggregate per provider/project/month behind a dashboard cost
+widget, and add advisory-only recommendation signals (suggested agent, cheapest-capable agent,
+risk flags) surfaced in the task form and Command Center — never auto-selecting or auto-executing.
+
+**Changed (`packages/agent-adapter-spec`):**
+- `adapter.py` — `AgentResult` gained `input_tokens`/`output_tokens`/`total_cost_usd`/`model`, all
+  optional and defaulting to `None`.
+- `claude_code.py` — parses the documented stream-json `result` event's `usage`/`total_cost_usd`
+  and the leading `system`/`init` event's `model`.
+- `codex_cli.py`/`cli_agent.py` — `CodexCliAdapter` normalizes `turn.completed`'s `usage.input_tokens`/
+  `output_tokens` (real recorded fixture) onto `AgentResult` via new fields on the shared
+  `CliAgentAdapter` base; codex never reports a dollar cost, so `total_cost_usd` stays `None` there.
+  `OpenCodeAdapter`/`OpenHandsAdapter` deliberately do not fabricate usage capture — neither has a
+  verified event schema with a usage/cost field (see phase report deviation 2).
+
+**Changed (orchestrator):**
+- `pipeline.py` — reads `input_tokens`/`output_tokens`/`total_cost_usd`/`model` off the agent
+  `"result"` event and passes them into the `RUNNING_TESTS` status call.
+- `api_client.py` — `update_status()` gained matching optional kwargs, included in the request body
+  only when present.
+
+**Changed (backend, `apps/api`):**
+- `V006__cost_tracking.sql` — nullable `input_tokens`/`output_tokens`/`cost_usd`/`cost_model` on
+  `agent_runs`, plus an aggregation index.
+- `AgentRun`/`InternalStatusRequest`/`RunResponse`/`RunDetailResponse` — carry the four new fields
+  through the existing pipeline-details merge pattern.
+- `RunService.updateStatus()` — forces `costUsd` to `null` for `provider_auth_mode=subscription_local`
+  runs regardless of what the adapter reported (Section 13), the one place every status update
+  flows through.
+- `RunService.resolveAgentKey()` — now falls back to `task.assignedAgentKey` (previously PATCH-only
+  and never consulted by `start-run`) before `talos.yaml agents.preferred`; `CreateTaskRequest`
+  gained `assignedAgentKey` so the dashboard can set it at task-creation time.
+- `dev.talos.costs` (new) — `GET /api/v1/projects/{id}/costs/monthly`: native aggregate query,
+  monthly per-agent totals, null (not fabricated-zero) cost for unpriced buckets.
+- `dev.talos.recommendations` (new) — `GET /api/v1/projects/{id}/recommendations`: suggested agent
+  (best success rate), cheapest-capable agent (lowest avg cost among ≥50% success agents), and risk
+  flags (file areas with ≥2 runs whose Section 12.1 policy scan flagged a file). Advisory only.
+
+**Changed (contracts/frontend):**
+- `packages/contracts/openapi.yaml` — version `0.14.0`; `Run` usage/cost fields, `CreateTaskRequest.
+  assignedAgentKey`, the two new endpoints, and four new schemas.
+- `apps/web` — regenerated Angular client (`costs.service.ts`, `recommendations.service.ts`).
+  `ProjectStore` gained `loadMonthlyCosts`/`loadRecommendations`; project-detail page gained a cost
+  table and recommendations panel; task-form-dialog gained an agent-key selector plus a "use
+  suggestion" hint; run-detail shows a run's own usage/cost, labeling subscription runs that have
+  tokens but no cost.
+
+**Documented deviations:** kept the existing `AgentResult` name rather than renaming to the plan's
+generic "AdapterResult"; chose new `agent_runs` columns over a `run_costs` table (1:1 with a run,
+no multi-turn cost breakdown in scope); OpenCode/OpenHands usage capture deferred pending a
+verified live-install event schema; no "Command Center" page existed before this phase, so its
+widgets landed on the existing project-detail page instead. Full detail in
+`docs/phase-reports/phase-14-report.md`.
+
+**Coverage:** new adapter-spec usage-normalization tests (Claude Code, Codex CLI); new orchestrator
+pipeline tests (propagation + graceful degradation); new `apps/api` integration tests —
+`CostServiceIntegrationTest` (monthly per-provider totals match fixture usage exactly, subscription
+runs counted with no fabricated cost), `RecommendationServiceIntegrationTest` (suggested/cheapest
+agent selection, risk-flag threshold, graceful degradation with no history), and
+`RunControllerIntegrationTest` additions (usage/cost persistence and exposure, subscription cost
+nulling end-to-end, task.assignedAgentKey fallback).
+
+**Verification:** `packages/agent-adapter-spec` 75 passed; `apps/orchestrator` 32 passed;
+`apps/runner-supervisor` 24 passed (no code changes needed); `apps/api` full suite BUILD
+SUCCESSFUL, zero regressions; `openapi.yaml` parses at version `0.14.0` with both new paths and all
+four new schemas present; `apps/web` `npm run generate:api`, `npm run build`, and `npx ng test
+--watch=false` all succeeded (14 existing tests, no regressions); PDF rebuilt and `md5sum`-matched
+against `docs/Talos_Implementation_Plan.pdf`; `git diff --check` clean after stripping generated
+trailing whitespace; source-scoped naming guard returned no matches. Not checked: live billing
+reconciliation against a real Claude Code/Codex CLI account. Full detail:
+`docs/phase-reports/phase-14-report.md`.
+
 ## 2026-07-10 — Phase 13: Project memory with pgvector
 
 **Ask:** Implement Phase 13 per Section 16 of the plan (Revision 2.1): create the deferred `memory_documents`/`memory_chunks` tables with pgvector, keep ingestion/embedding/retrieval API-owned, inject project-scoped memory into coding-agent prompts, and prove `memory.enabled: false` preserves pre-Phase-13 prompt output.

@@ -115,6 +115,37 @@ async def test_happy_path_walks_all_statuses_and_releases_lock():
     assert api_client.log_entries  # the "hi" log line was batched and flushed
 
 
+async def test_agent_result_usage_metadata_propagates_to_running_tests_status_call():
+    execute_events = [
+        {"type": "log", "message": "hi", "timestamp": "2026-07-09T12:00:00Z", "metadata": {"stream": "stdout"}},
+        {
+            "type": "result", "exit_code": 0, "success": True, "summary": None, "raw_output_path": "/ph/transcript.txt",
+            "input_tokens": 1200, "output_tokens": 340, "total_cost_usd": 0.0421, "model": "claude-sonnet-5",
+        },
+    ]
+    pipeline, api_client, runner_client, run_lock = _pipeline(execute_events=execute_events)
+
+    await pipeline.handle_run_requested(REQUEST_PAYLOAD)
+
+    running_tests_call = next(c for c in api_client.status_calls if c["status"] == "RUNNING_TESTS")
+    assert running_tests_call["inputTokens"] == 1200
+    assert running_tests_call["outputTokens"] == 340
+    assert running_tests_call["costUsd"] == 0.0421
+    assert running_tests_call["costModel"] == "claude-sonnet-5"
+
+
+async def test_agent_result_with_no_usage_metadata_degrades_gracefully():
+    pipeline, api_client, runner_client, run_lock = _pipeline()  # SUCCESSFUL_EXECUTE_EVENTS has no usage fields
+
+    await pipeline.handle_run_requested(REQUEST_PAYLOAD)
+
+    running_tests_call = next(c for c in api_client.status_calls if c["status"] == "RUNNING_TESTS")
+    assert running_tests_call["inputTokens"] is None
+    assert running_tests_call["outputTokens"] is None
+    assert running_tests_call["costUsd"] is None
+    assert running_tests_call["costModel"] is None
+
+
 async def test_execute_run_resolves_container_image_from_project_stack_type():
     context = {**CONTEXT, "project": {**CONTEXT["project"], "stackType": "python"}}
     pipeline, api_client, runner_client, run_lock = _pipeline(context=context)
@@ -245,6 +276,10 @@ async def test_lock_contention_rejects_concurrent_run():
             "prompt": None,
             "summary": None,
             "exitCode": None,
+            "inputTokens": None,
+            "outputTokens": None,
+            "costUsd": None,
+            "costModel": None,
         }
     ]
     assert run_lock.released == []  # never acquired, so nothing to release
@@ -386,5 +421,9 @@ async def test_approval_decided_nonFastForwardPush_flagsNeedsRebase():
             "prompt": None,
             "summary": None,
             "exitCode": None,
+            "inputTokens": None,
+            "outputTokens": None,
+            "costUsd": None,
+            "costModel": None,
         }
     ]

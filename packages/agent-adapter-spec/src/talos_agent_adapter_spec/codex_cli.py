@@ -5,8 +5,9 @@ a live recorded run (tests/fixtures/codex_exec_stream.jsonl). ``codex exec <prom
 non-interactively and prints JSONL events: ``thread.started``, ``turn.started``,
 ``item.started``/``item.completed`` (items typed ``command_execution`` with
 ``command``/``aggregated_output``/``exit_code``, ``agent_message`` with ``text``, ``file_change``
-with ``changes``), and ``turn.completed`` carrying token ``usage`` (surfaced in event metadata for
-Phase 14 cost tracking).
+with ``changes``), and ``turn.completed`` carrying token ``usage`` -- kept in full in event metadata
+and normalized (``input_tokens``/``output_tokens``) onto AgentResult for Phase 14 cost tracking.
+Codex's ``usage`` never carries a dollar amount, so ``AgentResult.total_cost_usd`` stays None here.
 
 Sandboxing depends on the execution mode: as a bare subprocess codex keeps its own
 ``-s workspace-write`` sandbox; inside the Phase 11 per-run container that sandbox cannot start
@@ -132,6 +133,12 @@ class CodexCliAdapter(CliAgentAdapter):
             await self._emit(AgentEventType.ERROR, message, {})
         elif event_type == "turn.completed":
             usage = event.get("usage") if isinstance(event.get("usage"), dict) else {}
+            # Phase 14: codex's `usage` never reports a dollar cost (no client-side pricing table),
+            # so total_cost_usd stays None here -- only token counts are normalized onto the result.
+            if isinstance(usage.get("input_tokens"), int):
+                self._input_tokens = usage["input_tokens"]
+            if isinstance(usage.get("output_tokens"), int):
+                self._output_tokens = usage["output_tokens"]
             summary = ", ".join(f"{name}={value}" for name, value in sorted(usage.items()))
             # No "stream" key -> persisted as a SYSTEM log line; metadata keeps raw usage counts.
             await self._emit(AgentEventType.LOG, f"turn completed ({summary})", {"eventType": event_type, "usage": usage})

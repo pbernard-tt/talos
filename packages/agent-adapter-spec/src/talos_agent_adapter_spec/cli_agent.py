@@ -96,6 +96,13 @@ class CliAgentAdapter(AgentAdapter):
         self._transcript_path: Path | None = None
         self._transcript_lines: list[str] = []
         self._env_file_path: str | None = None
+        # Phase 14: usage metadata, set by subclasses' _handle_stdout_line when the wrapped CLI's
+        # event stream reports it (verified so far only for CodexCliAdapter's turn.completed
+        # event -- OpenCode's verified event types carry no usage data, so these stay None there).
+        self._input_tokens: int | None = None
+        self._output_tokens: int | None = None
+        self._total_cost_usd: float | None = None
+        self._model: str | None = None
 
     # --- subclass hooks ---------------------------------------------------------------
 
@@ -308,4 +315,8 @@ class CliAgentAdapter(AgentAdapter):
             success=(exit_code == 0 and not self._timed_out),
             summary=self._summary,
             raw_output_path=str(self._transcript_path),
+            input_tokens=self._input_tokens,
+            output_tokens=self._output_tokens,
+            total_cost_usd=self._total_cost_usd,
+            model=self._model,
         )

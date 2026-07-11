@@ -13,5 +13,8 @@ public record CreateTaskRequest(
 		String description,
 		TaskPriority priority,
 		TaskRiskLevel riskLevel,
-		String source) {
+		String source,
+		/** Phase 14: lets the dashboard set an agent at creation time, e.g. following a
+		 * recommendations hint (Section 16) -- an explicit operator choice, never auto-selected. */
+		String assignedAgentKey) {
 }

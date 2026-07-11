@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.Generated;
 import org.hibernate.generator.EventType;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -65,6 +66,23 @@ public class AgentRun {
 
 	@Column(name = "exit_code")
 	private Integer exitCode;
+
+	/** Phase 14 (Section 16): normalized usage metadata, adapter-reported when available. Null when
+	 * the adapter can't report it (e.g. CustomShellAdapter, or a coding agent whose usage schema
+	 * isn't yet parsed) -- callers must degrade gracefully rather than treat this as an error. */
+	@Column(name = "input_tokens")
+	private Integer inputTokens;
+
+	@Column(name = "output_tokens")
+	private Integer outputTokens;
+
+	/** Never set for a subscription_local run even if the adapter reported one (Section 13: never
+	 * estimate/attribute a price to subscription usage) -- enforced in RunService, not here. */
+	@Column(name = "cost_usd")
+	private BigDecimal costUsd;
+
+	@Column(name = "cost_model")
+	private String costModel;
 
 	@Column(name = "timeout_at")
 	private Instant timeoutAt;
@@ -162,6 +180,22 @@ public class AgentRun {
 		return exitCode;
 	}
 
+	public Integer getInputTokens() {
+		return inputTokens;
+	}
+
+	public Integer getOutputTokens() {
+		return outputTokens;
+	}
+
+	public BigDecimal getCostUsd() {
+		return costUsd;
+	}
+
+	public String getCostModel() {
+		return costModel;
+	}
+
 	public Instant getTimeoutAt() {
 		return timeoutAt;
 	}
@@ -202,9 +236,13 @@ public class AgentRun {
 				|| status == RunStatus.REJECTED;
 	}
 
-	/** Phase 6: the pipeline supplies whichever of these it has just produced alongside a status transition (see InternalStatusRequest). */
+	/** Phase 6: the pipeline supplies whichever of these it has just produced alongside a status
+	 * transition (see InternalStatusRequest). Phase 14 adds usage/cost: {@code costUsd} is the
+	 * caller's already-policy-adjusted value (RunService nulls it out for subscription_local runs
+	 * before calling this) so this entity stays a plain field-merge with no auth-mode knowledge. */
 	public void applyPipelineDetails(TestStatus testStatus, String workspacePath, String branchName, String prompt,
-			String summary, Integer exitCode) {
+			String summary, Integer exitCode, Integer inputTokens, Integer outputTokens, BigDecimal costUsd,
+			String costModel) {
 		if (testStatus != null) {
 			this.testStatus = testStatus;
 		}
@@ -222,6 +260,18 @@ public class AgentRun {
 		}
 		if (exitCode != null) {
 			this.exitCode = exitCode;
+		}
+		if (inputTokens != null) {
+			this.inputTokens = inputTokens;
+		}
+		if (outputTokens != null) {
+			this.outputTokens = outputTokens;
+		}
+		if (costUsd != null) {
+			this.costUsd = costUsd;
+		}
+		if (costModel != null) {
+			this.costModel = costModel;
 		}
 	}
 

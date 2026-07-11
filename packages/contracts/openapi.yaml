@@ -10,9 +10,9 @@ info:
     Phase 6 (cancel + internal changes ingest), Phase 8 (review/approval flow: diff serving and
     the approvals endpoints), Phase 9 (git push and PR workflow: integrations, the
     git-token/pull-request internal endpoints, and GET /runs/{id}/pull-request), Phase 10
-    (Dokploy integration), Phase 12 (chat trigger support), and Phase 13 (memory ingestion and
-    internal retrieval).
-  version: "0.13.0"
+    (Dokploy integration), Phase 12 (chat trigger support), Phase 13 (memory ingestion and
+    internal retrieval), and Phase 14 (per-run cost tracking and advisory recommendations).
+  version: "0.14.0"
 servers:
   - url: /api/v1
     description: "Public API (JWT via Authorization: Bearer)"
@@ -206,6 +206,49 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
         "422":
+          $ref: "#/components/responses/Error"
+
+  /projects/{id}/costs/monthly:
+    get:
+      operationId: getProjectMonthlyCosts
+      summary: >
+        Phase 14: monthly per-agent cost/usage totals for a project (the dashboard cost widget).
+        Runs still in flight are excluded. A month with no priced runs (subscription-only or
+        CustomShellAdapter activity) reports a null totalCostUsd rather than a fabricated zero.
+      tags: [costs]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MonthlyCostSummary"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /projects/{id}/recommendations:
+    get:
+      operationId: getProjectRecommendations
+      summary: >
+        Phase 14: advisory-only signals computed from this project's run history -- a suggested
+        agent, a cheapest-capable-agent hint, and risk flags for file areas that have repeatedly
+        failed automated review. Surfaced in the task form and Command Center; never auto-selects
+        an agent or auto-executes anything.
+      tags: [recommendations]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationResponse"
+        "404":
           $ref: "#/components/responses/Error"
 
   /tasks:
@@ -1402,6 +1445,81 @@ components:
         configYaml:
           type: string
 
+    MonthlyCostSummary:
+      type: object
+      required: [agentKey, month, totalInputTokens, totalOutputTokens, runCount, subscriptionRunCount]
+      properties:
+        agentKey:
+          type: string
+        month:
+          type: string
+          description: "YYYY-MM, UTC."
+        totalCostUsd:
+          type: number
+          description: Null when no run in this (agentKey, month) bucket has a priced cost.
+        totalInputTokens:
+          type: integer
+          format: int64
+        totalOutputTokens:
+          type: integer
+          format: int64
+        runCount:
+          type: integer
+          format: int64
+        subscriptionRunCount:
+          type: integer
+          format: int64
+
+    AgentStat:
+      type: object
+      required: [agentKey, totalRuns, completedRuns, riskFlaggedRuns, successRate]
+      properties:
+        agentKey:
+          type: string
+        totalRuns:
+          type: integer
+          format: int64
+        completedRuns:
+          type: integer
+          format: int64
+        riskFlaggedRuns:
+          type: integer
+          format: int64
+        successRate:
+          type: number
+        avgCostUsd:
+          type: number
+
+    RiskFlag:
+      type: object
+      required: [fileArea, riskFlaggedRunCount]
+      properties:
+        fileArea:
+          type: string
+          description: The top-level path segment shared by the flagged files.
+        riskFlaggedRunCount:
+          type: integer
+          format: int64
+
+    RecommendationResponse:
+      type: object
+      required: [agentStats, riskFlags]
+      properties:
+        suggestedAgentKey:
+          type: string
+          description: Null when the project has no run history yet.
+        cheapestCapableAgentKey:
+          type: string
+          description: Null when no agent has both a priced run and a success rate >= 50%.
+        agentStats:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentStat"
+        riskFlags:
+          type: array
+          items:
+            $ref: "#/components/schemas/RiskFlag"
+
     PageProjectSummary:
       type: object
       required: [content, page, size, totalElements]
@@ -1500,6 +1618,12 @@ components:
           description: >-
             Provenance, e.g. DASHBOARD (default) | WEBHOOK | TELEGRAM | WHATSAPP (Section 16 Phase
             12 Track B). Unrecognized values fall back to DASHBOARD.
+        assignedAgentKey:
+          type: string
+          description: >-
+            Phase 14: sets the task's preferred agent at creation time, e.g. following a
+            recommendations hint -- an explicit operator choice, never auto-selected. Used by
+            start-run as a fallback when the run request itself doesn't specify agentKey.
 
     PatchTaskRequest:
       type: object
@@ -1601,6 +1725,18 @@ components:
           type: string
         exitCode:
           type: integer
+        inputTokens:
+          type: integer
+          description: Phase 14 (Section 16) normalized usage metadata; null when the adapter can't report it.
+        outputTokens:
+          type: integer
+        costUsd:
+          type: number
+          description: >-
+            Provider-reported price in USD. Always null for provider_auth_mode=subscription_local
+            (Section 13) -- never a fabricated/estimated price.
+        costModel:
+          type: string
         timeoutAt:
           type: string
           format: date-time
@@ -1726,11 +1862,21 @@ components:
           type: string
         exitCode:
           type: integer
+        inputTokens:
+          type: integer
+        outputTokens:
+          type: integer
+        costUsd:
+          type: number
+        costModel:
+          type: string
       description: >
         Phase 6 extension: optional fields let the orchestrator attach whichever run details it
         just produced (workspace_path/branchName after workspace prep, prompt/exitCode after agent
         execution, testStatus after the test command) to the same transition call that reports the
-        status change, instead of a separate endpoint per field.
+        status change, instead of a separate endpoint per field. Phase 14 adds inputTokens/
+        outputTokens/costUsd/costModel, reported alongside exitCode. The API nulls costUsd for
+        provider_auth_mode=subscription_local runs regardless of what's sent here (Section 13).
 
     InternalStepRequest:
       type: object

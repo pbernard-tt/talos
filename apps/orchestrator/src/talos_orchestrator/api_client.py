@@ -72,6 +72,10 @@ class ApiClient:
         prompt: str | None = None,
         summary: str | None = None,
         exit_code: int | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        cost_usd: float | None = None,
+        cost_model: str | None = None,
     ) -> dict[str, Any]:
         body: dict[str, Any] = {"status": status}
         if error_message is not None:
@@ -88,6 +92,16 @@ class ApiClient:
             body["summary"] = summary
         if exit_code is not None:
             body["exitCode"] = exit_code
+        # Phase 14: normalized usage metadata, present only when the adapter reported it -- a run
+        # with none of these degrades gracefully (agent_runs columns stay null, no pipeline failure).
+        if input_tokens is not None:
+            body["inputTokens"] = input_tokens
+        if output_tokens is not None:
+            body["outputTokens"] = output_tokens
+        if cost_usd is not None:
+            body["costUsd"] = cost_usd
+        if cost_model is not None:
+            body["costModel"] = cost_model
         response = await self._client.post(f"/internal/v1/runs/{run_id}/status", json=body)
         response.raise_for_status()
         return response.json()

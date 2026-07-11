@@ -33,6 +33,21 @@
         }
       </mat-select>
     </mat-form-field>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Agent</mat-label>
+      <mat-select formControlName="assignedAgentKey">
+        <mat-option value="">Use project default</mat-option>
+        @for (agentKey of agentKeys; track agentKey) {
+          <mat-option [value]="agentKey">{{ agentKey }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    @if (projectStore.recommendations()?.suggestedAgentKey; as suggested) {
+      <p class="recommendation-hint">
+        Suggested agent: <strong>{{ suggested }}</strong>
+        <button mat-button type="button" (click)="applySuggestedAgent()">Use suggestion</button>
+      </p>
+    }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button type="button" (click)="cancel()">Cancel</button>

@@ -47,7 +47,7 @@ public class TaskService {
 				? request.source()
 				: "DASHBOARD";
 		Task task = new Task(request.projectId(), request.title(), request.description(), actorUserId, source);
-		task.updatePartial(null, null, request.priority(), request.riskLevel(), null);
+		task.updatePartial(null, null, request.priority(), request.riskLevel(), request.assignedAgentKey());
 		task = taskRepository.save(task);
 		auditService.record(actorUserId, "task.created", "task", task.getId(), Map.of("title", task.getTitle()));
 		return task;

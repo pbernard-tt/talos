@@ -8,6 +8,11 @@ for operations Talos must never delegate to an agent (committing, pushing, destr
 
 Phase 11: when ``request.container`` is set, `claude` runs inside a per-run Docker container
 (Section 8/12.1) instead of directly as a talos-runner-supervisor subprocess -- see container.py.
+
+Phase 14: the terminal ``result`` event's ``usage.input_tokens``/``usage.output_tokens`` and
+``total_cost_usd`` (Anthropic's documented stream-json result schema; ``cost_usd`` kept as a
+fallback for older CLI builds) are captured onto AgentResult for cost tracking. ``model`` is read
+from the leading ``system``/``init`` event when present.
 """
 
 from __future__ import annotations
@@ -71,6 +76,10 @@ class ClaudeCodeAdapter(AgentAdapter):
         self._transcript_path: Path | None = None
         self._transcript_lines: list[str] = []
         self._env_file_path: str | None = None
+        self._input_tokens: int | None = None
+        self._output_tokens: int | None = None
+        self._total_cost_usd: float | None = None
+        self._model: str | None = None
 
     def capabilities(self) -> ProviderCapabilities:
         return ProviderCapabilities(
@@ -209,6 +218,11 @@ class ClaudeCodeAdapter(AgentAdapter):
 
         if event.get("type") == "result":
             self._summary = event.get("result") or event.get("subtype") or self._summary
+            self._capture_usage(event)
+        elif event.get("type") == "system" and event.get("subtype") == "init":
+            model = event.get("model")
+            if isinstance(model, str) and model:
+                self._model = model
         content = (event.get("message") or {}).get("content", [])
         emitted = False
         for block in content if isinstance(content, list) else []:
@@ -226,6 +240,22 @@ class ClaudeCodeAdapter(AgentAdapter):
                 emitted = True
         if not emitted:
             await self._queue.put(AgentEvent(AgentEventType.LOG, _mask(raw, self._request.env), _now_iso(), {"stream": "stdout", "eventType": event.get("type")}))
+
+    def _capture_usage(self, event: dict[str, Any]) -> None:
+        """Phase 14: the ``result`` event's ``usage``/``total_cost_usd`` fields (Anthropic's
+        documented stream-json result schema). ``cost_usd`` is the deprecated pre-1.x key name,
+        kept as a fallback for older CLI builds."""
+        usage = event.get("usage") if isinstance(event.get("usage"), dict) else {}
+        if isinstance(usage.get("input_tokens"), int):
+            self._input_tokens = usage["input_tokens"]
+        if isinstance(usage.get("output_tokens"), int):
+            self._output_tokens = usage["output_tokens"]
+        cost = event.get("total_cost_usd", event.get("cost_usd"))
+        if isinstance(cost, (int, float)):
+            self._total_cost_usd = float(cost)
+        model = event.get("model")
+        if isinstance(model, str) and model:
+            self._model = model
 
     async def events(self) -> AsyncIterator[AgentEvent]:
         while True:
@@ -269,4 +299,8 @@ class ClaudeCodeAdapter(AgentAdapter):
             success=(exit_code == 0 and not self._timed_out),
             summary=self._summary,
             raw_output_path=str(self._transcript_path),
+            input_tokens=self._input_tokens,
+            output_tokens=self._output_tokens,
+            total_cost_usd=self._total_cost_usd,
+            model=self._model,
         )

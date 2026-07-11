@@ -56,6 +56,15 @@ class AgentResult:
     success: bool
     summary: str | None
     raw_output_path: str  # artifact file with the full transcript
+    # Phase 14 (Section 16): normalized usage metadata, adapter-reported when the underlying CLI/API
+    # exposes it. All four are None when unavailable -- callers must degrade gracefully rather than
+    # treat missing usage as an error. total_cost_usd is the provider's own reported price; Talos
+    # never estimates one (Section 13: subscription-mode runs must not get a fabricated dollar cost,
+    # enforced at the API layer regardless of what an adapter reports here).
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_cost_usd: float | None = None
+    model: str | None = None
 
 
 class AgentAdapter(ABC):

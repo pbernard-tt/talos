@@ -107,7 +107,8 @@ public class RunService {
 					"Task already has an active (non-terminal) run");
 		}
 
-		String agentKey = resolveAgentKey(task.getProjectId(), request == null ? null : request.agentKey());
+		String agentKey = resolveAgentKey(task.getProjectId(), request == null ? null : request.agentKey(),
+				task.getAssignedAgentKey());
 		String authMode = (request == null || request.authMode() == null || request.authMode().isBlank())
 				? "api_key"
 				: request.authMode();
@@ -237,8 +238,14 @@ public class RunService {
 							.formatted(request.status()));
 		}
 		AgentRun run = getOrThrow(runId);
+		// Section 13 / Phase 14 acceptance: subscription_local runs record token counts but never a
+		// dollar cost, even if the adapter reported one (Claude Code, for one, reports a notional
+		// total_cost_usd regardless of auth mode) -- enforced here, the one place every status
+		// update flows through, rather than trusting every adapter to know the run's auth mode.
+		var costUsd = "subscription_local".equals(run.getProviderAuthMode()) ? null : request.costUsd();
 		run.applyPipelineDetails(request.testStatus(), request.workspacePath(), request.branchName(),
-				request.prompt(), request.summary(), request.exitCode());
+				request.prompt(), request.summary(), request.exitCode(), request.inputTokens(),
+				request.outputTokens(), costUsd, request.costModel());
 		return transitionRun(run, request.status(), request.errorMessage(), null);
 	}
 
@@ -365,9 +372,15 @@ public class RunService {
 				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "RUN_NOT_FOUND", "Run not found"));
 	}
 
-	private String resolveAgentKey(UUID projectId, String requestedAgentKey) {
+	/** Priority: an explicit request.agentKey (Section 10.2), then the task's assignedAgentKey
+	 * (Phase 14: set at task-creation time, e.g. following a recommendations hint -- an explicit
+	 * operator choice, not an auto-selection), then the project's talos.yaml agents.preferred. */
+	private String resolveAgentKey(UUID projectId, String requestedAgentKey, String taskAssignedAgentKey) {
 		if (requestedAgentKey != null && !requestedAgentKey.isBlank()) {
 			return requestedAgentKey;
+		}
+		if (taskAssignedAgentKey != null && !taskAssignedAgentKey.isBlank()) {
+			return taskAssignedAgentKey;
 		}
 		ProjectConfig config = projectConfigRepository.findByProjectIdAndActiveTrue(projectId)
 				.orElseThrow(() -> new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "NO_ACTIVE_CONFIG",

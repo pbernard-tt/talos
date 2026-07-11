@@ -186,6 +186,26 @@ class RunControllerIntegrationTest {
 	}
 
 	@Test
+	void startRun_usesTaskAssignedAgentKey_whenNoRequestAgentKeyGiven() throws Exception {
+		String token = bearerToken();
+		// The project's active config prefers opencode; the task's own assignedAgentKey (Phase 14:
+		// e.g. set from a recommendations hint at task-creation time) must win over that default.
+		String projectId = createProject(token, true);
+		String taskId = createTask(token, projectId);
+		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/v1/tasks/{id}", taskId)
+						.header("Authorization", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"assignedAgentKey\":\"claude-code\"}"))
+				.andExpect(status().isOk());
+
+		String runId = startRun(token, taskId, null);
+
+		mockMvc.perform(get("/api/v1/runs/{id}", runId).header("Authorization", token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.agentKey").value("claude-code"));
+	}
+
+	@Test
 	void startRun_noActiveConfigAndNoAgentKey_returns422() throws Exception {
 		String token = bearerToken();
 		String projectId = createProject(token, false);
@@ -615,6 +635,60 @@ class RunControllerIntegrationTest {
 						.header("Authorization", token))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.error.code").value("RUN_NOT_FOUND"));
+	}
+
+	@Test
+	void internalStatus_persistsUsageAndCost_andExposesThemOnTheRunResponse() throws Exception {
+		String token = bearerToken();
+		String projectId = createProject(token, false);
+		String taskId = createTask(token, projectId);
+		String runId = startRun(token, taskId, "{\"agentKey\":\"claude-code\",\"authMode\":\"api_key\"}");
+
+		transitionInternal(runId, "PREPARING_WORKSPACE");
+		transitionInternal(runId, "RUNNING_AGENT");
+		mockMvc.perform(post("/internal/v1/runs/{id}/status", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"status":"RUNNING_TESTS","exitCode":0,"inputTokens":1200,"outputTokens":340,
+								 "costUsd":0.0421,"costModel":"claude-sonnet-5"}
+								"""))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(get("/api/v1/runs/{id}", runId).header("Authorization", token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.inputTokens").value(1200))
+				.andExpect(jsonPath("$.outputTokens").value(340))
+				.andExpect(jsonPath("$.costUsd").value(0.0421))
+				.andExpect(jsonPath("$.costModel").value("claude-sonnet-5"));
+	}
+
+	@Test
+	void internalStatus_subscriptionLocalRun_neverPersistsAReportedCost() throws Exception {
+		String token = bearerToken();
+		String projectId = createProject(token, false);
+		String taskId = createTask(token, projectId);
+		String runId = startRun(token, taskId, "{\"agentKey\":\"claude-code\",\"authMode\":\"subscription_local\"}");
+
+		transitionInternal(runId, "PREPARING_WORKSPACE");
+		transitionInternal(runId, "RUNNING_AGENT");
+		// Simulates the adapter reporting a notional cost even in subscription mode (Claude Code's
+		// CLI always computes total_cost_usd from token counts, regardless of billing mode) --
+		// Section 13/Phase 14 require the API to never persist it as a real dollar cost.
+		mockMvc.perform(post("/internal/v1/runs/{id}/status", runId)
+						.header("X-Talos-Internal-Token", "test-internal-token-not-for-production-use-32bytes+")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"status":"RUNNING_TESTS","exitCode":0,"inputTokens":800,"outputTokens":150,
+								 "costUsd":0.0300,"costModel":"claude-sonnet-5"}
+								"""))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(get("/api/v1/runs/{id}", runId).header("Authorization", token))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.inputTokens").value(800))
+				.andExpect(jsonPath("$.outputTokens").value(150))
+				.andExpect(jsonPath("$.costUsd").doesNotExist());
 	}
 
 	private void transitionInternal(String runId, String status) throws Exception {

@@ -5,6 +5,7 @@ import dev.talos.runs.ReviewStatus;
 import dev.talos.runs.RunStatus;
 import dev.talos.runs.TestStatus;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +25,10 @@ public record RunDetailResponse(
 		ReviewStatus reviewStatus,
 		String errorMessage,
 		Integer exitCode,
+		Integer inputTokens,
+		Integer outputTokens,
+		BigDecimal costUsd,
+		String costModel,
 		Instant timeoutAt,
 		Instant startedAt,
 		Instant completedAt,
@@ -35,7 +40,8 @@ public record RunDetailResponse(
 		return new RunDetailResponse(run.getId(), run.getTaskId(), run.getProjectId(), run.getStatus(),
 				run.getAgentKey(), run.getProviderAuthMode(), run.getPrompt(), run.getBranchName(),
 				run.getWorkspacePath(), run.getSummary(), run.getTestStatus(), run.getReviewStatus(),
-				run.getErrorMessage(), run.getExitCode(), run.getTimeoutAt(), run.getStartedAt(),
+				run.getErrorMessage(), run.getExitCode(), run.getInputTokens(), run.getOutputTokens(),
+				run.getCostUsd(), run.getCostModel(), run.getTimeoutAt(), run.getStartedAt(),
 				run.getCompletedAt(), run.getCreatedAt(), run.getUpdatedAt(), steps);
 	}
 }
