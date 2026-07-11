@@ -1,3 +1,32 @@
+## 2026-07-10 — Phase 13: Project memory with pgvector
+
+**Ask:** Implement Phase 13 per Section 16 of the plan (Revision 2.1): create the deferred `memory_documents`/`memory_chunks` tables with pgvector, keep ingestion/embedding/retrieval API-owned, inject project-scoped memory into coding-agent prompts, and prove `memory.enabled: false` preserves pre-Phase-13 prompt output.
+
+**Changed (backend, `apps/api`):**
+- `V005__memory.sql` — enables `vector`, creates `memory_documents`, `memory_chunks`, project indexes, source-type constraints, and duplicate suppression on `(project_id, source_type, source_ref, content_hash)`.
+- `dev.talos.memory` (new package) — memory document entity/repository, chunker, secret masker, deterministic `EmbeddingProvider`, vector search, public operator ingestion, internal orchestrator ingestion/search, and completed-run ingestion from terminal `COMPLETED` runs.
+- `RunService` — calls `MemoryService.ingestCompletedRun()` on the `COMPLETED` transition after the server-side state machine accepts the transition.
+- API Testcontainers — all Postgres containers now run `pgvector/pgvector:pg17` as a compatible substitute so Flyway validates the real extension.
+
+**Changed (orchestrator):**
+- `ApiClient` — added internal memory document ingestion and search methods under `/internal/v1/projects/{id}/memory/*`.
+- `RunPipeline` — for non-`custom-shell` adapters, reads configured `context.docs` from the prepared isolated worktree, sends them to the API for masked/chunked/embedded ingestion, retrieves relevant memory, and passes it into prompt assembly. `memory.enabled: false` skips both ingestion and retrieval.
+- `prompt_assembler.py` — inserts `Relevant project memory` after direct project context and before the task. With no memory results, existing prompt output is unchanged.
+
+**Changed (contracts/frontend/infra/docs):**
+- `packages/contracts/openapi.yaml` — version `0.13.0`; public memory ingestion plus internal memory ingestion/search schemas and operations.
+- `apps/web/src/app/api` — regenerated Angular client. The internal memory operations are tagged as `internal` only to avoid duplicate generated exports between `InternalService` and `MemoryService`.
+- `packages/project-config-schema/talos.schema.json` — `memory.enabled` and `memory.prompt_budget_chars`.
+- `infra/docker-compose.dev.yml` and `infra/dokploy/docker-compose.prod.yml` — Postgres image changed to `pgvector/pgvector:pg17`.
+- `README.md`, `docs/architecture.md`, `docs/deployment.md`, `docs/security-model.md`, `docs/src/talos-implementation-plan.md`, and both plan PDFs — updated for pgvector-backed project memory.
+- `docs/phase-reports/phase-13-report.md` — phase gate report.
+
+**Documented deviations:** the plan says embeddings come from a configured BYOK provider, but it does not define the concrete provider/model/protocol. Implemented a deterministic local lexical `HashEmbeddingProvider` behind an `EmbeddingProvider` interface so Phase 13 is self-hosted, testable, and replaceable when the BYOK provider contract is chosen. The prompt budget is character-based (`prompt_budget_chars`) rather than token-based for the same reason: no model/tokenizer contract exists yet.
+
+**Coverage:** API integration tests cover public/internal ingestion, pgvector retrieval, same-project isolation, prompt budget enforcement, completed-run ingestion, memory-disabled behavior, schema validation, chunking, and secret masking. Orchestrator tests cover context-doc ingestion before search, memory prompt injection order, and byte-identical disabled prompts.
+
+**Verification:** targeted API slice (`sg docker -c 'cd /home/paulb/Personal/Talos/apps/api && GRADLE_USER_HOME=/tmp/gradle-home ./gradlew --no-daemon test --tests "dev.talos.memory.*" --tests "dev.talos.projects.TalosConfigParserTest" --tests "dev.talos.runs.RunServiceRetentionCandidatesTest"'`) — BUILD SUCCESSFUL. Full API suite (`sg docker -c 'cd /home/paulb/Personal/Talos/apps/api && GRADLE_USER_HOME=/tmp/gradle-home ./gradlew --no-daemon test'`) — BUILD SUCCESSFUL. `UV_CACHE_DIR=/tmp/uv-cache uv run pytest` in `apps/orchestrator` — 30 passed. `python3` YAML parse of `packages/contracts/openapi.yaml` — version `0.13.0`, internal memory document path present. `npm run generate:api` in `apps/web` — succeeded with the known OpenAPI 3.1/model-name warnings. Angular build — initially the default shell's Node 24.11.1 failed the repo's Node gate and sandboxed DNS blocked Google Fonts; rerun with the direct Node 22.23.1 binary and approved network access completed successfully and emitted `dist/talos-web`. `bash docs/src/build-pdf.sh` — first sandboxed run failed on npm DNS; rerun with network approval succeeded, and `md5sum` confirmed `docs/src/talos-implementation-plan.pdf` matches `docs/Talos_Implementation_Plan.pdf`. Compose rendering: `env TALOS_DOCKER_GID=999 docker compose -f infra/docker-compose.dev.yml config --quiet` passed; production Dokploy compose rendered with sample env passed. `git diff --check` passed after stripping trailing whitespace emitted by the generated Angular client. Source-scoped naming guard (`grep -ri agentos . --exclude-dir=.git --exclude-dir=docs --exclude-dir=.github --exclude-dir=node_modules --exclude=CLAUDE.md --exclude=AGENTS.md`) returned no matches. Not checked: live run against a production-sized memory corpus or an external embedding provider; the provider contract is intentionally deferred as noted above.
+
 ## 2026-07-10 — Phase 12 Track B: Telegram and WhatsApp trigger adapters, phase gate closed
 
 **Ask:** Implement Phase 12 Track B per Section 16 of the plan (Revision 2.1): chat-based task intake and run/approval notifications via Telegram first, then WhatsApp, without weakening any governance rule — approval decisions stay dashboard-only. Close the Phase 12 gate (Track A had already landed) with a phase report.

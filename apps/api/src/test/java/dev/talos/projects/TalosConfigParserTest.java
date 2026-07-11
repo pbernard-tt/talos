@@ -36,6 +36,9 @@ class TalosConfigParserTest {
 			  docs: [docs/architecture.md, docs/api-guidelines.md]
 			  important_paths: [src/main/java, src/main/resources]
 			  ignore_paths: [target, node_modules, .env]
+			memory:
+			  enabled: true
+			  prompt_budget_chars: 3500
 			deploy:
 			  provider: dokploy
 			  app_id: backend-app-id
@@ -89,5 +92,26 @@ class TalosConfigParserTest {
 		assertThat(result).isInstanceOf(TalosConfigParser.Result.Invalid.class);
 		var invalid = (TalosConfigParser.Result.Invalid) result;
 		assertThat(invalid.fieldErrors()).containsKey("/agents/preferred");
+	}
+
+	@Test
+	void memoryRejectsUnknownProperty() {
+		String yaml = """
+				project:
+				  name: example-backend
+				  type: spring-boot
+				  repo: git@github.com:org/example-backend.git
+				commands:
+				  test: "./mvnw test"
+				memory:
+				  enabled: true
+				  surprise: nope
+				""";
+
+		TalosConfigParser.Result result = parser.parse(yaml);
+
+		assertThat(result).isInstanceOf(TalosConfigParser.Result.Invalid.class);
+		var invalid = (TalosConfigParser.Result.Invalid) result;
+		assertThat(invalid.fieldErrors()).containsKey("/memory");
 	}
 }

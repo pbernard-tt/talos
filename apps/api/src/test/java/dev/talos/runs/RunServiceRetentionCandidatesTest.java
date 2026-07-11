@@ -6,6 +6,7 @@ import dev.talos.events.EventPublisher;
 import dev.talos.integrations.PullRequest;
 import dev.talos.integrations.PullRequestRepository;
 import dev.talos.integrations.PullRequestStatus;
+import dev.talos.memory.MemoryService;
 import dev.talos.policy.PolicyScanService;
 import dev.talos.projects.Project;
 import dev.talos.projects.ProjectConfigRepository;
@@ -63,6 +64,8 @@ class RunServiceRetentionCandidatesTest {
 	private ApprovalRepository approvalRepository;
 	@Mock
 	private PullRequestRepository pullRequestRepository;
+	@Mock
+	private MemoryService memoryService;
 
 	private RunService runService;
 
@@ -70,7 +73,8 @@ class RunServiceRetentionCandidatesTest {
 	void setUp() {
 		runService = new RunService(agentRunRepository, agentRunStepRepository, agentRunLogRepository,
 				gitChangeRepository, taskRepository, projectRepository, projectConfigRepository, auditService,
-				eventPublisher, broadcaster, policyScanService, approvalRepository, pullRequestRepository);
+				eventPublisher, broadcaster, policyScanService, approvalRepository, pullRequestRepository,
+				memoryService);
 	}
 
 	@Test

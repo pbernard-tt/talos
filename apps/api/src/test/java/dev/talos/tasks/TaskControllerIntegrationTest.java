@@ -42,7 +42,7 @@ class TaskControllerIntegrationTest {
 
 	@Container
 	@ServiceConnection
-	static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
+	static PostgreSQLContainer postgres = new PostgreSQLContainer(org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg17").asCompatibleSubstituteFor("postgres"));
 
 	@DynamicPropertySource
 	static void disableUnusedIntegrations(DynamicPropertyRegistry registry) {

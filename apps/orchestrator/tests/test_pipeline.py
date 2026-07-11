@@ -58,6 +58,7 @@ def _pipeline(
     execute_events=None,
     test_events=None,
     diff_result=None,
+    prepare_result=None,
     acquire_result=True,
     git_token=None,
     pull_request=None,
@@ -65,7 +66,7 @@ def _pipeline(
 ):
     api_client = FakeApiClient(context or CONTEXT, git_token=git_token, pull_request=pull_request)
     runner_client = FakeRunnerClient(
-        PREPARE_RESULT,
+        prepare_result or PREPARE_RESULT,
         execute_events if execute_events is not None else SUCCESSFUL_EXECUTE_EVENTS,
         test_events if test_events is not None else PASSING_TEST_EVENTS,
         diff_result or DIFF_RESULT,
@@ -145,6 +146,88 @@ async def test_claude_run_stores_assembled_prompt_for_audit():
     running = next(call for call in api_client.status_calls if call["status"] == "RUNNING_AGENT")
     assert "isolated branch of demo" in running["prompt"]
     assert "Task title: Add hello" in running["prompt"]
+
+
+async def test_claude_run_injects_project_memory_when_enabled():
+    payload = {**REQUEST_PAYLOAD, "agent_key": "claude-code"}
+    context = {
+        **CONTEXT,
+        "activeConfig": {
+            "commands": {"test": "echo testing"},
+            "memory": {"enabled": True, "prompt_budget_chars": 1234},
+            "context": {},
+        },
+    }
+    pipeline, api_client, _, _ = _pipeline(context=context)
+    api_client.memory_results = [
+        {"title": "Prior run", "sourceRef": "run-1", "content": "Prefer the existing AccountService."}
+    ]
+
+    await pipeline.handle_run_requested(payload)
+
+    running = next(call for call in api_client.status_calls if call["status"] == "RUNNING_AGENT")
+    assert "Relevant project memory" in running["prompt"]
+    assert "Prefer the existing AccountService." in running["prompt"]
+    assert api_client.memory_search_calls == [
+        {"project_id": "proj1", "query": "Add hello\necho hi > new.txt", "limit": 8, "budget_chars": 1234}
+    ]
+
+
+async def test_claude_run_ingests_context_docs_before_memory_search(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "architecture.md").write_text("Use AccountService for invoices.")
+    payload = {**REQUEST_PAYLOAD, "agent_key": "claude-code"}
+    context = {
+        **CONTEXT,
+        "activeConfig": {
+            "commands": {"test": "echo testing"},
+            "context": {"docs": ["docs/architecture.md"]},
+            "memory": {"enabled": True},
+        },
+    }
+    pipeline, api_client, _, _ = _pipeline(
+        context=context,
+        prepare_result={"workspacePath": str(tmp_path), "branchName": "agent/task-task1-add-hello"},
+    )
+
+    await pipeline.handle_run_requested(payload)
+
+    assert api_client.memory_ingest_calls == [
+        {
+            "project_id": "proj1",
+            "source_ref": "docs/architecture.md",
+            "title": "context docs: docs/architecture.md",
+            "content": "Use AccountService for invoices.",
+        }
+    ]
+    assert api_client.memory_call_order == ["ingest", "search"]
+    assert api_client.memory_search_calls
+
+
+async def test_memory_disabled_keeps_pre_phase_13_prompt_byte_identical():
+    payload = {**REQUEST_PAYLOAD, "agent_key": "claude-code"}
+    context = {
+        **CONTEXT,
+        "activeConfig": {
+            "commands": {"test": "echo testing"},
+            "rules": {"forbidden": [".env"]},
+            "context": {},
+            "memory": {"enabled": False},
+        },
+    }
+    pipeline, api_client, _, _ = _pipeline(context=context)
+
+    await pipeline.handle_run_requested(payload)
+
+    running = next(call for call in api_client.status_calls if call["status"] == "RUNNING_AGENT")
+    assert running["prompt"] == (
+        "You are working in an isolated branch of demo. Do not modify files matching: .env. "
+        "Do not run destructive commands. Stop when the task is complete.\n\n"
+        "Task title: Add hello\nTask description:\necho hi > new.txt\n\n"
+        "Make the necessary code changes. Do not commit; Talos handles commits."
+    )
+    assert api_client.memory_search_calls == []
+    assert api_client.memory_ingest_calls == []
 
 
 async def test_lock_contention_rejects_concurrent_run():

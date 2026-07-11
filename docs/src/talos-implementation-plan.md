@@ -1142,7 +1142,7 @@ Deploy each service separately in Dokploy, backed by persistent volumes for Post
 | `talos-api` | `apps/api/Dockerfile` | `GET /actuator/health` | 1 vCPU, 1–2 GB |
 | `talos-orchestrator` | `apps/orchestrator/Dockerfile` | process liveness | 0.5–1 vCPU, 512 MB–1 GB |
 | `talos-runner-supervisor` | `apps/runner-supervisor/Dockerfile` | `GET /health` | 1–2 vCPU, 1–2 GB + worker limits |
-| `talos-postgres` | `postgres:17` | `pg_isready` | 1–2 vCPU, 2–4 GB |
+| `talos-postgres` | `pgvector/pgvector:pg17` | `pg_isready` | 1–2 vCPU, 2–4 GB |
 | `talos-rabbitmq` | `rabbitmq:4.1-management` | `rabbitmq-diagnostics ping` | 0.5–1 vCPU, 512 MB–1 GB |
 | `talos-redis` | `redis:7` | `redis-cli ping` | 0.25–0.5 vCPU, 256–512 MB |
 | `talos-minio` | optional, later | — | — |

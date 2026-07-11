@@ -26,6 +26,40 @@ class ApiClient:
         response.raise_for_status()
         return response.json()
 
+    async def search_memory(
+        self,
+        project_id: str,
+        query: str,
+        *,
+        limit: int = 8,
+        budget_chars: int = 4000,
+    ) -> list[dict[str, Any]]:
+        response = await self._client.get(
+            f"/internal/v1/projects/{project_id}/memory/search",
+            params={"query": query, "limit": limit, "budgetChars": budget_chars},
+        )
+        response.raise_for_status()
+        return response.json()["results"]
+
+    async def ingest_memory_document(
+        self,
+        project_id: str,
+        *,
+        source_ref: str,
+        title: str,
+        content: str,
+    ) -> None:
+        response = await self._client.post(
+            f"/internal/v1/projects/{project_id}/memory/documents",
+            json={
+                "sourceType": "CONTEXT_DOC",
+                "sourceRef": source_ref,
+                "title": title,
+                "content": content,
+            },
+        )
+        response.raise_for_status()
+
     async def update_status(
         self,
         run_id: str,

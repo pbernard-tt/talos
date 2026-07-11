@@ -9,6 +9,7 @@ import dev.talos.events.EventPublisher;
 import dev.talos.integrations.PullRequest;
 import dev.talos.integrations.PullRequestRepository;
 import dev.talos.integrations.PullRequestStatus;
+import dev.talos.memory.MemoryService;
 import dev.talos.policy.PolicyScanService;
 import dev.talos.projects.Project;
 import dev.talos.projects.ProjectConfig;
@@ -71,13 +72,15 @@ public class RunService {
 	private final PolicyScanService policyScanService;
 	private final ApprovalRepository approvalRepository;
 	private final PullRequestRepository pullRequestRepository;
+	private final MemoryService memoryService;
 
 	public RunService(AgentRunRepository agentRunRepository, AgentRunStepRepository agentRunStepRepository,
 			AgentRunLogRepository agentRunLogRepository, GitChangeRepository gitChangeRepository,
 			TaskRepository taskRepository, ProjectRepository projectRepository,
 			ProjectConfigRepository projectConfigRepository, AuditService auditService,
 			EventPublisher eventPublisher, RunEventBroadcaster broadcaster, PolicyScanService policyScanService,
-			ApprovalRepository approvalRepository, PullRequestRepository pullRequestRepository) {
+			ApprovalRepository approvalRepository, PullRequestRepository pullRequestRepository,
+			MemoryService memoryService) {
 		this.agentRunRepository = agentRunRepository;
 		this.agentRunStepRepository = agentRunStepRepository;
 		this.agentRunLogRepository = agentRunLogRepository;
@@ -91,6 +94,7 @@ public class RunService {
 		this.policyScanService = policyScanService;
 		this.approvalRepository = approvalRepository;
 		this.pullRequestRepository = pullRequestRepository;
+		this.memoryService = memoryService;
 	}
 
 	@Transactional
@@ -151,6 +155,9 @@ public class RunService {
 
 		if (newStatus == RunStatus.WAITING_APPROVAL) {
 			createApproval(run);
+		}
+		if (newStatus == RunStatus.COMPLETED) {
+			memoryService.ingestCompletedRun(run);
 		}
 
 		return run;

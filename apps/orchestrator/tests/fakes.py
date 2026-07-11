@@ -34,6 +34,10 @@ class FakeApiClient:
         self._reject_status_updates_to = reject_status_updates_to or set()
         self.retention_candidates: list[dict[str, Any]] = []
         self.retention_candidates_calls: list[int] = []
+        self.memory_results: list[dict[str, Any]] = []
+        self.memory_search_calls: list[dict[str, Any]] = []
+        self.memory_ingest_calls: list[dict[str, Any]] = []
+        self.memory_call_order: list[str] = []
 
     async def get_context(self, run_id: str) -> dict[str, Any]:
         return self.context
@@ -93,6 +97,33 @@ class FakeApiClient:
     async def get_retention_candidates(self, max_age_days: int) -> list[dict[str, Any]]:
         self.retention_candidates_calls.append(max_age_days)
         return self.retention_candidates
+
+    async def search_memory(
+        self,
+        project_id: str,
+        query: str,
+        *,
+        limit: int = 8,
+        budget_chars: int = 4000,
+    ) -> list[dict[str, Any]]:
+        self.memory_call_order.append("search")
+        self.memory_search_calls.append(
+            {"project_id": project_id, "query": query, "limit": limit, "budget_chars": budget_chars}
+        )
+        return self.memory_results
+
+    async def ingest_memory_document(
+        self,
+        project_id: str,
+        *,
+        source_ref: str,
+        title: str,
+        content: str,
+    ) -> None:
+        self.memory_call_order.append("ingest")
+        self.memory_ingest_calls.append(
+            {"project_id": project_id, "source_ref": source_ref, "title": title, "content": content}
+        )
 
 
 class FakeRunnerClient:

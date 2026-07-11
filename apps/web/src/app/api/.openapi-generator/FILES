@@ -7,10 +7,14 @@ api/approvals.service.ts
 api/approvals.serviceInterface.ts
 api/auth.service.ts
 api/auth.serviceInterface.ts
+api/chat.service.ts
+api/chat.serviceInterface.ts
 api/integrations.service.ts
 api/integrations.serviceInterface.ts
 api/internal.service.ts
 api/internal.serviceInterface.ts
+api/memory.service.ts
+api/memory.serviceInterface.ts
 api/projects.service.ts
 api/projects.serviceInterface.ts
 api/runs.service.ts
@@ -25,6 +29,7 @@ model/approval.ts
 model/approvalDetail.ts
 model/approvalStatus.ts
 model/approveRequest.ts
+model/chatRejectedSenderRequest.ts
 model/createProjectRequest.ts
 model/createTaskRequest.ts
 model/deployStatus.ts
@@ -47,6 +52,11 @@ model/logEntry.ts
 model/logStream.ts
 model/loginRequest.ts
 model/loginResponse.ts
+model/memoryDocument.ts
+model/memoryDocumentRequest.ts
+model/memorySearchResponse.ts
+model/memorySearchResult.ts
+model/memorySourceType.ts
 model/modelError.ts
 model/models.ts
 model/moveTaskRequest.ts
@@ -66,6 +76,8 @@ model/pullRequest.ts
 model/pullRequestStatus.ts
 model/rejectRequest.ts
 model/requestChangesRequest.ts
+model/retentionCandidate.ts
+model/retentionCandidatesResponse.ts
 model/reviewStatus.ts
 model/run.ts
 model/runContext.ts

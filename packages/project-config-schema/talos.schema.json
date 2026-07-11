@@ -79,6 +79,19 @@
         "environment": { "type": "string" },
         "approval_required": { "type": "boolean" }
       }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "prompt_budget_chars": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20000,
+          "default": 4000
+        }
+      }
     }
   },
   "$defs": {

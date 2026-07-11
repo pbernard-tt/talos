@@ -2,7 +2,7 @@
 
 Talos is a self-hosted, web-based control plane for running coding agents safely across a portfolio of software projects.
 
-It gives you a project registry, Kanban-style task board, governed agent runs, live logs, diff review, human approvals, GitHub push/PR creation, and Dokploy deployment triggers. Talos does not build a new LLM or coding agent. It orchestrates existing tools through the `AgentAdapter` interface in [`packages/agent-adapter-spec`](packages/agent-adapter-spec).
+It gives you a project registry, Kanban-style task board, governed agent runs, live logs, project-scoped memory, diff review, human approvals, GitHub push/PR creation, and Dokploy deployment triggers. Talos does not build a new LLM or coding agent. It orchestrates existing tools through the `AgentAdapter` interface in [`packages/agent-adapter-spec`](packages/agent-adapter-spec).
 
 The full architecture, data model, API surface, and phased implementation plan live in [`docs/Talos_Implementation_Plan.pdf`](docs/Talos_Implementation_Plan.pdf) from [`docs/src/talos-implementation-plan.md`](docs/src/talos-implementation-plan.md). That document is the single source of truth for contracts and state transitions.
 
@@ -11,6 +11,7 @@ The full architecture, data model, API surface, and phased implementation plan l
 - **One dashboard for many repos.** Register projects, track tasks, and keep agent work visible instead of buried in separate terminal sessions.
 - **Governed agent runs.** Start a run from a task, execute it on an isolated `agent/task-<id>-<slug>` branch, stream logs live, and retain an auditable step history.
 - **Agent-agnostic execution.** The platform talks to adapters, not directly to providers. `custom-shell`, `claude-code`, `opencode`, `codex-cli`, and `openhands` (an HTTP client against a locally deployed OpenHands agent-server) are implemented; `gemini-cli` remains a backlog stub.
+- **Project memory.** Completed run summaries, diff digests, operator notes, and configured `context.docs` are chunked, masked, embedded, and retrieved per project so future coding-agent prompts can reuse relevant context without cross-project leakage.
 - **Real isolation boundary.** Runs execute in per-run Docker containers with their own worktree subpath, resource limits, no Docker socket, no internal service network, and provider homes outside the workspace.
 - **Review before merge.** Talos captures diffs, scans configured risk patterns, shows the review result, and requires approval before any push, pull request, or deploy action.
 - **Approval-gated delivery.** Approved runs can push a branch, open a GitHub pull request, and trigger a Dokploy deployment. Production deploys require their own deploy approval.
@@ -124,7 +125,7 @@ Set these environment variables in the Dokploy application:
 | `TALOS_GITHUB_WEBHOOK_SECRET` | `openssl rand -base64 48` | HMAC secret for inbound GitHub webhooks. |
 | `TALOS_DOCKER_GID` | `stat -c '%g' /var/run/docker.sock` | Lets `talos-runner-supervisor` use the host Docker socket as its non-root user. |
 
-Deploy the Compose app. Dokploy builds the four long-running app images and starts the services in dependency order: PostgreSQL, RabbitMQ, Redis, API, runner supervisor, orchestrator, then web.
+Deploy the Compose app. Dokploy builds the four long-running app images and starts the services in dependency order: PostgreSQL with pgvector, RabbitMQ, Redis, API, runner supervisor, orchestrator, then web.
 
 After the health checks pass:
 

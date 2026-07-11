@@ -17,6 +17,10 @@ export interface CreateTaskRequest {
     description?: string;
     priority?: TaskPriority;
     riskLevel?: TaskRiskLevel;
+    /**
+     * Provenance, e.g. DASHBOARD (default) | WEBHOOK | TELEGRAM | WHATSAPP (Section 16 Phase 12 Track B). Unrecognized values fall back to DASHBOARD.
+     */
+    source?: string;
 }
 export namespace CreateTaskRequest {
 }

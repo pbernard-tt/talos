@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from talos_orchestrator.adapters import capabilities_for
@@ -20,6 +21,7 @@ from talos_orchestrator.runner_client import RunnerClient
 logger = logging.getLogger(__name__)
 
 _DEFAULT_TIMEOUT_SECONDS = 1800
+_MAX_CONTEXT_DOCUMENT_INGEST_CHARS = 50_000
 
 # Phase 11 (Section 8/12.1): per-run container image resolved from project.stackType. Anything not
 # listed here (or no stackType at all) falls back to the general-purpose base image.
@@ -191,9 +193,20 @@ class RunPipeline:
         # --- agent execution --------------------------------------------------------------
         # CustomShellAdapter retains its documented Phase 6 command semantics so the deterministic
         # smoke flow remains executable. Every real coding adapter receives the Section 7.3 prompt.
-        prompt = task.get("description") or "" if agent_key == "custom-shell" else assemble_prompt(
-            task, project, active_config, workspace_path
-        )
+        if agent_key == "custom-shell":
+            prompt = task.get("description") or ""
+        else:
+            memory_results = []
+            memory_config = active_config.get("memory") or {}
+            if memory_config.get("enabled", True):
+                await self._ingest_context_docs(project["id"], active_config, workspace_path)
+                memory_results = await self._api_client.search_memory(
+                    project["id"],
+                    f"{task['title']}\n{task.get('description') or ''}",
+                    limit=8,
+                    budget_chars=int(memory_config.get("prompt_budget_chars", 4000)),
+                )
+            prompt = assemble_prompt(task, project, active_config, workspace_path, memory_results)
         await self._api_client.update_status(
             run_id, "RUNNING_AGENT", workspace_path=workspace_path, branch_name=branch_name, prompt=prompt
         )
@@ -251,6 +264,25 @@ class RunPipeline:
 
         # --- waiting for human approval --------------------------------------------------
         await self._api_client.update_status(run_id, "WAITING_APPROVAL", summary=summary)
+
+    async def _ingest_context_docs(self, project_id: str, active_config: dict[str, Any], workspace_path: str) -> None:
+        workspace = Path(workspace_path).resolve()
+        for configured_path in (active_config.get("context") or {}).get("docs") or []:
+            path = (workspace / configured_path).resolve()
+            if not path.is_relative_to(workspace) or not path.is_file():
+                continue
+            try:
+                content = path.read_text(errors="replace")[:_MAX_CONTEXT_DOCUMENT_INGEST_CHARS]
+            except OSError:
+                continue
+            if not content.strip():
+                continue
+            await self._api_client.ingest_memory_document(
+                project_id,
+                source_ref=configured_path,
+                title=f"context docs: {configured_path}",
+                content=content,
+            )
 
 
 def _stream_for(metadata: dict[str, Any]) -> str:

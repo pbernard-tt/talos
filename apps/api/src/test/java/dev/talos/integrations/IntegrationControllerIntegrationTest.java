@@ -38,7 +38,7 @@ class IntegrationControllerIntegrationTest {
 
 	@Container
 	@ServiceConnection
-	static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
+	static PostgreSQLContainer postgres = new PostgreSQLContainer(org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg17").asCompatibleSubstituteFor("postgres"));
 
 	@Container
 	@ServiceConnection

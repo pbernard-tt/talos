@@ -16,6 +16,9 @@ as the Dokploy Compose application definition.
   from. The Compose app builds each long-running service from this repo.
 - Docker socket access for `talos-runner-supervisor`. It is the only Talos service that mounts
   `/var/run/docker.sock`, and it uses that socket to launch the isolated per-run worker containers.
+- PostgreSQL must include the pgvector extension. The reference Compose file uses
+  `pgvector/pgvector:pg17`; if you replace it with a managed database, enable pgvector before
+  starting `talos-api` so Flyway can create `memory_chunks.embedding vector(64)`.
 
 ## 2. Build the worker images on the VPS
 
@@ -62,7 +65,7 @@ Docker group wrapper, for example `sg docker -c "docker build -f workers/base-ag
    | `TALOS_RUN_MEMORY_LIMIT` / `TALOS_RUN_CPU_LIMIT` / `TALOS_RUN_PIDS_LIMIT` | Optional per-run container limits; defaults are `1g`, `1`, and `256`. |
 
 3. Deploy. Dokploy brings the compose stack up in dependency order:
-   `postgres` → `rabbitmq`/`redis` → `api` (talos-api runs Flyway migrations on boot, so it
+   `postgres` (PostgreSQL 17 with pgvector) → `rabbitmq`/`redis` → `api` (talos-api runs Flyway migrations on boot, so it
    does not report healthy until the schema is current) → `runner-supervisor`/`orchestrator` →
    `web`.
 4. Confirm health:
@@ -120,7 +123,8 @@ Compose app.
   until manually rotated.
 - `talos_postgres_data` is the only volume holding data with no external source of truth. Back it
   up. A `pg_dump` / `pg_restore` cycle against the `talos-postgres` container is sufficient for the
-  VPS-scale deployments this MVP targets.
+  VPS-scale deployments this MVP targets; restore into a PostgreSQL image/database with pgvector
+  enabled, because Phase 13 memory uses the `vector` type.
 - `TALOS_SECRETS_KEY` must be backed up with the database. Without it, encrypted integration
   credentials in the restored database cannot be decrypted.
 

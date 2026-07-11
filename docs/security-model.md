@@ -92,9 +92,9 @@ $ docker exec talos-postgres pg_dump -U talos -d talos -F c -f /tmp/talos-backup
 $ docker cp talos-postgres:/tmp/talos-backup.dump ./talos-backup.dump
 -> 130791 bytes
 
-# 2. Restore: fresh scratch Postgres 17 container, no shared state with talos-postgres
+# 2. Restore: fresh scratch Postgres 17 + pgvector container, no shared state with talos-postgres
 $ docker run -d --name talos-restore-drill -e POSTGRES_DB=talos -e POSTGRES_USER=talos \
-    -e POSTGRES_PASSWORD=talos postgres:17
+    -e POSTGRES_PASSWORD=talos pgvector/pgvector:pg17
 $ docker cp ./talos-backup.dump talos-restore-drill:/tmp/talos-backup.dump
 $ docker exec talos-restore-drill pg_restore -U talos -d talos --no-owner --no-privileges \
     /tmp/talos-backup.dump

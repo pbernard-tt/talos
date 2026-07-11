@@ -9,10 +9,10 @@ info:
     Phase 3 (project registry), Phase 4 (task board), Phase 5 (agent run lifecycle, API side),
     Phase 6 (cancel + internal changes ingest), Phase 8 (review/approval flow: diff serving and
     the approvals endpoints), Phase 9 (git push and PR workflow: integrations, the
-    git-token/pull-request internal endpoints, and GET /runs/{id}/pull-request), and Phase 10
-    (Dokploy integration: POST/GET /runs/{id}/deploy, GET /projects/{id}/environments, the
-    approvals type filter).
-  version: "0.10.0"
+    git-token/pull-request internal endpoints, and GET /runs/{id}/pull-request), Phase 10
+    (Dokploy integration), Phase 12 (chat trigger support), and Phase 13 (memory ingestion and
+    internal retrieval).
+  version: "0.13.0"
 servers:
   - url: /api/v1
     description: "Public API (JWT via Authorization: Bearer)"
@@ -179,6 +179,33 @@ paths:
                 items:
                   $ref: "#/components/schemas/ProjectEnvironment"
         "404":
+          $ref: "#/components/responses/Error"
+
+  /projects/{id}/memory/documents:
+    post:
+      operationId: ingestProjectMemoryDocument
+      summary: >
+        Phase 13: ingest an operator note or context document into project-scoped memory. The API
+        owns chunking, masking, embedding, and persistence; no Python service writes memory rows.
+      tags: [memory]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemoryDocumentRequest"
+      responses:
+        "201":
+          description: Created, or the existing identical document if already ingested.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryDocument"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
           $ref: "#/components/responses/Error"
 
   /tasks:
@@ -998,6 +1025,77 @@ paths:
               schema:
                 $ref: "#/components/schemas/RetentionCandidatesResponse"
 
+  /internal/v1/projects/{id}/memory/documents:
+    post:
+      operationId: internalIngestProjectMemoryDocument
+      summary: >
+        Phase 13: ingest context.docs content discovered by the orchestrator. The API still owns
+        masking, chunking, embedding, and persistence.
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemoryDocumentRequest"
+      responses:
+        "201":
+          description: Created, or the existing identical document if already ingested.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryDocument"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+
+  /internal/v1/projects/{id}/memory/search:
+    get:
+      operationId: internalSearchProjectMemory
+      summary: >
+        Phase 13: project-scoped memory retrieval for orchestrator prompt assembly. Results are
+        filtered to the requested project and capped by the supplied prompt budget.
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 8
+        - name: budgetChars
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 4000
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemorySearchResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1159,6 +1257,76 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    MemorySourceType:
+      type: string
+      enum: [RUN_SUMMARY, OPERATOR_NOTE, CONTEXT_DOC]
+
+    MemoryDocumentRequest:
+      type: object
+      required: [sourceType, content]
+      properties:
+        sourceType:
+          $ref: "#/components/schemas/MemorySourceType"
+        sourceRef:
+          type: string
+          description: Operator-controlled reference such as a doc path, note id, or external URL.
+        title:
+          type: string
+        content:
+          type: string
+          description: Plaintext content; talos-api masks common secret shapes before persistence.
+
+    MemoryDocument:
+      type: object
+      required: [id, projectId, sourceType, sourceRef, title, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        sourceType:
+          $ref: "#/components/schemas/MemorySourceType"
+        sourceRef:
+          type: string
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    MemorySearchResult:
+      type: object
+      required: [chunkId, documentId, sourceType, sourceRef, title, content, score]
+      properties:
+        chunkId:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        sourceType:
+          $ref: "#/components/schemas/MemorySourceType"
+        sourceRef:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        score:
+          type: number
+          format: double
+
+    MemorySearchResponse:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemorySearchResult"
 
     RunSummary:
       type: object
