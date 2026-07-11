@@ -101,6 +101,9 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/actuator/health").permitAll()
 						.requestMatchers("/api/v1/auth/login").permitAll()
+						// Section 10.1: /api/v1/webhooks/* authenticates via HMAC signature, not JWT --
+						// verified inside GithubWebhookService against TALOS_GITHUB_WEBHOOK_SECRET.
+						.requestMatchers("/api/v1/webhooks/**").permitAll()
 						.anyRequest().authenticated())
 				.addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(

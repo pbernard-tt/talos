@@ -1,3 +1,39 @@
+## 2026-07-11 — Review gap #1: GitHub webhook + PR status transitions (unblocks retention)
+
+**Ask:** Begin working through `docs/initial_review.md`; item #1 (critical): implement the
+plan-mandated `POST /api/v1/webhooks/github` (Sections 6.2, 10.1, 10.2) — without it
+`pull_requests.status` never leaves `OPEN`, so the Phase 11 retention sweep skips every run that
+produced a PR and its workspace is kept forever.
+
+**Changed (backend, `apps/api`):**
+- `dev.talos.webhooks` (new package, per Section 6.2) — `GithubWebhookController`
+  (`POST /api/v1/webhooks/github`, raw-byte body so the HMAC covers the exact wire payload, 204 on
+  success) and `GithubWebhookService` (HMAC-SHA256 verification of `X-Hub-Signature-256` against
+  `talos.github-webhook-secret`, constant-time compare, fail-closed when the secret is
+  unconfigured; `pull_request` `closed` → `MERGED`/`CLOSED` by the payload's `merged` flag,
+  `reopened` → `OPEN`; rows matched by PR html URL because numbers collide across repos; unknown
+  PRs and other event types acknowledged with 204 — GitHub webhooks are repo-wide, so those are
+  expected; each transition audited as `pr.status.changed`).
+- `SecurityConfig` — `permitAll` for `/api/v1/webhooks/**` in the JWT chain (Section 10.1: webhook
+  base path authenticates by signature, not JWT).
+- `PullRequest.setStatus` + `PullRequestRepository.findByProviderAndUrl` — first mutation path for
+  PR status, previously immutable after creation (the root of the retention bug).
+
+**Changed (contracts):** `openapi.yaml` — `/webhooks/github` path (security: [], header params,
+204/401), version 0.16.0 → 0.17.0.
+
+**Verification:** new `GithubWebhookControllerIntegrationTest` (5 tests: merged → `MERGED` +
+audit row; closed-unmerged → `CLOSED` then reopened → `OPEN`; bad signature → 401
+`WEBHOOK_SIGNATURE_INVALID` with status unchanged; missing signature → 401; unknown PR and `ping`
+events → 204 no-op). Full `apps/api` suite green (BUILD SUCCESSFUL, 4m50s, 180 tests). Naming
+guard clean. Not checked: a live GitHub delivery (needs a reachable deployment); the payload
+shapes used match GitHub's documented `pull_request` event schema.
+
+**Known blockers/follow-ups:** webhook registration on the repo is operator-side (GitHub repo
+settings → webhook URL + `TALOS_GITHUB_WEBHOOK_SECRET`); no polling fallback for deliveries missed
+while Talos is down — acceptable because a later `closed`/`reopened` delivery or manual DB fix can
+recover, but worth a runbook note.
+
 ## 2026-07-11 — Fix CI: runner-supervisor push commits had no committer identity
 
 **Ask:** CI's runner-supervisor job failing — 4 tests (`test_git_push.py` ×3, plus

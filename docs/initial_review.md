@@ -25,7 +25,7 @@ instead of skipping (reproduced in this review's sandbox). Harmless in GitHub Ac
 
 ## Critical — address before production
 
-### 1. `POST /api/v1/webhooks/github` was never implemented, and it silently breaks workspace retention
+### 1. `POST /api/v1/webhooks/github` was never implemented, and it silently breaks workspace retention — **RESOLVED 2026-07-11** (see implementation log)
 
 Section 10.2 lists the endpoint and Section 6.2 lists the `dev.talos.webhooks` module; neither
 exists (`apps/api/src/main/java/dev/talos/` has no `webhooks` package, no controller maps
@@ -54,7 +54,7 @@ Today a run can only be started via curl/smoke-script or the Telegram/WhatsApp a
 product whose core loop is "move card → run agent → review", this is the single biggest functional
 gap.
 
-### 3. Latest ~9 commits have never run through CI
+### 3. Latest ~9 commits have never run through CI — **RESOLVED 2026-07-11** (pushed; two CI-only test failures fixed, see implementation log)
 
 `main` is 9 commits ahead of `talos/main` (the only remote). Everything from roughly Phase 13
 onward (memory, cost tracking, RBAC, MinIO) has only been tested locally; the GitHub Actions

@@ -12,8 +12,9 @@ info:
     git-token/pull-request internal endpoints, and GET /runs/{id}/pull-request), Phase 10
     (Dokploy integration), Phase 12 (chat trigger support), Phase 13 (memory ingestion and
     internal retrieval), Phase 14 (per-run cost tracking and advisory recommendations), and
-    Phase 15 (multi-user RBAC enforcement and user management).
-  version: "0.16.0"
+    Phase 15 (multi-user RBAC enforcement and user management), plus POST /webhooks/github
+    (Section 10.2, closed as initial-review gap #1).
+  version: "0.17.0"
 servers:
   - url: /api/v1
     description: "Public API (JWT via Authorization: Bearer)"
@@ -1014,6 +1015,48 @@ paths:
           description: No Content
         "403":
           description: Caller's JWT is not integration-scoped for this endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /webhooks/github:
+    post:
+      operationId: githubWebhook
+      summary: >
+        GitHub webhook receiver (Section 10.2). No JWT -- authenticated by HMAC-SHA256 signature
+        over the raw request body (X-Hub-Signature-256) against TALOS_GITHUB_WEBHOOK_SECRET
+        (Section 10.1 conventions). pull_request closed/reopened events transition the matching
+        pull_requests row (matched by html_url) to MERGED/CLOSED/OPEN, which is what releases the
+        run's workspace to the Phase 11 retention sweep. All other event types, and PRs Talos
+        didn't open, are acknowledged with 204 and ignored.
+      tags: [webhooks]
+      security: []
+      parameters:
+        - name: X-Hub-Signature-256
+          in: header
+          required: true
+          schema:
+            type: string
+          description: "'sha256=' + hex HMAC-SHA256 of the raw body, keyed with the webhook secret."
+        - name: X-GitHub-Event
+          in: header
+          required: true
+          schema:
+            type: string
+          description: GitHub event type; only pull_request is acted on.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw GitHub webhook payload (schema owned by GitHub, not validated here).
+      responses:
+        "204":
+          description: Delivery verified and processed (or deliberately ignored).
+        "401":
+          description: Missing/invalid signature, or no webhook secret configured (fail closed).
           content:
             application/json:
               schema:

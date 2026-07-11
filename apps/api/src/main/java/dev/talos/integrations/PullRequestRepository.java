@@ -10,4 +10,6 @@ public interface PullRequestRepository extends JpaRepository<PullRequest, UUID> 
 	List<PullRequest> findByRunId(UUID runId);
 
 	List<PullRequest> findByRunIdInAndStatus(Collection<UUID> runIds, PullRequestStatus status);
+
+	List<PullRequest> findByProviderAndUrl(String provider, String url);
 }

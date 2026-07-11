@@ -75,6 +75,10 @@ public class PullRequest {
 		return status;
 	}
 
+	public void setStatus(PullRequestStatus status) {
+		this.status = status;
+	}
+
 	public Instant getCreatedAt() {
 		return createdAt;
 	}
