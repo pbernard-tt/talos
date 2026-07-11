@@ -11,8 +11,9 @@ info:
     the approvals endpoints), Phase 9 (git push and PR workflow: integrations, the
     git-token/pull-request internal endpoints, and GET /runs/{id}/pull-request), Phase 10
     (Dokploy integration), Phase 12 (chat trigger support), Phase 13 (memory ingestion and
-    internal retrieval), and Phase 14 (per-run cost tracking and advisory recommendations).
-  version: "0.14.0"
+    internal retrieval), Phase 14 (per-run cost tracking and advisory recommendations), and
+    Phase 15 (multi-user RBAC enforcement and user management).
+  version: "0.15.0"
 servers:
   - url: /api/v1
     description: "Public API (JWT via Authorization: Bearer)"
@@ -42,6 +43,88 @@ paths:
                 $ref: "#/components/schemas/LoginResponse"
         "401":
           $ref: "#/components/responses/Error"
+
+  /users:
+    get:
+      operationId: listUsers
+      summary: List users (Section 16 Phase 15). OWNER only.
+      tags: [users]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "403":
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createUser
+      summary: >-
+        Create a user with an operator-set password (not a token-based email invite -- Talos has no
+        mail infrastructure yet). OWNER only.
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "403":
+          $ref: "#/components/responses/Error"
+        "409":
+          description: A user with this email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /users/{id}:
+    patch:
+      operationId: updateUser
+      summary: >-
+        Change a user's role and/or active status. OWNER only; an OWNER cannot change their own
+        role or deactivate themselves through this endpoint (use another OWNER account).
+      tags: [users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          description: Attempted to change one's own role or deactivate oneself (CANNOT_MODIFY_OWN_ACCOUNT).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /projects:
     get:
@@ -90,6 +173,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Project"
+        "403":
+          $ref: "#/components/responses/Error"
         "422":
           $ref: "#/components/responses/Error"
 
@@ -128,6 +213,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Project"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
         "422":
@@ -153,6 +240,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProjectConfig"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
         "422":
@@ -203,6 +292,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MemoryDocument"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
         "422":
@@ -304,6 +395,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Task"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
 
@@ -342,6 +435,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Task"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
 
@@ -365,6 +460,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Task"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
         "422":
@@ -394,6 +491,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Run"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
         "409":
@@ -523,6 +622,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Run"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
         "422":
@@ -590,6 +691,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DeployTriggerResponse"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
         "422":
@@ -617,7 +720,7 @@ paths:
   /integrations:
     get:
       operationId: listIntegrations
-      summary: List configured integrations (Section 10.2). Secrets are never returned.
+      summary: List configured integrations (Section 10.2). Secrets are never returned. OWNER only (Section 16 Phase 15).
       tags: [integrations]
       responses:
         "200":
@@ -628,9 +731,13 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Integration"
+        "403":
+          $ref: "#/components/responses/Error"
     post:
       operationId: createIntegration
-      summary: Configure an integration (e.g. a GitHub PAT) -- the secret is encrypted and stored behind a secret_ref (Section 12.2).
+      summary: >-
+        Configure an integration (e.g. a GitHub PAT) -- the secret is encrypted and stored behind a
+        secret_ref (Section 12.2). OWNER only (Section 16 Phase 15).
       tags: [integrations]
       requestBody:
         required: true
@@ -645,11 +752,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Integration"
+        "403":
+          $ref: "#/components/responses/Error"
 
   /integrations/{id}/test:
     post:
       operationId: testIntegration
-      summary: Verify the stored credential works (e.g. calls GET /user against GitHub).
+      summary: Verify the stored credential works (e.g. calls GET /user against GitHub). OWNER only (Section 16 Phase 15).
       tags: [integrations]
       parameters:
         - $ref: "#/components/parameters/IntegrationId"
@@ -660,6 +769,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TestIntegrationResponse"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
 
@@ -730,7 +841,11 @@ paths:
   /approvals/{id}/approve:
     post:
       operationId: approveApproval
-      summary: Approve a PENDING approval (Section 8.2's only path to WAITING_APPROVAL -> APPROVED).
+      summary: >-
+        Approve a PENDING approval (Section 8.2's only path to WAITING_APPROVAL -> APPROVED).
+        REVIEWER+ only. The user who requested the underlying run/deploy cannot approve it
+        themselves (403 SELF_APPROVAL_FORBIDDEN) unless they are OWNER, in which case the override
+        is audited (Section 16 Phase 15).
       tags: [approvals]
       parameters:
         - $ref: "#/components/parameters/ApprovalId"
@@ -747,6 +862,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Approval"
+        "403":
+          description: Role below REVIEWER, or a non-OWNER self-approval attempt (SELF_APPROVAL_FORBIDDEN).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "404":
           $ref: "#/components/responses/Error"
         "409":
@@ -759,7 +880,9 @@ paths:
   /approvals/{id}/reject:
     post:
       operationId: rejectApproval
-      summary: Reject a PENDING approval; the run moves to REJECTED and the task returns to READY.
+      summary: >-
+        Reject a PENDING approval; the run moves to REJECTED and the task returns to READY.
+        REVIEWER+ only; same self-approval prohibition as approve (Section 16 Phase 15).
       tags: [approvals]
       parameters:
         - $ref: "#/components/parameters/ApprovalId"
@@ -776,6 +899,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Approval"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
         "409":
@@ -791,7 +916,8 @@ paths:
       summary: >
         Request changes on a PENDING approval. Section 8.2 has no run status for "changes
         requested" -- the approval keeps this distinct outcome, but the run is driven through the
-        REJECTED edge so the task returns to READY for rework.
+        REJECTED edge so the task returns to READY for rework. REVIEWER+ only; same self-approval
+        prohibition as approve (Section 16 Phase 15).
       tags: [approvals]
       parameters:
         - $ref: "#/components/parameters/ApprovalId"
@@ -808,6 +934,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Approval"
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
         "409":
@@ -1236,13 +1364,76 @@ components:
 
     LoginResponse:
       type: object
-      required: [token, expiresAt]
+      required: [token, expiresAt, userId, email, role]
       properties:
         token:
           type: string
         expiresAt:
           type: string
           format: date-time
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/Role"
+
+    Role:
+      type: string
+      description: >-
+        Section 9.3/Phase 15: a strict hierarchy, OWNER > MAINTAINER > REVIEWER > VIEWER -- each
+        role implies every permission of the ones after it.
+      enum: [OWNER, MAINTAINER, REVIEWER, VIEWER]
+
+    User:
+      type: object
+      required: [id, email, name, role, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        active:
+          type: boolean
+          description: A deactivated user can no longer log in; already-issued JWTs remain valid until their 24h expiry.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateUserRequest:
+      type: object
+      required: [email, name, password, role]
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        role:
+          $ref: "#/components/schemas/Role"
+
+    UpdateUserRequest:
+      type: object
+      description: Only non-null fields are applied.
+      properties:
+        role:
+          $ref: "#/components/schemas/Role"
+        active:
+          type: boolean
 
     ProjectStatus:
       type: string

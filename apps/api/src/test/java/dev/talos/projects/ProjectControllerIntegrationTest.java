@@ -25,7 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 		"talos.admin-password=test-admin-password"
 })
 @AutoConfigureMockMvc
-@WithMockUser
+// Phase 15: project CRUD is now MAINTAINER+ (@PreAuthorize on ProjectController).
+@WithMockUser(roles = "MAINTAINER")
 class ProjectControllerIntegrationTest {
 
 	@Container

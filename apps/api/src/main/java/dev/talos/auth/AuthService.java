@@ -27,13 +27,16 @@ public class AuthService {
 	}
 
 	public LoginResponse login(LoginRequest request) {
+		// active is checked in the same filter as the password match (not a separate later check)
+		// so a deactivated account gets the identical generic INVALID_CREDENTIALS response --
+		// deactivation status is not observable to the caller, same as email existence today.
 		User user = userRepository.findByEmail(request.email())
-				.filter(u -> passwordEncoder.matches(request.password(), u.getPasswordHash()))
+				.filter(u -> u.isActive() && passwordEncoder.matches(request.password(), u.getPasswordHash()))
 				.orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS",
 						"Invalid email or password"));
 
 		JwtService.IssuedToken issued = jwtService.issue(user);
 		auditService.record(user.getId(), "user.login", "user", user.getId(), Map.of());
-		return new LoginResponse(issued.token(), issued.expiresAt());
+		return new LoginResponse(issued.token(), issued.expiresAt(), user.getId(), user.getEmail(), user.getRole());
 	}
 }

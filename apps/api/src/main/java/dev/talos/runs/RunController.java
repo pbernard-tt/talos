@@ -13,6 +13,7 @@ import dev.talos.runs.dto.RunResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -70,6 +71,7 @@ public class RunController {
 	}
 
 	@PostMapping("/{id}/deploy")
+	@PreAuthorize("hasRole('OWNER')")
 	public DeployTriggerResponse deploy(@PathVariable UUID id, @AuthenticationPrincipal AuthenticatedUser principal) {
 		return DeployTriggerResponse.from(deployService.requestDeploy(runService.getOrThrow(id), principal.id()));
 	}
@@ -80,6 +82,7 @@ public class RunController {
 	}
 
 	@PostMapping("/{id}/cancel")
+	@PreAuthorize("hasRole('MAINTAINER')")
 	public RunResponse cancel(@PathVariable UUID id, @AuthenticationPrincipal AuthenticatedUser principal) {
 		return RunResponse.from(runService.cancel(id, principal.id()));
 	}

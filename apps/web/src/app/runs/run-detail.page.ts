@@ -13,6 +13,7 @@ import {
   ApprovalActionDialogData,
   ApprovalActionDialogResult,
 } from '../approvals/approval-action-dialog.component';
+import { AuthStore } from '../core/auth/auth.store';
 import { RunStore } from './run.store';
 
 const CANCELLABLE_STATUSES = new Set([
@@ -39,6 +40,7 @@ const CANCELLABLE_STATUSES = new Set([
 })
 export class RunDetailPage implements OnInit, OnDestroy {
   protected readonly store = inject(RunStore);
+  protected readonly authStore = inject(AuthStore);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);

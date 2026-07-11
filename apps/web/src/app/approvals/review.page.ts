@@ -14,6 +14,7 @@ import {
   ApprovalActionDialogResult,
 } from './approval-action-dialog.component';
 import { ApprovalStore } from './approval.store';
+import { AuthStore } from '../core/auth/auth.store';
 
 @Component({
   selector: 'app-review-page',
@@ -30,6 +31,7 @@ import { ApprovalStore } from './approval.store';
 })
 export class ReviewPage implements OnInit, OnDestroy {
   protected readonly store = inject(ApprovalStore);
+  protected readonly authStore = inject(AuthStore);
   private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);

@@ -72,16 +72,37 @@ class AuthControllerIntegrationTest {
 						.content("{\"email\":\"admin@test.local\",\"password\":\"test-admin-password\"}"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.token").isNotEmpty())
-				.andExpect(jsonPath("$.expiresAt").isNotEmpty());
+				.andExpect(jsonPath("$.expiresAt").isNotEmpty())
+				.andExpect(jsonPath("$.email").value("admin@test.local"))
+				.andExpect(jsonPath("$.role").value("OWNER"))
+				.andExpect(jsonPath("$.userId").isNotEmpty());
 
+		// Phase 15 acceptance: "a fresh single-user install behaves exactly as before (seeded admin is OWNER)."
 		User admin = userRepository.findByEmail("admin@test.local").orElseThrow();
 		assertThat(admin.getRole()).isEqualTo(Role.OWNER);
+		assertThat(admin.isActive()).isTrue();
 
 		List<AuditEvent> loginEvents = auditEventRepository.findAll().stream()
 				.filter(e -> "user.login".equals(e.getEventType()))
 				.toList();
 		assertThat(loginEvents)
 				.anyMatch(e -> admin.getId().equals(e.getActorUserId()) && "user".equals(e.getEntityType()));
+	}
+
+	@Test
+	void deactivatedUserCannotLogIn() throws Exception {
+		User admin = userRepository.findByEmail("admin@test.local").orElseThrow();
+		admin.setActive(false);
+		userRepository.save(admin);
+
+		mockMvc.perform(post("/api/v1/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"email\":\"admin@test.local\",\"password\":\"test-admin-password\"}"))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.error.code").value("INVALID_CREDENTIALS"));
+
+		admin.setActive(true);
+		userRepository.save(admin);
 	}
 
 	@Test

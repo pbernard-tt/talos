@@ -38,6 +38,12 @@ public class AgentRun {
 	@Column(name = "provider_auth_mode", nullable = false, length = 30)
 	private String providerAuthMode = "api_key";
 
+	/** Phase 15 (Section 16): who called start-run -- feeds the self-approval prohibition ("the
+	 * user who requested a run cannot approve it"). Null for runs created before this column
+	 * existed and for any future system-initiated run creation path. */
+	@Column(name = "requested_by")
+	private UUID requestedBy;
+
 	@Column
 	private String prompt;
 
@@ -106,10 +112,15 @@ public class AgentRun {
 	}
 
 	public AgentRun(UUID taskId, UUID projectId, String agentKey, String providerAuthMode) {
+		this(taskId, projectId, agentKey, providerAuthMode, null);
+	}
+
+	public AgentRun(UUID taskId, UUID projectId, String agentKey, String providerAuthMode, UUID requestedBy) {
 		this.taskId = taskId;
 		this.projectId = projectId;
 		this.agentKey = agentKey;
 		this.providerAuthMode = providerAuthMode;
+		this.requestedBy = requestedBy;
 	}
 
 	public UUID getId() {
@@ -134,6 +145,10 @@ public class AgentRun {
 
 	public String getProviderAuthMode() {
 		return providerAuthMode;
+	}
+
+	public UUID getRequestedBy() {
+		return requestedBy;
 	}
 
 	public String getPrompt() {

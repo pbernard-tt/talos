@@ -113,7 +113,7 @@ public class RunService {
 				? "api_key"
 				: request.authMode();
 
-		AgentRun run = new AgentRun(taskId, task.getProjectId(), agentKey, authMode);
+		AgentRun run = new AgentRun(taskId, task.getProjectId(), agentKey, authMode, actorUserId);
 		run = agentRunRepository.save(run);
 		auditService.record(actorUserId, "run.created", "run", run.getId(),
 				Map.of("taskId", taskId.toString(), "agentKey", agentKey));
@@ -164,12 +164,15 @@ public class RunService {
 		return run;
 	}
 
-	/** Section 8.1 step 10: auto-creates the PENDING approval a moment a run reaches WAITING_APPROVAL. */
+	/** Section 8.1 step 10: auto-creates the PENDING approval a moment a run reaches WAITING_APPROVAL.
+	 * requestedBy carries through from the run (who called start-run) so ApprovalService can enforce
+	 * Phase 15's self-approval prohibition -- the approval itself is still system-created (audited
+	 * with a null actor below), but it now records the human who's not allowed to decide it alone. */
 	private void createApproval(AgentRun run) {
 		Task task = taskRepository.findById(run.getTaskId())
 				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "TASK_NOT_FOUND", "Task not found"));
-		Approval approval = new Approval(run.getTaskId(), run.getId(), "RUN_RESULT", "Review run results", null,
-				Instant.now().plus(Duration.ofHours(24)));
+		Approval approval = new Approval(run.getTaskId(), run.getId(), "RUN_RESULT", "Review run results",
+				run.getRequestedBy(), Instant.now().plus(Duration.ofHours(24)));
 		approval = approvalRepository.save(approval);
 		auditService.record(null, "approval.requested", "approval", approval.getId(),
 				Map.of("runId", run.getId().toString(), "taskId", run.getTaskId().toString()));

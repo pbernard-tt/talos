@@ -25,6 +25,8 @@ api/runs.service.ts
 api/runs.serviceInterface.ts
 api/tasks.service.ts
 api/tasks.serviceInterface.ts
+api/users.service.ts
+api/users.serviceInterface.ts
 configuration.ts
 encoder.ts
 git_push.sh
@@ -37,6 +39,7 @@ model/approveRequest.ts
 model/chatRejectedSenderRequest.ts
 model/createProjectRequest.ts
 model/createTaskRequest.ts
+model/createUserRequest.ts
 model/deployStatus.ts
 model/deployTriggerResponse.ts
 model/diff.ts
@@ -87,6 +90,7 @@ model/retentionCandidate.ts
 model/retentionCandidatesResponse.ts
 model/reviewStatus.ts
 model/riskFlag.ts
+model/role.ts
 model/run.ts
 model/runContext.ts
 model/runDetail.ts
@@ -106,6 +110,8 @@ model/taskSummary.ts
 model/testIntegrationResponse.ts
 model/testStatus.ts
 model/updateProjectRequest.ts
+model/updateUserRequest.ts
+model/user.ts
 ng-package.json
 package.json
 param.ts

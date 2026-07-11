@@ -2,10 +2,12 @@
   <span>Board</span>
   <button mat-button [routerLink]="['/projects']">Projects</button>
   <span class="spacer"></span>
-  <button mat-flat-button color="primary" (click)="openCreateDialog()">
-    <mat-icon>add</mat-icon>
-    New Task
-  </button>
+  @if (authStore.hasRole('MAINTAINER')) {
+    <button mat-flat-button color="primary" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      New Task
+    </button>
+  }
 </mat-toolbar>
 
 <mat-drawer-container>

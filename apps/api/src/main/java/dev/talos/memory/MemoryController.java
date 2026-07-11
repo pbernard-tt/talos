@@ -4,6 +4,7 @@ import dev.talos.memory.dto.MemoryDocumentRequest;
 import dev.talos.memory.dto.MemoryDocumentResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,6 +26,7 @@ public class MemoryController {
 
 	@PostMapping("/documents")
 	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasRole('MAINTAINER')")
 	public MemoryDocumentResponse ingest(@PathVariable UUID projectId,
 			@Valid @RequestBody MemoryDocumentRequest request) {
 		return MemoryDocumentResponse.from(memoryService.ingestDocument(projectId, request.sourceType(),

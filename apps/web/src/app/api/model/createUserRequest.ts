@@ -10,12 +10,11 @@
 import { Role } from './role';
 
 
-export interface LoginResponse {
-    token: string;
-    expiresAt: string;
-    userId: string;
+export interface CreateUserRequest {
     email: string;
+    name: string;
+    password: string;
     role: Role;
 }
-export namespace LoginResponse {
+export namespace CreateUserRequest {
 }

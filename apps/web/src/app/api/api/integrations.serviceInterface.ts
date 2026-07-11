@@ -33,7 +33,7 @@ export interface IntegrationsServiceInterface {
     configuration: Configuration;
 
     /**
-     * Configure an integration (e.g. a GitHub PAT) -- the secret is encrypted and stored behind a secret_ref (Section 12.2).
+     * Configure an integration (e.g. a GitHub PAT) -- the secret is encrypted and stored behind a secret_ref (Section 12.2). OWNER only (Section 16 Phase 15).
      *
      * @endpoint post /integrations
 * @param requestParameters
@@ -41,14 +41,14 @@ export interface IntegrationsServiceInterface {
     createIntegration(requestParameters: CreateIntegrationRequestParams, extraHttpRequestParams?: any): Observable<Integration>;
 
     /**
-     * List configured integrations (Section 10.2). Secrets are never returned.
+     * List configured integrations (Section 10.2). Secrets are never returned. OWNER only (Section 16 Phase 15).
      *
      * @endpoint get /integrations
 */
     listIntegrations(extraHttpRequestParams?: any): Observable<Array<Integration>>;
 
     /**
-     * Verify the stored credential works (e.g. calls GET /user against GitHub).
+     * Verify the stored credential works (e.g. calls GET /user against GitHub). OWNER only (Section 16 Phase 15).
      *
      * @endpoint post /integrations/{id}/test
 * @param requestParameters

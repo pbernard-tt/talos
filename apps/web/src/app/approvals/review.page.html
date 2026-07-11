@@ -54,10 +54,12 @@
   </section>
 
   <section class="actions">
-    @if (detail.approval.status === 'PENDING') {
+    @if (detail.approval.status === 'PENDING' && authStore.hasRole('REVIEWER')) {
       <button mat-flat-button color="primary" (click)="approve()">Approve</button>
       <button mat-stroked-button (click)="requestChanges()">Request changes</button>
       <button mat-stroked-button color="warn" (click)="reject()">Reject</button>
+    } @else if (detail.approval.status === 'PENDING') {
+      <p>Your role cannot approve, reject, or request changes.</p>
     } @else {
       <p>
         Decision recorded: {{ detail.approval.status }}

@@ -10,6 +10,7 @@ import dev.talos.common.PageResponse;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,21 +48,24 @@ public class ApprovalController {
 	}
 
 	@PostMapping("/{id}/approve")
+	@PreAuthorize("hasRole('REVIEWER')")
 	public ApprovalResponse approve(@PathVariable UUID id, @RequestBody(required = false) ApproveRequest request,
 			@AuthenticationPrincipal AuthenticatedUser principal) {
 		String notes = request == null ? null : request.notes();
-		return ApprovalResponse.from(approvalService.approve(id, principal.id(), notes));
+		return ApprovalResponse.from(approvalService.approve(id, principal, notes));
 	}
 
 	@PostMapping("/{id}/reject")
+	@PreAuthorize("hasRole('REVIEWER')")
 	public ApprovalResponse reject(@PathVariable UUID id, @Valid @RequestBody RejectRequest request,
 			@AuthenticationPrincipal AuthenticatedUser principal) {
-		return ApprovalResponse.from(approvalService.reject(id, principal.id(), request.notes()));
+		return ApprovalResponse.from(approvalService.reject(id, principal, request.notes()));
 	}
 
 	@PostMapping("/{id}/request-changes")
+	@PreAuthorize("hasRole('REVIEWER')")
 	public ApprovalResponse requestChanges(@PathVariable UUID id, @Valid @RequestBody RequestChangesRequest request,
 			@AuthenticationPrincipal AuthenticatedUser principal) {
-		return ApprovalResponse.from(approvalService.requestChanges(id, principal.id(), request.notes()));
+		return ApprovalResponse.from(approvalService.requestChanges(id, principal, request.notes()));
 	}
 }

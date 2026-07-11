@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -49,6 +50,7 @@ public class TaskController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasRole('MAINTAINER')")
 	public TaskSummary create(@Valid @RequestBody CreateTaskRequest request,
 			@AuthenticationPrincipal AuthenticatedUser principal) {
 		return TaskSummary.from(taskService.create(request, principal.id()));
@@ -60,12 +62,14 @@ public class TaskController {
 	}
 
 	@PatchMapping("/{id}")
+	@PreAuthorize("hasRole('MAINTAINER')")
 	public TaskSummary update(@PathVariable UUID id, @RequestBody PatchTaskRequest request,
 			@AuthenticationPrincipal AuthenticatedUser principal) {
 		return TaskSummary.from(taskService.update(id, request, principal.id()));
 	}
 
 	@PostMapping("/{id}/move")
+	@PreAuthorize("hasRole('MAINTAINER')")
 	public TaskSummary move(@PathVariable UUID id, @Valid @RequestBody MoveTaskRequest request,
 			@AuthenticationPrincipal AuthenticatedUser principal) {
 		return TaskSummary.from(taskService.move(id, request, principal.id()));
@@ -73,6 +77,7 @@ public class TaskController {
 
 	@PostMapping("/{id}/start-run")
 	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasRole('MAINTAINER')")
 	public RunResponse startRun(@PathVariable UUID id, @RequestBody(required = false) StartRunRequest request,
 			@AuthenticationPrincipal AuthenticatedUser principal) {
 		return RunResponse.from(runService.startRun(id, request, principal.id()));

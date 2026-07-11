@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,6 +45,7 @@ public class ProjectController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasRole('MAINTAINER')")
 	public ProjectSummary create(@Valid @RequestBody CreateProjectRequest request) {
 		return ProjectSummary.from(projectService.create(request));
 	}
@@ -54,11 +56,13 @@ public class ProjectController {
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('MAINTAINER')")
 	public ProjectSummary update(@PathVariable UUID id, @Valid @RequestBody UpdateProjectRequest request) {
 		return ProjectSummary.from(projectService.update(id, request));
 	}
 
 	@PostMapping("/{id}/sync-config")
+	@PreAuthorize("hasRole('MAINTAINER')")
 	public ProjectConfigResponse syncConfig(@PathVariable UUID id, @Valid @RequestBody SyncConfigRequest request) {
 		return ProjectConfigResponse.from(projectService.syncConfig(id, request));
 	}

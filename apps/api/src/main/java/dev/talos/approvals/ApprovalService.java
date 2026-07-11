@@ -4,6 +4,8 @@ import dev.talos.approvals.dto.ApprovalDecidedPayload;
 import dev.talos.approvals.dto.ApprovalDetailResponse;
 import dev.talos.approvals.dto.ApprovalResponse;
 import dev.talos.audit.AuditService;
+import dev.talos.auth.AuthenticatedUser;
+import dev.talos.auth.Role;
 import dev.talos.common.ApiException;
 import dev.talos.events.EventPublisher;
 import dev.talos.integrations.DeployService;
@@ -61,12 +63,12 @@ public class ApprovalService {
 		return new ApprovalDetailResponse(ApprovalResponse.from(approval), RunResponse.from(run), changes);
 	}
 
-	public Approval approve(UUID id, UUID actorUserId, String notes) {
-		return decide(id, actorUserId, notes, ApprovalStatus.APPROVED);
+	public Approval approve(UUID id, AuthenticatedUser actor, String notes) {
+		return decide(id, actor, notes, ApprovalStatus.APPROVED);
 	}
 
-	public Approval reject(UUID id, UUID actorUserId, String notes) {
-		return decide(id, actorUserId, notes, ApprovalStatus.REJECTED);
+	public Approval reject(UUID id, AuthenticatedUser actor, String notes) {
+		return decide(id, actor, notes, ApprovalStatus.REJECTED);
 	}
 
 	/**
@@ -75,8 +77,8 @@ public class ApprovalService {
 	 * outcome and notes; the run is driven through the existing REJECTED edge so the task returns
 	 * to READY for rework (there's no other legal edge back to a re-workable state).
 	 */
-	public Approval requestChanges(UUID id, UUID actorUserId, String notes) {
-		return decide(id, actorUserId, notes, ApprovalStatus.CHANGES_REQUESTED);
+	public Approval requestChanges(UUID id, AuthenticatedUser actor, String notes) {
+		return decide(id, actor, notes, ApprovalStatus.CHANGES_REQUESTED);
 	}
 
 	/**
@@ -88,9 +90,11 @@ public class ApprovalService {
 	 * (the approval save, and RunService.transitionRun for the RUN_RESULT branch) already commits
 	 * in its own transaction via Spring Data/RunService's own @Transactional methods.
 	 */
-	private Approval decide(UUID id, UUID actorUserId, String notes, ApprovalStatus approvalStatus) {
+	private Approval decide(UUID id, AuthenticatedUser actor, String notes, ApprovalStatus approvalStatus) {
 		Approval approval = getOrThrow(id);
 		requirePending(approval);
+		requireNotSelfApproval(approval, actor);
+		UUID actorUserId = actor.id();
 		approval.decide(approvalStatus, actorUserId, notes);
 		approval = approvalRepository.save(approval);
 
@@ -107,6 +111,28 @@ public class ApprovalService {
 				new ApprovalDecidedPayload(approval.getId(), approval.getRunId(), approvalStatus.name(), actorUserId));
 
 		return approval;
+	}
+
+	/**
+	 * Section 16 Phase 15: "the user who requested a run cannot approve it (OWNER may override; the
+	 * override is audited)." requestedBy is null for approvals created before this column existed --
+	 * those can't be checked and are let through unchanged (no prohibition to enforce retroactively).
+	 * Applies uniformly to RUN_RESULT and DEPLOY approvals; both populate requestedBy with the human
+	 * who triggered the underlying action.
+	 */
+	private void requireNotSelfApproval(Approval approval, AuthenticatedUser actor) {
+		if (approval.getRequestedBy() == null || !approval.getRequestedBy().equals(actor.id())) {
+			return;
+		}
+		if (actor.role() == Role.OWNER) {
+			auditService.record(actor.id(), "approval.self_approval_override", "approval", approval.getId(),
+					Map.of("runId", approval.getRunId().toString()));
+			return;
+		}
+		auditService.record(actor.id(), "approval.self_approval_rejected", "approval", approval.getId(),
+				Map.of("runId", approval.getRunId().toString()));
+		throw new ApiException(HttpStatus.FORBIDDEN, "SELF_APPROVAL_FORBIDDEN",
+				"You requested this run and cannot approve, reject, or request changes on it yourself");
 	}
 
 	/** The original Phase 8/9 behavior: drives the run through APPROVED or the shared REJECTED edge. */

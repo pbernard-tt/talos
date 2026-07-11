@@ -1100,7 +1100,7 @@ Two independent tracks, gated together. Track A proves the agent-agnostic claim 
 - **Acceptance:** after fixture runs on two providers, monthly per-provider totals match the fixtures' known usage exactly; a run with no usage metadata degrades gracefully (row with nulls, no pipeline failure); ignoring a recommendation changes no behavior.
 - **Tests:** usage-normalization units per adapter; aggregation queries; recommendation-signal units on seeded history.
 
-#### Phase 15 (provisional) — Multi-user RBAC enforcement
+#### Phase 15 — Multi-user RBAC enforcement
 
 - **Goal:** Replace MVP owner-mode (Section 12.2: every check passes for the admin) with real enforcement of the roles that have existed in the schema since Phase 1: `OWNER`, `MAINTAINER`, `REVIEWER`, `VIEWER` (Section 9.3).
 - **Tasks:** user management endpoints (create/invite, deactivate, role assignment — OWNER only); role claim in the JWT; a server-side authorization matrix — `VIEWER` read-only; `REVIEWER` adds approve/reject/request-changes; `MAINTAINER` adds project/task CRUD and run start; `OWNER` adds integrations, secrets, user management, and deploy triggers; self-approval prohibition — the user who requested a run cannot approve it (OWNER may override; the override is audited); `audit_events.actor` verified on every mutation; UI hides actions the current role cannot perform, but enforcement is server-side.

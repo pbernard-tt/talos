@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Generated;
 import org.hibernate.generator.EventType;
@@ -33,12 +34,18 @@ public class User {
 	@Column(nullable = false, length = 20)
 	private Role role;
 
+	/** Phase 15: a deactivated user can no longer log in (AuthService.login). Already-issued JWTs
+	 * remain valid until their 24h expiry -- there is no token revocation list (Section 12.2's JWT
+	 * model is deliberately stateless); documented as a known limitation in the phase report. */
+	@Column(nullable = false)
+	private boolean active = true;
+
 	@Generated(event = EventType.INSERT)
 	@Column(name = "created_at", nullable = false, insertable = false, updatable = false)
 	private Instant createdAt;
 
 	@Generated(event = EventType.INSERT)
-	@Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+	@Column(name = "updated_at", nullable = false, insertable = false)
 	private Instant updatedAt;
 
 	protected User() {
@@ -72,11 +79,29 @@ public class User {
 		return role;
 	}
 
+	public boolean isActive() {
+		return active;
+	}
+
 	public Instant getCreatedAt() {
 		return createdAt;
 	}
 
 	public Instant getUpdatedAt() {
 		return updatedAt;
+	}
+
+	/** Phase 15 (Section 16): OWNER-only user management. */
+	public void changeRole(Role role) {
+		this.role = role;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
+	}
+
+	@PreUpdate
+	void onUpdate() {
+		this.updatedAt = Instant.now();
 	}
 }

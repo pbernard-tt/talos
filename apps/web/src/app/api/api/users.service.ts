@@ -17,48 +17,48 @@ import { Observable }                                        from 'rxjs';
 import { OpenApiHttpParams, QueryParamStyle } from '../query.params';
 
 // @ts-ignore
-import { Integration } from '../model/integration';
+import { CreateUserRequest } from '../model/createUserRequest';
 // @ts-ignore
-import { IntegrationCreateRequest } from '../model/integrationCreateRequest';
+import { UpdateUserRequest } from '../model/updateUserRequest';
 // @ts-ignore
-import { TestIntegrationResponse } from '../model/testIntegrationResponse';
+import { User } from '../model/user';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
 import { Configuration }                                     from '../configuration';
 import { BaseService } from '../api.base.service';
 import {
-    IntegrationsServiceInterface,
-    CreateIntegrationRequestParams,
-    TestIntegrationRequestParams
-} from './integrations.serviceInterface';
+    UsersServiceInterface,
+    CreateUserRequestParams,
+    UpdateUserRequestParams
+} from './users.serviceInterface';
 
 
 
 @Injectable({
   providedIn: 'root'
 })
-export class IntegrationsService extends BaseService implements IntegrationsServiceInterface {
+export class UsersService extends BaseService implements UsersServiceInterface {
 
     constructor(protected httpClient: HttpClient, @Optional() @Inject(BASE_PATH) basePath: string|string[], @Optional() configuration?: Configuration) {
         super(basePath, configuration);
     }
 
     /**
-     * Configure an integration (e.g. a GitHub PAT) -- the secret is encrypted and stored behind a secret_ref (Section 12.2). OWNER only (Section 16 Phase 15).
-     * @endpoint post /integrations
+     * Create a user with an operator-set password (not a token-based email invite -- Talos has no mail infrastructure yet). OWNER only.
+     * @endpoint post /users
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public createIntegration(requestParameters: CreateIntegrationRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Integration>;
-    public createIntegration(requestParameters: CreateIntegrationRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Integration>>;
-    public createIntegration(requestParameters: CreateIntegrationRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Integration>>;
-    public createIntegration(requestParameters: CreateIntegrationRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        const integrationCreateRequest = requestParameters?.integrationCreateRequest;
-        if (integrationCreateRequest === null || integrationCreateRequest === undefined) {
-            throw new Error('Required parameter integrationCreateRequest was null or undefined when calling createIntegration.');
+    public createUser(requestParameters: CreateUserRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<User>;
+    public createUser(requestParameters: CreateUserRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<User>>;
+    public createUser(requestParameters: CreateUserRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<User>>;
+    public createUser(requestParameters: CreateUserRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const createUserRequest = requestParameters?.createUserRequest;
+        if (createUserRequest === null || createUserRequest === undefined) {
+            throw new Error('Required parameter createUserRequest was null or undefined when calling createUser.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -98,12 +98,12 @@ export class IntegrationsService extends BaseService implements IntegrationsServ
             }
         }
 
-        let localVarPath = `/integrations`;
+        let localVarPath = `/users`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Integration>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<User>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
-                body: integrationCreateRequest,
+                body: createUserRequest,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,
@@ -115,16 +115,16 @@ export class IntegrationsService extends BaseService implements IntegrationsServ
     }
 
     /**
-     * List configured integrations (Section 10.2). Secrets are never returned. OWNER only (Section 16 Phase 15).
-     * @endpoint get /integrations
+     * List users (Section 16 Phase 15). OWNER only.
+     * @endpoint get /users
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public listIntegrations(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<Integration>>;
-    public listIntegrations(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<Integration>>>;
-    public listIntegrations(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<Integration>>>;
-    public listIntegrations(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public listUsers(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<User>>;
+    public listUsers(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<User>>>;
+    public listUsers(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<User>>>;
+    public listUsers(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -154,9 +154,9 @@ export class IntegrationsService extends BaseService implements IntegrationsServ
             }
         }
 
-        let localVarPath = `/integrations`;
+        let localVarPath = `/users`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Array<Integration>>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<Array<User>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -170,20 +170,24 @@ export class IntegrationsService extends BaseService implements IntegrationsServ
     }
 
     /**
-     * Verify the stored credential works (e.g. calls GET /user against GitHub). OWNER only (Section 16 Phase 15).
-     * @endpoint post /integrations/{id}/test
+     * Change a user\&#39;s role and/or active status. OWNER only; an OWNER cannot change their own role or deactivate themselves through this endpoint (use another OWNER account).
+     * @endpoint patch /users/{id}
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public testIntegration(requestParameters: TestIntegrationRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<TestIntegrationResponse>;
-    public testIntegration(requestParameters: TestIntegrationRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<TestIntegrationResponse>>;
-    public testIntegration(requestParameters: TestIntegrationRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<TestIntegrationResponse>>;
-    public testIntegration(requestParameters: TestIntegrationRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public updateUser(requestParameters: UpdateUserRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<User>;
+    public updateUser(requestParameters: UpdateUserRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<User>>;
+    public updateUser(requestParameters: UpdateUserRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<User>>;
+    public updateUser(requestParameters: UpdateUserRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         const id = requestParameters?.id;
         if (id === null || id === undefined) {
-            throw new Error('Required parameter id was null or undefined when calling testIntegration.');
+            throw new Error('Required parameter id was null or undefined when calling updateUser.');
+        }
+        const updateUserRequest = requestParameters?.updateUserRequest;
+        if (updateUserRequest === null || updateUserRequest === undefined) {
+            throw new Error('Required parameter updateUserRequest was null or undefined when calling updateUser.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -203,6 +207,15 @@ export class IntegrationsService extends BaseService implements IntegrationsServ
         const localVarTransferCache: boolean = options?.transferCache ?? true;
 
 
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
         let responseType_: 'text' | 'json' | 'blob' = 'json';
         if (localVarHttpHeaderAcceptSelected) {
             if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
@@ -214,11 +227,12 @@ export class IntegrationsService extends BaseService implements IntegrationsServ
             }
         }
 
-        let localVarPath = `/integrations/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/test`;
+        let localVarPath = `/users/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<TestIntegrationResponse>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<User>('patch', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                body: updateUserRequest,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

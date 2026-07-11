@@ -10,6 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { CreateTaskRequest, Task, TaskStatus } from '../api';
+import { AuthStore } from '../core/auth/auth.store';
 import { TaskColumnComponent } from './task-column.component';
 import { TaskDrawerComponent } from './task-drawer.component';
 import { TaskFormDialogComponent } from './task-form-dialog.component';
@@ -47,6 +48,7 @@ const COLUMNS: Column[] = [
 })
 export class BoardPage implements OnInit {
   protected readonly store = inject(TaskStore);
+  protected readonly authStore = inject(AuthStore);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 

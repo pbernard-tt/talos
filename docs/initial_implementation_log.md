@@ -1,3 +1,82 @@
+## 2026-07-10 — Phase 15: Multi-user RBAC enforcement
+
+**Ask:** Implement Phase 15 per Section 16 of the plan: replace MVP owner-mode with real
+enforcement of the OWNER/MAINTAINER/REVIEWER/VIEWER roles that have existed in the schema since
+Phase 1 — user management, a server-side authorization matrix, self-approval prohibition with an
+audited OWNER override, and role-aware (but never role-*enforced*) UI hiding.
+
+**Changed (backend, `apps/api`):**
+- `V007__rbac.sql` — `users.active` (default true) and `agent_runs.requested_by`.
+- `SecurityConfig` — `@EnableMethodSecurity` plus a `RoleHierarchy` bean (`OWNER > MAINTAINER >
+  REVIEWER > VIEWER`) so `hasRole('MAINTAINER')` also admits OWNER.
+- `TaskController`/`ProjectController`/`RunController`/`ApprovalController`/`IntegrationController`/
+  `MemoryController` — `@PreAuthorize` added per the plan's tier breakdown (VIEWER read-only;
+  REVIEWER adds approve/reject/request-changes; MAINTAINER adds project/task CRUD, start-run,
+  cancel, memory ingestion; OWNER adds integrations, deploy trigger).
+- `dev.talos.auth.AuthorizationExceptionHandler` (new `@RestControllerAdvice`) — the actual
+  `@PreAuthorize` denial path: 403 plus a `role.access_denied` audit row. Kept out of
+  `dev.talos.common.GlobalExceptionHandler` to avoid a reverse package dependency.
+- `dev.talos.auth.UserController`/`UserService` (new, OWNER-only) — create/list/update (role,
+  active) users; an OWNER cannot modify their own role/active status through this endpoint.
+- `User` — gained `active`; `AuthService.login` folds the active check into the existing
+  password-match filter (same generic `INVALID_CREDENTIALS` response either way).
+- `AgentRun` — gained `requestedBy` (set from `start-run`'s caller); `RunService.createApproval`
+  now passes it into the auto-created `RUN_RESULT` approval instead of `null`.
+- `ApprovalService.decide()` — now takes the full `AuthenticatedUser`; rejects
+  (`403 SELF_APPROVAL_FORBIDDEN`) a non-OWNER deciding an approval whose `requestedBy` is
+  themselves; an OWNER proceeds with the decision and gets an `approval.self_approval_override`
+  audit row instead.
+- `IntegrationServiceAccountSeeder` — Telegram/WhatsApp accounts now seed `MAINTAINER` (was
+  `VIEWER`) so they still clear the new `hasRole('MAINTAINER')` gate on task creation;
+  `IntegrationScopeFilter` (a servlet filter, runs before method security) remains the actual
+  narrow bound regardless of role. Also upgrades an *already-seeded* VIEWER account in place (found
+  live against this repo's own long-running dev stack: idempotent seeding otherwise never revisits
+  an existing row, so a pre-Phase-15 install would have these accounts stuck on VIEWER forever and
+  chat-triggered task creation would start silently 403ing on upgrade).
+- `LoginResponse` — gained `userId`/`email`/`role` so the frontend doesn't need to decode the JWT.
+
+**Changed (contracts/frontend):**
+- `packages/contracts/openapi.yaml` — version `0.15.0`; `Role`/`User`/`CreateUserRequest`/
+  `UpdateUserRequest` schemas, `/users` + `/users/{id}`, `LoginResponse` fields, `403` responses on
+  every newly-gated operation.
+- `apps/web` — regenerated Angular client (`users.service.ts`). `AuthStore` stores role/email and
+  exposes `hasRole(minimum)` (a UI-hiding hint only). "New Task"/"New Project" hide below
+  MAINTAINER; approve/reject/request-changes and deploy-approval decisions hide below REVIEWER;
+  deploy-trigger hides below OWNER, cancel-run below MAINTAINER.
+
+**Root cause (found live):** `@PreAuthorize` denials throw `AuthorizationDeniedException` from
+inside the proxied controller method, which Spring MVC's own exception resolution catches before
+it can reach a filter-chain-level `AccessDeniedHandler` — an initial handler wired via
+`exceptionHandling().accessDeniedHandler(...)` was never invoked; `GlobalExceptionHandler`'s
+catch-all intercepted it first as a 500. Fixed by handling it in a `@RestControllerAdvice` instead.
+Separately, `ProjectControllerIntegrationTest`'s `@WithMockUser` (default `ROLE_USER`) stopped
+satisfying the new `hasRole('MAINTAINER')` gate; pinned to `@WithMockUser(roles = "MAINTAINER")`.
+
+**Documented deviations:** user creation is direct (operator-set password), not an email invite —
+no mail infrastructure exists yet; deactivation/role changes aren't retroactive to already-issued
+JWTs (stateless 24h tokens, no revocation list); integration-scoped accounts seeded MAINTAINER
+instead of VIEWER (see above); self-approval prohibition generalized to both RUN_RESULT and DEPLOY
+approvals. Full detail in `docs/phase-reports/phase-15-report.md`.
+
+**Coverage:** new `RoleAuthorizationMatrixTest` (every MAINTAINER/REVIEWER/OWNER-tier
+representative endpoint rejects roles below its minimum, admits roles at/above it via the
+hierarchy; read-only endpoints admit all four roles), `ApprovalSelfApprovalTest` (self-approval
+rejected + audited; a different REVIEWER can decide; OWNER override + its own audit row; VIEWER
+403 + audit row), `UserControllerIntegrationTest` (OWNER-only CRUD, duplicate-email 409,
+self-modification blocked, non-OWNER denied), `AuthControllerIntegrationTest` additions
+(LoginResponse fields, deactivated-user login block, admin confirmed OWNER+active),
+`IntegrationServiceAccountSeederTest` (existing VIEWER account upgraded to MAINTAINER, existing
+MAINTAINER account left alone, fresh account seeded as MAINTAINER).
+
+**Verification:** `apps/api` full suite — BUILD SUCCESSFUL, zero regressions. `openapi.yaml` parses
+at version `0.15.0` with `/users` paths and all four new schemas present. `apps/web` `npm run
+generate:api`, `npm run build`, and `npx ng test --watch=false` all succeeded (14 existing tests,
+no regressions). PDF rebuilt and `md5sum`-matched against `docs/Talos_Implementation_Plan.pdf`;
+Phase 15's heading dropped `(provisional)`. `git diff --check` clean after stripping generated
+trailing whitespace. Source-scoped naming guard returned no matches. Live `docker compose` stack:
+rebuilt `talos-api` against the new migration; `V007 - rbac` applied cleanly. Full detail:
+`docs/phase-reports/phase-15-report.md`.
+
 ## 2026-07-10 — Phase 14: Cost tracking and recommendations
 
 **Ask:** Implement Phase 14 per Section 16 of the plan: extend `AgentResult` with normalized usage

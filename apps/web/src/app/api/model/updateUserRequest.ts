@@ -10,12 +10,12 @@
 import { Role } from './role';
 
 
-export interface LoginResponse {
-    token: string;
-    expiresAt: string;
-    userId: string;
-    email: string;
-    role: Role;
+/**
+ * Only non-null fields are applied.
+ */
+export interface UpdateUserRequest {
+    role?: Role;
+    active?: boolean;
 }
-export namespace LoginResponse {
+export namespace UpdateUserRequest {
 }

@@ -9,6 +9,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { CreateProjectRequest } from '../api';
+import { AuthStore } from '../core/auth/auth.store';
 import { ProjectFormDialogComponent } from './project-form-dialog.component';
 import { ProjectStore } from './project.store';
 
@@ -27,6 +28,7 @@ import { ProjectStore } from './project.store';
 })
 export class ProjectListPage implements OnInit {
   protected readonly store = inject(ProjectStore);
+  protected readonly authStore = inject(AuthStore);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 

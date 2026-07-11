@@ -5,6 +5,7 @@ import dev.talos.integrations.dto.IntegrationResponse;
 import dev.talos.integrations.dto.TestIntegrationResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,9 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-/** Section 10.2: configure GitHub/Dokploy/provider credentials. */
+/** Section 10.2: configure GitHub/Dokploy/provider credentials. Phase 15: OWNER-only across the
+ * board -- "OWNER adds integrations, secrets" (Section 16). */
 @RestController
 @RequestMapping("/api/v1/integrations")
+@PreAuthorize("hasRole('OWNER')")
 public class IntegrationController {
 
 	private final IntegrationService integrationService;

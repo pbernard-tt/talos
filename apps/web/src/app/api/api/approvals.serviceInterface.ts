@@ -56,7 +56,7 @@ export interface ApprovalsServiceInterface {
     configuration: Configuration;
 
     /**
-     * Approve a PENDING approval (Section 8.2\&#39;s only path to WAITING_APPROVAL -&gt; APPROVED).
+     * Approve a PENDING approval (Section 8.2\&#39;s only path to WAITING_APPROVAL -&gt; APPROVED). REVIEWER+ only. The user who requested the underlying run/deploy cannot approve it themselves (403 SELF_APPROVAL_FORBIDDEN) unless they are OWNER, in which case the override is audited (Section 16 Phase 15).
      *
      * @endpoint post /approvals/{id}/approve
 * @param requestParameters
@@ -80,7 +80,7 @@ export interface ApprovalsServiceInterface {
     listApprovals(requestParameters: ListApprovalsRequestParams, extraHttpRequestParams?: any): Observable<PageApproval>;
 
     /**
-     * Reject a PENDING approval; the run moves to REJECTED and the task returns to READY.
+     * Reject a PENDING approval; the run moves to REJECTED and the task returns to READY. REVIEWER+ only; same self-approval prohibition as approve (Section 16 Phase 15).
      *
      * @endpoint post /approvals/{id}/reject
 * @param requestParameters
@@ -88,7 +88,7 @@ export interface ApprovalsServiceInterface {
     rejectApproval(requestParameters: RejectApprovalRequestParams, extraHttpRequestParams?: any): Observable<Approval>;
 
     /**
-     * Request changes on a PENDING approval. Section 8.2 has no run status for \&quot;changes requested\&quot; -- the approval keeps this distinct outcome, but the run is driven through the REJECTED edge so the task returns to READY for rework.
+     * Request changes on a PENDING approval. Section 8.2 has no run status for \&quot;changes requested\&quot; -- the approval keeps this distinct outcome, but the run is driven through the REJECTED edge so the task returns to READY for rework. REVIEWER+ only; same self-approval prohibition as approve (Section 16 Phase 15).
      *
      * @endpoint post /approvals/{id}/request-changes
 * @param requestParameters

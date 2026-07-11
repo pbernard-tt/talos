@@ -31,4 +31,7 @@ export * from './runs.serviceInterface';
 export * from './tasks.service';
 import { TasksService } from './tasks.service';
 export * from './tasks.serviceInterface';
-export const APIS = [ApprovalsService, AuthService, ChatService, CostsService, IntegrationsService, InternalService, MemoryService, ProjectsService, RecommendationsService, RunsService, TasksService];
+export * from './users.service';
+import { UsersService } from './users.service';
+export * from './users.serviceInterface';
+export const APIS = [ApprovalsService, AuthService, ChatService, CostsService, IntegrationsService, InternalService, MemoryService, ProjectsService, RecommendationsService, RunsService, TasksService, UsersService];
