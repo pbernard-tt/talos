@@ -155,7 +155,7 @@ bounded by `prefetch_count=1` on the single consumer, so today the setting is si
 setting it to 2 changes nothing. Either wire it (a semaphore around pipeline execution / prefetch
 value) or document that concurrency is fixed at 1 per orchestrator replica.
 
-### 11. Nothing consumes the DLQ
+### 11. Nothing consumes the DLQ — **RESOLVED 2026-07-11** (see implementation log)
 
 The orchestrator declares `talos.dlq` and binds it (`main.py:71-72`), delivery-limit dead-lettering
 works — but no consumer, metric, or alert watches it. A poisoned run request dies silently after 3

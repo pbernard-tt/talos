@@ -1,3 +1,25 @@
+## 2026-07-11 — Review gap #11: DLQ ops runbook
+
+**Ask:** Review item #11 (medium): `talos.dlq` is declared/bound but nothing consumes it, alerts
+on it, or documents what to do about it. The review's own suggested bar was minimal: "at minimum a
+queue-depth check belongs in an ops runbook" -- not live alerting or a Command Center widget, both
+of which would need talos-api to reach into RabbitMQ's management API or accept a new dependency
+beyond what gap #6's `GET /api/v1/dashboard/dlq-depth` (passive AMQP queue lookup, already added
+for the Command Center) already provides.
+
+**Changed:** `docs/ops-runbook.md` (new) -- what `talos.dlq` is, how to check its depth via the
+existing dashboard endpoint or `rabbitmqctl`/the management UI directly, and what to do if it's
+non-zero (treat as a bug report: read the message body, find the affected run via
+`payload.run_id`, fix the root cause, then decide to requeue or discard). Structured as a runbook
+file other operational gaps can add sections to, rather than one-off documentation.
+
+**Verification:** documentation only, but both documented commands were run live against the dev
+stack rather than taken on faith: `docker exec talos-rabbitmq rabbitmqctl list_queues name
+messages` lists all four declared queues including `talos.dlq` with the expected two-column
+output, and `GET /api/v1/dashboard/dlq-depth` returns `{"depth":0}`. Not checked: the management
+UI's "Get messages"/"Requeue" buttons against an actual dead-lettered message (none exist in this
+sandbox to dead-letter one from).
+
 ## 2026-07-11 — Review gap #10: TALOS_MAX_ACTIVE_RUNS now enforced
 
 **Ask:** Review item #10 (medium): `orchestrator/config.py` parsed `TALOS_MAX_ACTIVE_RUNS` but no
