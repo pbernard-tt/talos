@@ -1,0 +1,75 @@
+<mat-toolbar>
+  <span>Command Center</span>
+  <span class="spacer"></span>
+  <button mat-button [routerLink]="['/projects']">Projects</button>
+  <button mat-button [routerLink]="['/board']">Board</button>
+  <button mat-button [routerLink]="['/approvals']">Approvals</button>
+  @if (authStore.hasRole('OWNER')) {
+    <button mat-button [routerLink]="['/integrations']">Integrations</button>
+  }
+</mat-toolbar>
+
+@if (store.loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (store.error()) {
+  <div class="state-container">
+    <p>{{ store.error() }}</p>
+  </div>
+} @else {
+  @if (store.dlqDepth(); as dlqDepth) {
+    @if (dlqDepth > 0) {
+      <div class="dlq-alert">
+        {{ dlqDepth }} message{{ dlqDepth === 1 ? '' : 's' }} stuck on the dead-letter queue --
+        a run request failed processing 3 times and needs manual attention.
+      </div>
+    }
+  }
+
+  <div class="columns">
+    <section class="column">
+      <h3>Active runs ({{ store.activeRuns().length }})</h3>
+      @if (store.activeRuns().length === 0) {
+        <p class="empty">No runs in flight.</p>
+      } @else {
+        @for (run of store.activeRuns(); track run.id) {
+          <app-run-card [run]="run" />
+        }
+      }
+    </section>
+
+    <section class="column">
+      <h3>Approvals waiting ({{ store.pendingApprovals().length }})</h3>
+      @if (store.pendingApprovals().length === 0) {
+        <p class="empty">Nothing pending review.</p>
+      } @else {
+        @for (approval of store.pendingApprovals(); track approval.id) {
+          <app-approval-card [approval]="approval" />
+        }
+      }
+    </section>
+
+    <section class="column">
+      <h3>Recent failures</h3>
+      @if (store.recentFailures().length === 0) {
+        <p class="empty">No recent failures.</p>
+      } @else {
+        @for (run of store.recentFailures(); track run.id) {
+          <app-run-card [run]="run" />
+        }
+      }
+    </section>
+
+    <section class="column">
+      <h3>Recently completed</h3>
+      @if (store.recentCompletions().length === 0) {
+        <p class="empty">Nothing completed yet.</p>
+      } @else {
+        @for (run of store.recentCompletions(); track run.id) {
+          <app-run-card [run]="run" />
+        }
+      }
+    </section>
+  </div>
+}

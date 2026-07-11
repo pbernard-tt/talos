@@ -1,3 +1,72 @@
+## 2026-07-11 — Review gap #6 (part 1 of 2): Command Center, Approvals inbox, Integrations page
+
+**Ask:** Review item #6 (high): three plan-mandated screens had complete APIs and no UI —
+Command Center (`/`, Section 15 line 961: cards for active runs, approvals waiting, failed
+builds, recently completed tasks; Section 11's DLQ alert), an approvals inbox (`GET /approvals`
+had no consumer — reviewers needed to already know a run id to reach `/review/:runId`), and the
+OWNER-only Integrations admin page (`IntegrationController`/`/test` had no UI since Phase 9/10).
+While researching this item, found the review's own claim under "Phase 14 surfacing" (cost
+widget/recommendations "zero UI references") is **stale** — `apps/web/src/app/projects/
+project.store.ts` and `project-detail.page.html`/`task-form-dialog.component.html` already render
+both, committed in `16718a9` (Phase 14, before this review was written). Corrected in
+`docs/initial_review.md` rather than re-doing already-done work.
+
+**Changed (backend, `apps/api`):**
+- `dashboard/DashboardController.java` + `DlqDepthResponse` — `GET /api/v1/dashboard/dlq-depth`,
+  a passive `RabbitAdmin.getQueueInfo("talos.dlq")` lookup (new `RabbitAdmin` bean in
+  `events/RabbitConfig.java`; this app never declares/binds the queue itself, that stays the
+  orchestrator's job per Section 11) — reads 0 before the orchestrator has connected rather than
+  erroring.
+- `packages/contracts/openapi.yaml` — new `/dashboard/dlq-depth` path + `DlqDepth` schema. Also
+  fixed real drift found in the process: `RunSummary.status` was documented as a bare `string`
+  instead of `$ref: RunStatus`, which is what `RunController.list()` actually serializes — the
+  generated Angular type didn't match runtime values. Motivates gap #9 (OpenAPI drift CI check,
+  still open) rather than being a one-off fix.
+
+**Changed (frontend, `apps/web`):**
+- `dashboard/command-center.store.ts` + `.page.ts/html/scss` + `run-card.component.*` +
+  `approval-card.component.*` — new `/` route (was `redirectTo: 'projects'`). Built entirely from
+  existing `GET /runs` (unfiltered, sorted client-side by `createdAt`, bucketed into
+  active/failed/completed by `RunStatus`) and `GET /approvals?status=PENDING` — no new run/approval
+  endpoints needed. DLQ depth fetched independently so a missing metric can't block the rest of
+  the dashboard (same pattern `ProjectStore` already uses for the cost widget).
+- `approvals/approval.store.ts` — added `list(status?)` (`GET /approvals`) alongside the existing
+  detail/action methods, since both back the same "approvals" domain (one store per domain,
+  `ProjectStore` already does list+detail+widgets this way).
+- `approvals/approval-inbox.page.*` — new `/approvals` route, defaults to PENDING, a toggle for
+  "show all".
+- `integrations/integration.store.ts` + `integration-form-dialog.component.*` +
+  `integrations.page.*` — new `/integrations` route. `IntegrationController` has no `type` enum
+  server-side (confirmed by reading `IntegrationService`/`IntegrationCreateRequest` — free string,
+  only `github`/`dokploy` are ever actually branched on in `test()`), so the form uses a plain text
+  input rather than inventing an unvalidated select list. Page gates on `authStore.hasRole('OWNER')`
+  before even calling `list()`, matching the controller's class-level `@PreAuthorize`.
+- `pages/login/login.page.ts` — post-login redirect `/projects` → `/`.
+- `app.routes.ts` — `''` now loads `CommandCenterPage` (`canActivate: [authGuard]`); `'**'`
+  redirects to `''` instead of `'projects'`.
+- Toolbar nav links added across `board.page.html`, `project-list.page.html`,
+  `approval-inbox.page.html`, `integrations.page.html`, `command-center.page.html` so all five
+  top-level pages cross-link (Integrations link OWNER-gated to match the backend).
+- Regenerating the Angular client (`npm run generate:api`) also picked up a latent gap: the
+  `webhooks.service.ts` export was missing from `api/api.ts`'s `APIS` list — the client was never
+  regenerated after gap #1 (GitHub webhook) added the endpoint to the contract. Fixed for free by
+  this session's regeneration.
+
+**Verification:** `apps/api` — 2 new `DashboardControllerIntegrationTest` cases (zero before the
+queue exists, reflects real message counts after publishing to it), full suite green at 186.
+`apps/web` — `ng build` clean, `ng test` 29 green (was 14 baseline + this session's additions):
+new `command-center.store.spec.ts` (4 cases: bucketing/sorting, pending approvals passthrough, a
+failed DLQ fetch doesn't fail the rest of the load, a failed runs/approvals fetch surfaces the
+store error), `approval-inbox.page.spec.ts` (3), `integrations.page.spec.ts` (4). Live: brought up
+the full dev compose (`docker compose -f infra/docker-compose.dev.yml up -d --build`), drove a
+real headless-Chrome session through login → Command Center (13 active runs, 10 approvals
+waiting, 5 recent failures, all real data from prior smoke runs) → Approvals inbox (10 PENDING,
+in-app nav) → Integrations (2 configured, "New Integration" dialog opens) with zero console
+errors. Screenshots taken, not committed. Not checked: creating/testing an integration against a
+real GitHub/Dokploy credential (would require live third-party secrets); Command Center at >100
+runs (client-side bucketing fetches one page of 100, no pagination yet — acceptable for a
+single-team install, noted for future work rather than built now).
+
 ## 2026-07-11 — Review gap #4: 24h approval reminders (dev.talos.notifications)
 
 **Ask:** Review item #4 (high): Section 8.2's "reminder event after 24 h" in WAITING_APPROVAL and

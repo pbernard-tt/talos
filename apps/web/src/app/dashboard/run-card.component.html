@@ -1,0 +1,7 @@
+<a class="run-card" [routerLink]="['/runs', run.id]">
+  <p class="agent">{{ run.agentKey }}</p>
+  <mat-chip-set>
+    <mat-chip>{{ run.status }}</mat-chip>
+  </mat-chip-set>
+  <p class="created">{{ run.createdAt }}</p>
+</a>

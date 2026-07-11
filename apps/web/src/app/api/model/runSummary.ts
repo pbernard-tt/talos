@@ -7,12 +7,15 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { RunStatus } from './runStatus';
 
 
 export interface RunSummary {
     id: string;
     taskId: string;
-    status: string;
+    status: RunStatus;
     agentKey: string;
     createdAt: string;
+}
+export namespace RunSummary {
 }

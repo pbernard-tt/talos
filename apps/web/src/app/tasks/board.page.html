@@ -1,6 +1,11 @@
 <mat-toolbar>
   <span>Board</span>
+  <button mat-button [routerLink]="['/']">Command Center</button>
   <button mat-button [routerLink]="['/projects']">Projects</button>
+  <button mat-button [routerLink]="['/approvals']">Approvals</button>
+  @if (authStore.hasRole('OWNER')) {
+    <button mat-button [routerLink]="['/integrations']">Integrations</button>
+  }
   <span class="spacer"></span>
   @if (authStore.hasRole('MAINTAINER')) {
     <button mat-flat-button color="primary" (click)="openCreateDialog()">

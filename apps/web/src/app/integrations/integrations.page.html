@@ -1,0 +1,62 @@
+<mat-toolbar>
+  <span>Integrations</span>
+  <button mat-button [routerLink]="['/']">Command Center</button>
+  <span class="spacer"></span>
+  <button mat-button [routerLink]="['/projects']">Projects</button>
+  @if (authStore.hasRole('OWNER')) {
+    <button mat-flat-button color="primary" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      New Integration
+    </button>
+  }
+</mat-toolbar>
+
+@if (!authStore.hasRole('OWNER')) {
+  <div class="state-container">
+    <p>Integrations are managed by OWNER accounts only.</p>
+  </div>
+} @else if (store.loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (store.error()) {
+  <div class="state-container">
+    <p>{{ store.error() }}</p>
+  </div>
+} @else if (store.integrations().length === 0) {
+  <div class="state-container">
+    <p>No integrations configured yet.</p>
+  </div>
+} @else {
+  <table mat-table [dataSource]="store.integrations()" class="full-width">
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef>Name</th>
+      <td mat-cell *matCellDef="let integration">{{ integration.name }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="type">
+      <th mat-header-cell *matHeaderCellDef>Type</th>
+      <td mat-cell *matCellDef="let integration">{{ integration.type }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="enabled">
+      <th mat-header-cell *matHeaderCellDef>Enabled</th>
+      <td mat-cell *matCellDef="let integration">{{ integration.enabled ? 'Yes' : 'No' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="createdAt">
+      <th mat-header-cell *matHeaderCellDef>Created</th>
+      <td mat-cell *matCellDef="let integration">{{ integration.createdAt }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let integration">
+        <button mat-button (click)="test(integration)">Test</button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+}

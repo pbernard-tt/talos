@@ -83,7 +83,7 @@ drive the runner; (b) the prod compose publishes no ports, so the boundary holds
 single shared-token check (the token is already distributed to both sides) is cheap and removes an
 entire class of "anything on the internal network" risk. Do this before production.
 
-### 6. Dashboard is missing whole plan-mandated screens
+### 6. Dashboard is missing whole plan-mandated screens — **RESOLVED 2026-07-11** (see implementation log)
 
 Implemented routes (`apps/web/src/app/app.routes.ts`): login, projects, project detail, board,
 run detail, review. Missing versus Section 15 / later phases:
@@ -97,8 +97,12 @@ run detail, review. Missing versus Section 15 / later phases:
 - **Approvals inbox** — `GET /api/v1/approvals` has no UI consumer; reviewers must know a run id to
   reach `/review/:runId`. Compounded by #4 (no reminders) and no Command Center: a pending approval
   is invisible unless you're watching the specific run.
-- **Phase 14 surfacing** — plan: "a dashboard cost widget", recommendations "surfaced in the task
-  form and Command Center". `CostController`/`RecommendationController` exist; zero UI references.
+- ~~**Phase 14 surfacing** — plan: "a dashboard cost widget", recommendations "surfaced in the task
+  form and Command Center". `CostController`/`RecommendationController` exist; zero UI references.~~
+  **Correction (2026-07-11): stale, this was already done.** `apps/web/src/app/projects/
+  project.store.ts` (`loadMonthlyCosts`/`loadRecommendations`) and
+  `project-detail.page.html`/`task-form-dialog.component.html` render both, committed in `16718a9`
+  (Phase 14), before this review was written. Verified live in a browser, not just by reading code.
 - **User management (Phase 15) and memory browse (Phase 13)** — API-only, disclosed in their phase
   reports as deliberate; listed here for completeness.
 

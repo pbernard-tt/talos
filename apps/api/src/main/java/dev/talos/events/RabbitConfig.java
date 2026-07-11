@@ -2,6 +2,7 @@ package dev.talos.events;
 
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -28,5 +29,12 @@ public class RabbitConfig {
 		RabbitTemplate template = new RabbitTemplate(connectionFactory);
 		template.setMessageConverter(converter);
 		return template;
+	}
+
+	/** Passive queue lookups only (Command Center DLQ depth, review gap #11) -- this app never
+	 * declares/binds talos.dlq itself, that stays the orchestrator's responsibility (Section 11). */
+	@Bean
+	public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
+		return new RabbitAdmin(connectionFactory);
 	}
 }

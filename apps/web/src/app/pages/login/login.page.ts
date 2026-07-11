@@ -44,7 +44,7 @@ export class LoginPage {
     const { email, password } = this.form.getRawValue();
     try {
       await this.authStore.login(email, password);
-      await this.router.navigateByUrl('/projects');
+      await this.router.navigateByUrl('/');
     } catch {
       this.errorMessage.set('Invalid email or password.');
     } finally {

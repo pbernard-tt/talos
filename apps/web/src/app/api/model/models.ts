@@ -11,6 +11,7 @@ export * from './createUserRequest';
 export * from './deployStatus';
 export * from './deployTriggerResponse';
 export * from './diff';
+export * from './dlqDepth';
 export * from './errorError';
 export * from './gitChange';
 export * from './gitChangeSummary';

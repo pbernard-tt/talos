@@ -1062,6 +1062,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /dashboard/dlq-depth:
+    get:
+      operationId: getDlqDepth
+      summary: >
+        Message count on talos.dlq (Section 11's "alert surfaced in Command Center"). A passive
+        queue lookup -- reads 0 on a fresh install before the orchestrator has declared the queue.
+      tags: [dashboard]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DlqDepth"
+
   /internal/v1/runs/{id}/status:
     post:
       operationId: internalUpdateRunStatus
@@ -1731,7 +1746,7 @@ components:
           type: string
           format: uuid
         status:
-          type: string
+          $ref: "#/components/schemas/RunStatus"
         agentKey:
           type: string
         createdAt:
@@ -2506,6 +2521,14 @@ components:
           type: boolean
         message:
           type: string
+
+    DlqDepth:
+      type: object
+      required: [depth]
+      properties:
+        depth:
+          type: integer
+          format: int64
 
     PullRequestStatus:
       type: string

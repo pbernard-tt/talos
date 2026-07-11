@@ -1,0 +1,30 @@
+<mat-toolbar>
+  <span>Approvals</span>
+  <button mat-button [routerLink]="['/']">Command Center</button>
+  <span class="spacer"></span>
+  <button mat-button [routerLink]="['/projects']">Projects</button>
+  <button mat-button [routerLink]="['/board']">Board</button>
+  <button mat-button (click)="togglePendingOnly()">
+    {{ showAll() ? 'Show pending only' : 'Show all' }}
+  </button>
+</mat-toolbar>
+
+@if (store.loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (store.error()) {
+  <div class="state-container">
+    <p>{{ store.error() }}</p>
+  </div>
+} @else if (store.approvals().length === 0) {
+  <div class="state-container">
+    <p>{{ showAll() ? 'No approvals yet.' : 'Nothing pending review.' }}</p>
+  </div>
+} @else {
+  <div class="list">
+    @for (approval of store.approvals(); track approval.id) {
+      <app-approval-card [approval]="approval" />
+    }
+  </div>
+}

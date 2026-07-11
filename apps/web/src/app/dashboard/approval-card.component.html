@@ -1,0 +1,7 @@
+<a class="approval-card" [routerLink]="['/review', approval.runId]">
+  <p class="type">{{ approval.approvalType }}</p>
+  <mat-chip-set>
+    <mat-chip>{{ approval.status }}</mat-chip>
+  </mat-chip-set>
+  <p class="requested">{{ approval.createdAt }}</p>
+</a>

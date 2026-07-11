@@ -1,0 +1,32 @@
+<h2 mat-dialog-title>New Integration</h2>
+<form [formGroup]="form" (ngSubmit)="save()">
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Type</mat-label>
+      <input matInput formControlName="type" placeholder="e.g. github, dokploy" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Secret</mat-label>
+      <input matInput type="password" formControlName="secret" placeholder="e.g. a GitHub PAT" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Auth mode</mat-label>
+      <input matInput formControlName="authMode" placeholder="e.g. pat, deploy_key" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Config (JSON)</mat-label>
+      <textarea matInput formControlName="configJson" rows="4" placeholder='{"baseUrl": "..."}'></textarea>
+    </mat-form-field>
+    @if (jsonError(); as error) {
+      <p class="error">{{ error }}</p>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid">Create</button>
+  </mat-dialog-actions>
+</form>

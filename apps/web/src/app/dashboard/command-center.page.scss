@@ -1,0 +1,40 @@
+.spacer {
+  flex: 1 1 auto;
+}
+
+.state-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.dlq-alert {
+  margin: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container, #fddede);
+  color: var(--mat-sys-on-error-container, #410e0b);
+  font-size: 0.9rem;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  padding: 0 16px 16px;
+}
+
+.column {
+  min-width: 0;
+}
+
+.column h3 {
+  margin: 16px 0 8px;
+  font-size: 1rem;
+}
+
+.empty {
+  opacity: 0.7;
+  font-size: 0.85rem;
+}
