@@ -19,7 +19,7 @@ import { Configuration }                                     from '../configurat
 
 
 export interface IngestProjectMemoryDocumentRequestParams {
-    id: string;
+    projectId: string;
     memoryDocumentRequest: MemoryDocumentRequest;
 }
 
@@ -31,7 +31,7 @@ export interface MemoryServiceInterface {
     /**
      * Phase 13: ingest an operator note or context document into project-scoped memory. The API owns chunking, masking, embedding, and persistence; no Python service writes memory rows.
      *
-     * @endpoint post /projects/{id}/memory/documents
+     * @endpoint post /projects/{projectId}/memory/documents
 * @param requestParameters
      */
     ingestProjectMemoryDocument(requestParameters: IngestProjectMemoryDocumentRequestParams, extraHttpRequestParams?: any): Observable<MemoryDocument>;

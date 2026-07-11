@@ -404,7 +404,7 @@ export class InternalService extends BaseService implements InternalServiceInter
 
     /**
      * Phase 13: ingest context.docs content discovered by the orchestrator. The API still owns masking, chunking, embedding, and persistence.
-     * @endpoint post /internal/v1/projects/{id}/memory/documents
+     * @endpoint post /internal/v1/projects/{projectId}/memory/documents
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
@@ -414,9 +414,9 @@ export class InternalService extends BaseService implements InternalServiceInter
     public internalIngestProjectMemoryDocument(requestParameters: InternalIngestProjectMemoryDocumentRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<MemoryDocument>>;
     public internalIngestProjectMemoryDocument(requestParameters: InternalIngestProjectMemoryDocumentRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<MemoryDocument>>;
     public internalIngestProjectMemoryDocument(requestParameters: InternalIngestProjectMemoryDocumentRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        const id = requestParameters?.id;
-        if (id === null || id === undefined) {
-            throw new Error('Required parameter id was null or undefined when calling internalIngestProjectMemoryDocument.');
+        const projectId = requestParameters?.projectId;
+        if (projectId === null || projectId === undefined) {
+            throw new Error('Required parameter projectId was null or undefined when calling internalIngestProjectMemoryDocument.');
         }
         const memoryDocumentRequest = requestParameters?.memoryDocumentRequest;
         if (memoryDocumentRequest === null || memoryDocumentRequest === undefined) {
@@ -460,7 +460,7 @@ export class InternalService extends BaseService implements InternalServiceInter
             }
         }
 
-        let localVarPath = `/internal/v1/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/memory/documents`;
+        let localVarPath = `/internal/v1/projects/${this.configuration.encodeParam({name: "projectId", value: projectId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/memory/documents`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<MemoryDocument>('post', `${basePath}${localVarPath}`,
             {
@@ -700,7 +700,7 @@ export class InternalService extends BaseService implements InternalServiceInter
 
     /**
      * Phase 13: project-scoped memory retrieval for orchestrator prompt assembly. Results are filtered to the requested project and capped by the supplied prompt budget.
-     * @endpoint get /internal/v1/projects/{id}/memory/search
+     * @endpoint get /internal/v1/projects/{projectId}/memory/search
      * @param requestParameters
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
@@ -710,9 +710,9 @@ export class InternalService extends BaseService implements InternalServiceInter
     public internalSearchProjectMemory(requestParameters: InternalSearchProjectMemoryRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<MemorySearchResponse>>;
     public internalSearchProjectMemory(requestParameters: InternalSearchProjectMemoryRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<MemorySearchResponse>>;
     public internalSearchProjectMemory(requestParameters: InternalSearchProjectMemoryRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        const id = requestParameters?.id;
-        if (id === null || id === undefined) {
-            throw new Error('Required parameter id was null or undefined when calling internalSearchProjectMemory.');
+        const projectId = requestParameters?.projectId;
+        if (projectId === null || projectId === undefined) {
+            throw new Error('Required parameter projectId was null or undefined when calling internalSearchProjectMemory.');
         }
         const query = requestParameters?.query;
         if (query === null || query === undefined) {
@@ -778,7 +778,7 @@ export class InternalService extends BaseService implements InternalServiceInter
             }
         }
 
-        let localVarPath = `/internal/v1/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/memory/search`;
+        let localVarPath = `/internal/v1/projects/${this.configuration.encodeParam({name: "projectId", value: projectId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/memory/search`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<MemorySearchResponse>('get', `${basePath}${localVarPath}`,
             {

@@ -1,3 +1,36 @@
+## 2026-07-11 — Review gap #9: OpenAPI drift check (+ two real path-param mismatches found)
+
+**Ask:** Review item #9 (medium): `packages/contracts/openapi.yaml`'s own description already
+claimed "CI diffs the running API's springdoc output against it", but springdoc wasn't even a
+dependency of `apps/api` and no such check existed anywhere.
+
+**Changed (backend, `apps/api`):**
+- `build.gradle.kts` — `springdoc-openapi-starter-webmvc-api:3.0.3` (API-docs JSON only, no
+  Swagger UI, since this is a CI check, not an operator-facing docs page).
+- `contracts/OpenApiDriftTest.java` (new) — hits `GET /v3/api-docs`, parses
+  `packages/contracts/openapi.yaml` with the `jackson-dataformat-yaml` dependency already on the
+  classpath (Section 14's talos.yaml parser), and asserts the path+method *sets* match exactly in
+  both directions. Deliberately not a deep schema diff -- springdoc auto-infers its own schema
+  names/shapes from the Java DTOs, which will never byte-for-byte match the hand-written contract,
+  so that would be pure noise. Runs as part of the existing `./gradlew build` (the `api` CI job
+  already runs this on every PR) rather than as a separate pipeline stage -- no `ci.yml` change
+  needed, one less job to keep in sync.
+- **Real drift the first run caught, fixed rather than suppressed:** `MemoryController`/
+  `InternalMemoryController` (`dev.talos.memory`) actually map `@PathVariable UUID projectId`,
+  but `openapi.yaml` documented all three memory paths as `/projects/{id}/...` (reusing the
+  shared `ProjectId` parameter, `name: id`, that every *other* project-scoped endpoint correctly
+  uses). Added a second shared parameter, `MemoryProjectId` (`name: projectId`), and repointed the
+  three memory paths at it instead of silently normalizing the test's path comparison to ignore
+  param names — the mismatch was real, not a false positive.
+- Regenerated the Angular client (`npm run generate:api`) for the renamed path parameter; no
+  `apps/web` code outside the generated client calls the memory ingest endpoint yet, so nothing
+  else needed updating.
+
+**Verification:** first run failed exactly as intended, naming the 3 endpoints; after the fix,
+green. Full `apps/api` suite green, 187 (was 186 after this session's other additions). `apps/web`
+`ng build` clean after regeneration. Not checked: a case where the contract and code disagree on
+*schema shape* rather than existence (out of scope by design, see above).
+
 ## 2026-07-11 — Latent bug found live: no CORS config at all (blocked every browser login)
 
 **Ask:** none of the review's gaps named this directly, but browser-verifying the Command

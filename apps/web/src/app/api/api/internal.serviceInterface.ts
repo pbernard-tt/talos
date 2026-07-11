@@ -54,7 +54,7 @@ export interface InternalGetRunRetentionCandidatesRequestParams {
 }
 
 export interface InternalIngestProjectMemoryDocumentRequestParams {
-    id: string;
+    projectId: string;
     memoryDocumentRequest: MemoryDocumentRequest;
 }
 
@@ -74,7 +74,7 @@ export interface InternalRecordRunStepRequestParams {
 }
 
 export interface InternalSearchProjectMemoryRequestParams {
-    id: string;
+    projectId: string;
     query: string;
     limit?: number;
     budgetChars?: number;
@@ -140,7 +140,7 @@ export interface InternalServiceInterface {
     /**
      * Phase 13: ingest context.docs content discovered by the orchestrator. The API still owns masking, chunking, embedding, and persistence.
      *
-     * @endpoint post /internal/v1/projects/{id}/memory/documents
+     * @endpoint post /internal/v1/projects/{projectId}/memory/documents
 * @param requestParameters
      */
     internalIngestProjectMemoryDocument(requestParameters: InternalIngestProjectMemoryDocumentRequestParams, extraHttpRequestParams?: any): Observable<MemoryDocument>;
@@ -172,7 +172,7 @@ export interface InternalServiceInterface {
     /**
      * Phase 13: project-scoped memory retrieval for orchestrator prompt assembly. Results are filtered to the requested project and capped by the supplied prompt budget.
      *
-     * @endpoint get /internal/v1/projects/{id}/memory/search
+     * @endpoint get /internal/v1/projects/{projectId}/memory/search
 * @param requestParameters
      */
     internalSearchProjectMemory(requestParameters: InternalSearchProjectMemoryRequestParams, extraHttpRequestParams?: any): Observable<MemorySearchResponse>;

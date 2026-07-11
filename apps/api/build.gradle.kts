@@ -88,6 +88,10 @@ dependencies {
 	// MinioArtifactStore (Phase 16, Section 4.2) -- S3-compatible object storage client
 	implementation("io.minio:minio:9.0.1")
 
+	// Review gap #9: live OpenAPI spec (GET /v3/api-docs), diffed against packages/contracts/openapi.yaml
+	// in OpenApiDriftTest -- API-docs only, no Swagger UI needed for a CI check.
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:3.0.3")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-amqp-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")

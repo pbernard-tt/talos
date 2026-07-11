@@ -271,7 +271,7 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
-  /projects/{id}/memory/documents:
+  /projects/{projectId}/memory/documents:
     post:
       operationId: ingestProjectMemoryDocument
       summary: >
@@ -279,7 +279,7 @@ paths:
         owns chunking, masking, embedding, and persistence; no Python service writes memory rows.
       tags: [memory]
       parameters:
-        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/MemoryProjectId"
       requestBody:
         required: true
         content:
@@ -1369,7 +1369,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/RetentionCandidatesResponse"
 
-  /internal/v1/projects/{id}/memory/documents:
+  /internal/v1/projects/{projectId}/memory/documents:
     post:
       operationId: internalIngestProjectMemoryDocument
       summary: >
@@ -1381,7 +1381,7 @@ paths:
       servers:
         - url: /internal/v1
       parameters:
-        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/MemoryProjectId"
       requestBody:
         required: true
         content:
@@ -1400,7 +1400,7 @@ paths:
         "422":
           $ref: "#/components/responses/Error"
 
-  /internal/v1/projects/{id}/memory/search:
+  /internal/v1/projects/{projectId}/memory/search:
     get:
       operationId: internalSearchProjectMemory
       summary: >
@@ -1412,7 +1412,7 @@ paths:
       servers:
         - url: /internal/v1
       parameters:
-        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/MemoryProjectId"
         - name: query
           in: query
           required: true
@@ -1454,6 +1454,15 @@ components:
   parameters:
     ProjectId:
       name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    # MemoryController/InternalMemoryController's @PathVariable is literally named projectId
+    # (dev.talos.memory) -- everything else here uses the ProjectId param above (name: id).
+    MemoryProjectId:
+      name: projectId
       in: path
       required: true
       schema:

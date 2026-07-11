@@ -127,7 +127,7 @@ stated MVP acceptance command doesn't actually deliver the product surface.
 - `GET /api/v1/projects/{id}/runs` — deliberately superseded by `GET /api/v1/runs?projectId=`
   (disclosed in Phase 3/5 reports). Fine functionally; the plan was never amended.
 
-### 9. No OpenAPI drift check in CI
+### 9. No OpenAPI drift check in CI — **RESOLVED 2026-07-11** (see implementation log)
 
 Section 10.1: "a CI check diffs the running API's springdoc output against it
 [`packages/contracts/openapi.yaml`]". No such job exists and springdoc isn't even a dependency of
