@@ -1,3 +1,57 @@
+## 2026-07-11 — Review gap #7: talos-web in the dev compose (+ two latent web-image bugs)
+
+**Ask:** Review item #7 (high): Section 1.2's definition of done requires the full MVP surface
+from one `docker compose -f infra/docker-compose.dev.yml up`, but the dashboard wasn't in the dev
+compose — operators had to run `npm start` separately.
+
+**Changed:**
+- `infra/docker-compose.dev.yml` — new `web` service: builds from `../apps/web` (the same context
+  CI's docker-build matrix uses), publishes `4200:80` (matching the `npm start` port the chat
+  adapters' `TALOS_WEB_BASE_URL` deep links already point at), `TALOS_API_URL=http://localhost:8080`
+  because the SPA calls the API from the browser, where `http://api:8080` doesn't resolve.
+- `infra/dokploy/docker-compose.prod.yml` — **latent bug found while wiring this**: prod's `web`
+  build context was `../..` (repo root), but `apps/web/Dockerfile` COPYs `package.json` from the
+  context root, so a Dokploy build of `web` could never have succeeded. Fixed to `../../apps/web`.
+- `apps/web/nginx.conf` — **second latent bug, found live**: the image's wget healthcheck
+  resolves `localhost` to `::1` (busybox), but nginx listened IPv4-only, so the container served
+  fine yet always reported unhealthy (would also have broken prod's `depends_on: service_healthy`
+  chain). Added `listen [::]:80`.
+- `README.md` — dev workflow now describes the composed dashboard; `npm start` repositioned as
+  the hot-reload alternative (stop the `web` container first, both bind 4200).
+
+**Verification:** `docker compose config -q` clean for both files; full dev stack brought up with
+`up -d --build` — all 10 containers running, `talos-web` **healthy**, `GET :4200/` 200,
+`/assets/env-config.json` returns the injected API URL, API health 200. Not checked: a prod
+Dokploy deploy of the fixed web context (no Dokploy environment here); CI's compose smoke job
+runs on push.
+
+## 2026-07-11 — Review gap #5: runner supervisor endpoints now require the internal token
+
+**Ask:** Review item #5 (high, open Phase 11 deviation 1): every runner-supervisor endpoint —
+including `POST /runs/{id}/execute`, which executes arbitrary commands — accepted requests from
+any caller that could reach port 8081; the only boundary was network topology, and the dev
+compose publishes `8081:8081` to the host.
+
+**Changed:**
+- `apps/runner-supervisor/app.py` — `require_internal_token` FastAPI dependency on all seven
+  endpoints (`/health` stays open for liveness probes): constant-time compare of
+  `X-Talos-Internal-Token` against `Settings.internal_api_token`; missing/wrong → 401
+  `INTERNAL_TOKEN_INVALID`; unconfigured token fails closed → 503 `INTERNAL_TOKEN_NOT_CONFIGURED`
+  (safe: both composes already inject `TALOS_INTERNAL_API_TOKEN` into all three services).
+- `apps/orchestrator/runner_client.py` — sends the header on every call; no new secret, the
+  orchestrator already held this token for talos-api's `/internal/v1`.
+- `apps/runner-supervisor/config.py` — corrected the now-stale "not used to authenticate this
+  service's own surface" comment.
+- `packages/contracts/runner-api.yaml` (0.2.0 → 0.3.0) — `internalToken` apiKey scheme, global
+  `security`, `/health` opted out.
+- `docs/security-model.md` §6 — rewritten from "noted, not closed" to the enforced design.
+
+**Verification:** runner-supervisor suite 35 green (was 31; +4: /health open without token,
+missing token 401, wrong token 401, unconfigured token 503 fail-closed — existing tests now send
+the header via the client fixture, so all seven endpoints are exercised authenticated).
+Orchestrator suite 33 green. Live in the dev compose: `/health` 200 tokenless, `/workspaces/cleanup`
+401 tokenless, 200 with the dev token; orchestrator boots and consumes normally with the header on.
+
 ## 2026-07-11 — Review gap #2: start-run button in the dashboard
 
 **Ask:** Review item #2 (critical): `POST /api/v1/tasks/{id}/start-run` was fully implemented and

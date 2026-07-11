@@ -72,7 +72,7 @@ stamped on creation but nothing ever reads it; the `EXPIRED` status exists only 
 this and none closed it. Consequence: approvals can sit pending forever with no signal, and the
 `EXPIRED` state in the DDL is unreachable.
 
-### 5. Runner supervisor endpoints are unauthenticated (open Phase 11 deviation)
+### 5. Runner supervisor endpoints are unauthenticated (open Phase 11 deviation) — **RESOLVED 2026-07-11** (see implementation log)
 
 `Settings.internal_api_token` exists in `apps/runner-supervisor/.../config.py` but `app.py`
 enforces nothing on any endpoint — `POST /runs/{id}/execute` will execute an arbitrary command for
@@ -105,7 +105,7 @@ run detail, review. Missing versus Section 15 / later phases:
 Overall the frontend has 14 tests against a 175-test backend; the plan's per-PR frontend gate
 (Kanban movement, run rendering, approval actions, form validation) is nominally covered but thin.
 
-### 7. `talos-web` is absent from the dev compose
+### 7. `talos-web` is absent from the dev compose — **RESOLVED 2026-07-11** (see implementation log)
 
 Section 1.2's definition of done: every MVP assertion demonstrable on a fresh checkout with
 `docker compose -f infra/docker-compose.dev.yml up` — item 1 starts "through the UI". The compose

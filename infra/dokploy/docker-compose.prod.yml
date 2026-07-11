@@ -162,8 +162,10 @@ services:
 
   web:
     build:
-      context: ../..
-      dockerfile: apps/web/Dockerfile
+      # apps/web builds from its own directory (CI's docker-build matrix does the same) -- its
+      # Dockerfile COPYs package.json etc. from the context root, so repo root would not build.
+      context: ../../apps/web
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       api:

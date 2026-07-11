@@ -54,7 +54,7 @@ docker build -f workers/node-runner/Dockerfile -t workers/node-runner:latest .
 docker build -f workers/python-runner/Dockerfile -t workers/python-runner:latest .
 ```
 
-Start the local Talos backend/orchestration stack:
+Start the full local Talos stack (backend, orchestration, and the dashboard on `http://localhost:4200`):
 
 ```bash
 TALOS_DOCKER_GID=$(stat -c '%g' /var/run/docker.sock) \
@@ -67,7 +67,7 @@ Run the end-to-end smoke test:
 ./scripts/smoke.sh
 ```
 
-Run the Angular dashboard locally:
+For frontend development with hot reload, run the Angular dev server instead of the `web` container (both bind 4200 -- `docker compose -f infra/docker-compose.dev.yml stop web` first):
 
 ```bash
 cd apps/web

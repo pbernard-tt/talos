@@ -1,6 +1,7 @@
 # Local development infra for Talos. Application services are added to this file as their
 # implementation phases land (Section 16 of the implementation plan): talos-api since Phase 1,
-# talos-orchestrator/talos-runner-supervisor since Phase 6, talos-web still to come.
+# talos-orchestrator/talos-runner-supervisor since Phase 6, talos-web since the initial-review
+# pass (review #7) -- the full product surface now comes up with this one command (Section 1.2).
 #
 # Usage: docker compose -f infra/docker-compose.dev.yml up
 #
@@ -132,6 +133,26 @@ services:
       - talos_artifacts:/var/talos/artifacts
     ports:
       - "8080:8080"
+
+  web:
+    build:
+      # Same context CI's docker-build matrix uses for talos-web (apps/web, not repo root).
+      context: ../apps/web
+      dockerfile: Dockerfile
+    container_name: talos-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      # The SPA calls the API from the *browser*, so this must be the host-published URL
+      # (localhost:8080 above), not http://api:8080 -- that name only resolves inside the
+      # compose network. Injected at container start via docker-entrypoint.sh -> env-config.json.
+      TALOS_API_URL: http://localhost:8080
+    ports:
+      # 4200 to match the `npm start` dev-server port the docs and the chat adapters'
+      # TALOS_WEB_BASE_URL deep links already use.
+      - "4200:80"
 
   runner-supervisor:
     build:
