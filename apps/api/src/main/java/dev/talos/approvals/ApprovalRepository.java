@@ -6,9 +6,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public interface ApprovalRepository extends JpaRepository<Approval, UUID> {
+	/** dev.talos.notifications (Section 8.2's 24h reminder): PENDING approvals past expires_at. */
+	List<Approval> findByStatusAndExpiresAtBefore(ApprovalStatus status, Instant cutoff);
+
 	/** Section 10.2's GET /approvals filters: each of status/runId/approvalType is optional. */
 	@Query("""
 			SELECT a FROM Approval a

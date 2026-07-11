@@ -1,3 +1,29 @@
+## 2026-07-11 — Review gap #4: 24h approval reminders (dev.talos.notifications)
+
+**Ask:** Review item #4 (high): Section 8.2's "reminder event after 24 h" in WAITING_APPROVAL and
+Section 6.2's `dev.talos.notifications` module (log-only in MVP) were never built —
+`approvals.expires_at` was stamped and never read.
+
+**Decision (operator, via question):** reminder-only semantics. The plan's transition table gives
+WAITING_APPROVAL *no* timeout, so the approval stays PENDING and the run keeps waiting; the
+`EXPIRED` enum/DDL status remains deliberately unreachable (now documented as such in the
+scheduler's javadoc) rather than being given invented expire-the-run behavior.
+
+**Changed (backend, `apps/api`):**
+- `dev.talos.notifications.ApprovalReminderScheduler` (new package per Section 6.2) — every 5 min,
+  finds PENDING approvals past `expires_at` and sends one reminder each: a WARN log line (the MVP
+  notification channel), an `approval.reminder.sent` audit row (which doubles as the durable
+  sent-once marker — Section 9.2 has no column for it, so the audit trail is the record), and a
+  re-published `approval.requested` event so chat notifiers nudge again over the schema they
+  already consume (no new event contract invented).
+- `ApprovalRepository.findByStatusAndExpiresAtBefore` — first reader of `expires_at`.
+
+**Verification:** new `ApprovalReminderSchedulerTest` (2 tests, RunReaperTest pattern — calls the
+scheduler directly): an overdue approval gets exactly one reminder across two sweeps and stays
+PENDING; a not-yet-overdue approval gets none. Full `apps/api` suite green (4m58s). Not checked:
+a chat adapter actually rendering the re-published event (their existing `approval.requested`
+consumers are already tested against this schema).
+
 ## 2026-07-11 — Review gap #7: talos-web in the dev compose (+ two latent web-image bugs)
 
 **Ask:** Review item #7 (high): Section 1.2's definition of done requires the full MVP surface

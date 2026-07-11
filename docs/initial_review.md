@@ -63,7 +63,7 @@ exercised them. Push and confirm CI green before calling the build production-re
 
 ## High — significant plan gaps
 
-### 4. Approval expiry and reminders are inert
+### 4. Approval expiry and reminders are inert — **RESOLVED 2026-07-11** (reminder-only semantics, operator-decided; see implementation log)
 
 Section 8.2 requires a reminder event after 24h in `WAITING_APPROVAL`, and Section 6.2 lists a
 `dev.talos.notifications` module (log-only in MVP). Neither exists. `approvals.expires_at` is
