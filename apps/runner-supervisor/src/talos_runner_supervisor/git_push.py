@@ -14,6 +14,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 _TALOS_AUTHOR = "Talos Agent <talos@local>"
+# The runner has no global git identity (and must not depend on one); set the committer
+# explicitly on the commit invocation itself.
+_TALOS_IDENT = ["-c", "user.name=Talos Agent", "-c", "user.email=talos@local"]
 _NEEDS_REBASE_MARKERS = ("non-fast-forward", "rejected", "fetch first", "stale info")
 
 
@@ -45,7 +48,7 @@ def push(
     _run_git(["add", "-A"], cwd=worktree_dir)
     staged = _run_git(["diff", "--cached", "--name-only"], cwd=worktree_dir)
     if staged.strip():
-        _run_git(["commit", f"--author={_TALOS_AUTHOR}", "-m", commit_message], cwd=worktree_dir)
+        _run_git([*_TALOS_IDENT, "commit", f"--author={_TALOS_AUTHOR}", "-m", commit_message], cwd=worktree_dir)
 
     commit_sha = _run_git(["rev-parse", "HEAD"], cwd=worktree_dir).strip()
 

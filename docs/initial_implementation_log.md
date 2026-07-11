@@ -1,3 +1,27 @@
+## 2026-07-11 — Fix CI: runner-supervisor push commits had no committer identity
+
+**Ask:** CI's runner-supervisor job failing — 4 tests (`test_git_push.py` ×3, plus
+`test_app.py::test_push_endpoint_commitsAndPushes` returning 422) with git's
+"Committer identity unknown".
+
+**Root cause:** `git_push.push()` committed with `--author=` only; `--author` does not set the
+*committer*, which git resolves from ambient config. Dev machines have a global identity, CI
+runners don't — and the supervisor's Docker image doesn't set one either, so every real
+approved-push would have failed identically in production. The 422 was the same error surfacing
+through the endpoint's `GitPushError → 422` mapping. One test also made its own "agent" commit in
+the worktree relying on ambient identity.
+
+**Changed (backend, `apps/runner-supervisor`):**
+- `git_push.py` — commit now passes `-c user.name=Talos Agent -c user.email=talos@local` on the
+  invocation itself, so the runner never depends on host/container git config (production fix).
+- `tests/test_git_push.py` — the simulated agent commit carries its own `-c` identity flags
+  (a real agent configures its own identity; the supervisor shouldn't provide one for it).
+
+**Verification:** full suite (31 tests) green under
+`GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null` with all `GIT_*`/`EMAIL` identity env
+vars unset — i.e. reproducing CI's no-identity environment, which also reproduced the failure
+before the fix. Not checked: an actual CI run — happens on push.
+
 ## 2026-07-11 — Fix CI: two API integration tests depended on the dev-compose Redis
 
 **Ask:** GitHub CI's `api` job was failing — five tests across `MemoryControllerIntegrationTest`

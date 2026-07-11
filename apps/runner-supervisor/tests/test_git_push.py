@@ -53,7 +53,8 @@ def test_push_preservesAgentCommit_whenNothingLeftToStage(settings, origin_repo)
     )
     (Path(workspace_path) / "agent-file.txt").write_text("agent work\n")
     _git(["add", "-A"], cwd=Path(workspace_path))
-    _git(["commit", "-m", "agent's own commit", "--author=Agent <agent@local>"], cwd=Path(workspace_path))
+    _git(["-c", "user.name=Agent", "-c", "user.email=agent@local",
+          "commit", "-m", "agent's own commit", "--author=Agent <agent@local>"], cwd=Path(workspace_path))
     head_before = _git(["rev-parse", "HEAD"], cwd=Path(workspace_path)).stdout.strip()
 
     result = push(
