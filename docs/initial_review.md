@@ -120,12 +120,25 @@ stated MVP acceptance command doesn't actually deliver the product surface.
 
 ## Medium
 
-### 8. Missing minor endpoints from Section 10.2
+### 8. Missing minor endpoints from Section 10.2 — **RESOLVED 2026-07-11** (operator decision, see implementation log)
 
 - `POST /api/v1/runs/{id}/rerun-tests` — in the plan's endpoint table, in no phase's task list,
-  never implemented, absent from `openapi.yaml`. Implement or strike from the plan.
+  never implemented, absent from `openapi.yaml`. **Decision: dropped, not implemented.**
+  Investigating the "full reopen" semantics (the only variant the operator considered worth
+  building) surfaced two real bugs a naive implementation would have shipped: reentering
+  `WAITING_APPROVAL` creates a second `PENDING` `Approval` row alongside the already-decided one
+  (`RunService.createApproval` has no uniqueness check/upsert), and a re-approval would call
+  `handle_approval_decided`'s push/PR path again with no idempotency guard, risking a second PR
+  against an already-merged branch. It also needs a wholly new `COMPLETED|FAILED -> RUNNING_TESTS`
+  transition edge absent from Section 8.2's table, and only works inside the 7-day retention
+  window before the workspace is hard-deleted. Given the effort-to-value ratio and the safety risk
+  of the duplicate-PR path, the operator chose to strike it from scope rather than build it now.
+  `docs/src/talos-implementation-plan.md` is left untouched (same convention as the Gradle
+  deviation: the plan doc is the frozen source of truth, deviations are recorded here and in the
+  implementation log, not by hand-editing the compiled doc).
 - `GET /api/v1/projects/{id}/runs` — deliberately superseded by `GET /api/v1/runs?projectId=`
-  (disclosed in Phase 3/5 reports). Fine functionally; the plan was never amended.
+  (disclosed in Phase 3/5 reports). Fine functionally; the plan was never amended. No further
+  action taken (same reasoning: this is a disclosed, low-risk deviation, not a bug).
 
 ### 9. No OpenAPI drift check in CI — **RESOLVED 2026-07-11** (see implementation log)
 

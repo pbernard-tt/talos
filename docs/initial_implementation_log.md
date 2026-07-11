@@ -1,3 +1,29 @@
+## 2026-07-11 — Review gap #8: rerun-tests dropped from scope (operator decision)
+
+**Ask:** Review item #8 (medium): `POST /api/v1/runs/{id}/rerun-tests` is in the plan's Section
+10.2 endpoint table (line 755) but was never in any phase's task list, never implemented, absent
+from `openapi.yaml` — implement or strike.
+
+**Decision (operator, via two questions):** first pass chose "implement it"; a deeper look at what
+"reopen the state machine" actually requires (RunTransitionValidator has no COMPLETED/FAILED ->
+RUNNING_TESTS edge; `RunService.createApproval` has no uniqueness guard so re-entering
+WAITING_APPROVAL would insert a second PENDING Approval alongside the already-decided one;
+`handle_approval_decided`'s push/PR path has no idempotency check so a re-approval could open a
+second PR against an already-merged branch; workspaces are hard-deleted after
+`TALOS_RETENTION_MAX_AGE_DAYS` (default 7) so it only works in a narrow window anyway) changed the
+risk profile enough to go back and ask again. Given the effort and the safety risk of the
+duplicate-PR path specifically, the operator chose **not to build it** — dropped from scope
+entirely, not scaled down to a lesser version.
+
+**Changed:** `docs/initial_review.md` item #8 marked resolved with the full reasoning above.
+`docs/src/talos-implementation-plan.md` deliberately left untouched (same convention as the
+Gradle deviation: the plan doc is the frozen, compiled source of truth; deviations are recorded
+in the review doc and this log, not by hand-editing it).
+
+**Verification:** none needed — no code changed. Not checked: whether a future phase revisits this
+with the duplicate-approval/PR guards actually built (tracked as a documented open item, not a
+silent drop).
+
 ## 2026-07-11 — Review gap #9: OpenAPI drift check (+ two real path-param mismatches found)
 
 **Ask:** Review item #9 (medium): `packages/contracts/openapi.yaml`'s own description already
