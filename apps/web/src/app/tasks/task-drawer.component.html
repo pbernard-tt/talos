@@ -19,6 +19,19 @@
     <dd>{{ task.source }}</dd>
   </dl>
 
+  @if (canStartRun) {
+    <button
+      mat-flat-button
+      color="primary"
+      class="start-run"
+      [disabled]="hasActiveRun()"
+      (click)="startRun.emit(task)"
+    >
+      <mat-icon>play_arrow</mat-icon>
+      {{ hasActiveRun() ? 'Run in progress' : 'Start agent run' }}
+    </button>
+  }
+
   <h4>Runs</h4>
   @if (task.runs.length === 0) {
     <p>No agent runs yet.</p>

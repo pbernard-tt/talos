@@ -1,3 +1,31 @@
+## 2026-07-11 — Review gap #2: start-run button in the dashboard
+
+**Ask:** Review item #2 (critical): `POST /api/v1/tasks/{id}/start-run` was fully implemented and
+tested API-side but had no UI caller — the product's core loop ("move card → run agent → review")
+couldn't be started from the dashboard at all. Deferred since Phase 4, never closed.
+
+**Changed (frontend, `apps/web`):**
+- `task.store.ts` — `startRun(taskId)` via the generated `RunsService.startRun`, then refreshes
+  the board and (if open on that task) the drawer, so the new run and any task-status change
+  appear immediately.
+- `task-drawer.component.{ts,html,scss}` — "Start agent run" button; hidden below MAINTAINER
+  (`canStartRun` input fed by `authStore.hasRole`, a UI-hiding hint only — the endpoint enforces
+  RBAC server-side) and disabled with a "Run in progress" label while the task has a non-terminal
+  run (mirrors the API's `ACTIVE_RUN_EXISTS` 409 rather than replacing it).
+- `board.page.{ts,html}` — `onStartRun` handler: success → snackbar + navigate to `/runs/{id}`
+  (dropping the operator into the live run view); failure → error snackbar, stay on the board.
+
+**Coverage:** `board.page.spec.ts` +2 (success path calls the store and navigates to the run;
+rejected start shows an error snackbar and doesn't navigate); new
+`task-drawer.component.spec.ts` +2 (`hasActiveRun` false for empty/terminal-only run lists, true
+when any run is non-terminal). Web suite 18 tests green (was 14), `ng build` clean under Node
+22.23.1 (note: a Homebrew node@24 shadows nvm's node on this machine — forced
+`~/.nvm/versions/node/v22.23.1/bin` onto PATH to build).
+
+**Verification:** full `ng test --watch=false` + `npm run build` green. Not checked: a live
+click-through against a running stack (the API side of start-run was already
+integration-tested; the UI wiring is covered by the specs above).
+
 ## 2026-07-11 — Review gap #1: GitHub webhook + PR status transitions (unblocks retention)
 
 **Ask:** Begin working through `docs/initial_review.md`; item #1 (critical): implement the

@@ -36,6 +36,11 @@
     }
   </mat-drawer-content>
   <mat-drawer mode="over" position="end" [opened]="drawerOpen" (openedChange)="$event ? null : closeDrawer()">
-    <app-task-drawer [task]="store.selectedTask()" (close)="closeDrawer()" />
+    <app-task-drawer
+      [task]="store.selectedTask()"
+      [canStartRun]="authStore.hasRole('MAINTAINER')"
+      (startRun)="onStartRun($event)"
+      (close)="closeDrawer()"
+    />
   </mat-drawer>
 </mat-drawer-container>

@@ -43,7 +43,7 @@ keeps its workspace under `/var/talos/workspaces` forever, even after the PR mer
 VPS this is unbounded disk growth on the volume that also holds provider homes. Fix by implementing
 the webhook (preferred, it's in the plan) or a PR-status poll in the retention path.
 
-### 2. No way to start an agent run from the dashboard
+### 2. No way to start an agent run from the dashboard — **RESOLVED 2026-07-11** (see implementation log)
 
 Section 15 ("start agent run from a card"), Section 6.1, and MVP definition-of-done items 3–4
 assume runs are started from the UI. `POST /api/v1/tasks/{id}/start-run` is fully implemented and

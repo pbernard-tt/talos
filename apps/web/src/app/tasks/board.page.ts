@@ -1,6 +1,6 @@
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Component, OnInit, Signal, computed, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,7 +9,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
-import { CreateTaskRequest, Task, TaskStatus } from '../api';
+import { CreateTaskRequest, Task, TaskDetail, TaskStatus } from '../api';
 import { AuthStore } from '../core/auth/auth.store';
 import { TaskColumnComponent } from './task-column.component';
 import { TaskDrawerComponent } from './task-drawer.component';
@@ -51,6 +51,7 @@ export class BoardPage implements OnInit {
   protected readonly authStore = inject(AuthStore);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
 
   protected readonly columns = COLUMNS;
   protected readonly listIds = COLUMNS.map((c) => c.listId);
@@ -99,6 +100,18 @@ export class BoardPage implements OnInit {
   closeDrawer(): void {
     this.drawerOpen = false;
     this.store.clearSelectedTask();
+  }
+
+  onStartRun(task: TaskDetail): void {
+    this.store
+      .startRun(task.id)
+      .then((run) => {
+        this.snackBar.open(`Run started for "${task.title}".`, 'Dismiss', { duration: 4000 });
+        void this.router.navigate(['/runs', run.id]);
+      })
+      .catch(() =>
+        this.snackBar.open(`Could not start a run for "${task.title}".`, 'Dismiss', { duration: 4000 }),
+      );
   }
 
   onTaskDropped(event: CdkDragDrop<Task[]>, targetStatus: TaskStatus): void {

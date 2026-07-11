@@ -1,12 +1,13 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
-import { CreateTaskRequest, Task, TaskDetail, TaskStatus, TasksService } from '../api';
+import { CreateTaskRequest, Run, RunsService, Task, TaskDetail, TaskStatus, TasksService } from '../api';
 
 /** One signal-based store per domain (Section 6.1); components read signals and call store methods. */
 @Injectable({ providedIn: 'root' })
 export class TaskStore {
   private readonly tasksService = inject(TasksService);
+  private readonly runsService = inject(RunsService);
 
   private readonly tasksSignal = signal<Task[]>([]);
   private readonly loadingSignal = signal(false);
@@ -49,6 +50,17 @@ export class TaskStore {
     } finally {
       this.loadingSignal.set(false);
     }
+  }
+
+  /** Section 15 "start agent run from a card": POST /tasks/{id}/start-run, then refresh the
+   * board and the open drawer so the new run (and any task status change) appear immediately. */
+  async startRun(taskId: string): Promise<Run> {
+    const run = await firstValueFrom(this.runsService.startRun({ id: taskId }));
+    void this.load();
+    if (this.selectedTaskSignal()?.id === taskId) {
+      void this.loadDetail(taskId);
+    }
+    return run;
   }
 
   clearSelectedTask(): void {

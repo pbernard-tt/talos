@@ -1,11 +1,11 @@
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { signal } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
 
-import { Task } from '../api';
+import { Task, TaskDetail } from '../api';
 import { BoardPage } from './board.page';
 import { TaskStore } from './task.store';
 
@@ -40,6 +40,7 @@ function makeDropEvent(task: Task, sameContainer: boolean, currentIndex: number)
 describe('BoardPage', () => {
   function setup() {
     const move = vi.fn().mockResolvedValue(undefined);
+    const startRun = vi.fn().mockResolvedValue({ id: 'run-1' });
     const taskStoreStub = {
       tasks: signal<Task[]>([]),
       loading: signal(false),
@@ -49,6 +50,7 @@ describe('BoardPage', () => {
       loadDetail: vi.fn().mockResolvedValue(undefined),
       clearSelectedTask: vi.fn(),
       move,
+      startRun,
     };
 
     TestBed.configureTestingModule({
@@ -58,7 +60,9 @@ describe('BoardPage', () => {
     const fixture = TestBed.createComponent(BoardPage);
     const snackBar = TestBed.inject(MatSnackBar);
     const snackBarSpy = vi.spyOn(snackBar, 'open');
-    return { fixture, component: fixture.componentInstance, move, snackBarSpy };
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    return { fixture, component: fixture.componentInstance, move, startRun, snackBarSpy, navigateSpy };
   }
 
   it('moving a card to a new column calls store.move with the target status and drop index', () => {
@@ -93,6 +97,40 @@ describe('BoardPage', () => {
       'Dismiss',
       expect.anything(),
     );
+  });
+
+  it('starting a run calls store.startRun and navigates to the new run', async () => {
+    const { component, startRun, snackBarSpy, navigateSpy } = setup();
+    const task = { ...makeTask({ status: 'READY' }), runs: [] } as TaskDetail;
+
+    component.onStartRun(task);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(startRun).toHaveBeenCalledWith('task-1');
+    expect(snackBarSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Run started'),
+      'Dismiss',
+      expect.anything(),
+    );
+    expect(navigateSpy).toHaveBeenCalledWith(['/runs', 'run-1']);
+  });
+
+  it('a rejected start-run (e.g. 409 active run) shows an error snackbar and stays on the board', async () => {
+    const { component, startRun, snackBarSpy, navigateSpy } = setup();
+    startRun.mockRejectedValueOnce(new Error('409'));
+    const task = { ...makeTask({ status: 'READY' }), runs: [] } as TaskDetail;
+
+    component.onStartRun(task);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(snackBarSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Could not start a run'),
+      'Dismiss',
+      expect.anything(),
+    );
+    expect(navigateSpy).not.toHaveBeenCalled();
   });
 
   it('tasksFor() filters and sorts tasks by boardPosition within a column', () => {
