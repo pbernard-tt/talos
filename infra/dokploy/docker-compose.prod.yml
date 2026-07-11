@@ -82,6 +82,9 @@ services:
       TALOS_ADMIN_PASSWORD: ${TALOS_ADMIN_PASSWORD}
       TALOS_SECRETS_KEY: ${TALOS_SECRETS_KEY}
       TALOS_GITHUB_WEBHOOK_SECRET: ${TALOS_GITHUB_WEBHOOK_SECRET}
+      # talos-web and talos-api are separate Traefik hosts -- without this every browser fetch
+      # from the SPA fails CORS preflight.
+      TALOS_CORS_ALLOWED_ORIGINS: https://${TALOS_WEB_DOMAIN}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 15s

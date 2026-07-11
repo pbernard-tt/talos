@@ -35,7 +35,7 @@ class ArtifactMigrationRunnerTest {
 
 	private TalosProperties properties(String artifactStoreType) {
 		return new TalosProperties(null, null, null, null, null, null, null, null, null, null, null, null, null,
-				artifactStoreType, localDir.toString(), null, null, null, null, null);
+				artifactStoreType, localDir.toString(), null, null, null, null, null, null);
 	}
 
 	@Test

@@ -1,3 +1,36 @@
+## 2026-07-11 — Latent bug found live: no CORS config at all (blocked every browser login)
+
+**Ask:** none of the review's gaps named this directly, but browser-verifying the Command
+Center/Approvals/Integrations pages below (per this repo's UI-testing rule) surfaced a
+pre-existing defect serious enough to log on its own: talos-web and talos-api are separate
+origins in *both* dev compose (`localhost:4200` vs `localhost:8080`, gap #7's fix) and prod
+(`TALOS_WEB_DOMAIN` vs `TALOS_API_DOMAIN`), the SPA calls the API directly with no reverse-proxy
+path rewriting (`apps/web/nginx.conf` has no `/api` location), and `apps/api` had zero CORS
+configuration anywhere. Every fetch from a real browser — including `POST /api/v1/auth/login` —
+failed the preflight. curl-based smoke tests never exercise a browser's CORS enforcement, so this
+had never been caught.
+
+**Changed (backend, `apps/api`):**
+- `auth/SecurityConfig.java` — `corsConfigurationSource()` bean (allow-listed origins only,
+  methods GET/POST/PUT/PATCH/DELETE/OPTIONS, headers Authorization/Content-Type/Last-Event-ID),
+  wired into the public filter chain via `.cors(...)`. Unset/blank origins allow nothing (fail
+  closed, matching "safe defaults everywhere") — the internal `/internal/v1/**` chain is untouched,
+  it's server-to-server only.
+- `common/TalosProperties.java` / `application.yml` — new `corsAllowedOrigins` /
+  `TALOS_CORS_ALLOWED_ORIGINS` (comma-separated).
+- `infra/docker-compose.dev.yml` → `http://localhost:4200`; `infra/dokploy/docker-compose.prod.yml`
+  → `https://${TALOS_WEB_DOMAIN}`; `apps/api/.env.example` documents it.
+- Two existing tests constructed `TalosProperties` positionally and needed an extra `null` for the
+  new trailing field: `ArtifactMigrationRunnerTest`, `SecretServiceTest`.
+
+**Verification:** new `CorsConfigurationIntegrationTest` (2 tests: allowed origin gets
+`Access-Control-Allow-Origin` echoed back on an OPTIONS preflight, an unlisted origin gets 403).
+Full `apps/api` suite green, 186 tests (was 175 baseline + this session's other additions). Live:
+rebuilt `talos-api` in the dev compose, drove a real headless-Chrome session through login →
+Command Center — before the fix, login failed with a CORS console error and the page silently
+stayed on `/login`; after, it lands on `/` with real data. Not checked: the prod compose (no
+Dokploy environment here).
+
 ## 2026-07-11 — Review gap #6 (part 1 of 2): Command Center, Approvals inbox, Integrations page
 
 **Ask:** Review item #6 (high): three plan-mandated screens had complete APIs and no UI —

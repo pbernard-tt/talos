@@ -16,7 +16,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tools.jackson.databind.ObjectMapper;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Two filter chains: /internal/v1/** authenticates via a shared service token (Section 10.1),
@@ -89,11 +95,34 @@ public class SecurityConfig {
 		return http.build();
 	}
 
+	/** talos-web is a separate origin from talos-api in both dev compose (localhost:4200 vs :8080)
+	 * and prod (TALOS_WEB_DOMAIN vs TALOS_API_DOMAIN) -- the browser calls the API directly (no
+	 * reverse-proxy path rewriting), so without this every fetch from the SPA fails the CORS
+	 * preflight. Unset/blank TALOS_CORS_ALLOWED_ORIGINS allows nothing (fail closed, Section 12.2's
+	 * "safe defaults everywhere"); the operator must opt in per environment. */
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		String configured = talosProperties.corsAllowedOrigins();
+		List<String> allowedOrigins = configured == null || configured.isBlank()
+				? List.of()
+				: Arrays.stream(configured.split(",")).map(String::trim).filter(origin -> !origin.isBlank()).toList();
+
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(allowedOrigins);
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Last-Event-ID"));
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/api/v1/**", configuration);
+		return source;
+	}
+
 	@Bean
 	@Order(2)
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 				.csrf(csrf -> csrf.disable())
+				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.httpBasic(basic -> basic.disable())
 				.formLogin(form -> form.disable())

@@ -27,5 +27,9 @@ public record TalosProperties(
 		String minioAccessKey,
 		String minioSecretKey,
 		String minioBucket,
-		Boolean migrateArtifactsOnBoot) {
+		Boolean migrateArtifactsOnBoot,
+		// Browser-facing talos-web runs on a different origin than talos-api in both dev compose
+		// (localhost:4200 vs localhost:8080) and prod (TALOS_WEB_DOMAIN vs TALOS_API_DOMAIN) --
+		// comma-separated allow-list. Empty/unset means no origins are allowed (fail closed).
+		String corsAllowedOrigins) {
 }
