@@ -164,9 +164,9 @@ an ops runbook.
 
 ## Low / housekeeping
 
-- **Adapter env examples**: `apps/telegram-adapter` and `apps/whatsapp-adapter` have no
+- ~~**Adapter env examples**: `apps/telegram-adapter` and `apps/whatsapp-adapter` have no
   `.env.example`, unlike the four core apps (Appendix A convention: "every variable ships with a
-  commented entry in the relevant `.env.example`").
+  commented entry in the relevant `.env.example`").~~ **RESOLVED 2026-07-11** (see implementation log).
 - **`GeminiCliAdapter`** remains a `NotImplementedError` stub — correct per Section 7.4 (backlog),
   just noting it's the only stub left.
 - ~~**Board reordering** can accumulate duplicate `board_position` values within a column

@@ -1,3 +1,19 @@
+## 2026-07-11 — Low/housekeeping: telegram/whatsapp adapter `.env.example`s
+
+**Ask:** Appendix A's convention ("every variable ships with a commented entry in the relevant
+`.env.example`") wasn't followed for the two chat adapters -- only the four core apps had one.
+
+**Changed:** `apps/telegram-adapter/.env.example` and `apps/whatsapp-adapter/.env.example` (new),
+enumerating every field each adapter's `config.py::Settings` actually reads (bot
+token/verify-token/app-secret/access-token/phone-number-id, allowed sender-id lists, the seeded
+chat-trigger service account credentials, `TALOS_WEB_BASE_URL` deep links, transport/locks,
+adapter-specific tuning), same grouped/commented style as `apps/orchestrator/.env.example`.
+
+**Verification:** cross-checked every `os.environ.get(...)` call in both adapters'
+`config.py` against the new files by hand -- no field missing, no stray/unused one added. Not
+checked: whether either adapter actually boots with only these values populated (no live Telegram
+bot token or WhatsApp Cloud API credentials in this sandbox to test against).
+
 ## 2026-07-11 — Low/housekeeping: board_position duplicates fixed
 
 **Ask:** Phase 4 known issue, listed in the review's Low/housekeeping section: `TaskService.move()`
