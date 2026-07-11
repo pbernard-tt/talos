@@ -33,6 +33,27 @@ services:
       timeout: 5s
       retries: 10
 
+  # Review gap #12: scheduled pg_dump (Section 6 of docs/deployment.md documented the manual
+  # pg_dump/pg_restore cycle but nothing ran it on a schedule). Same image as postgres itself, so
+  # pg_dump's version always matches the server's; no cron daemon in the image, so pg-backup.sh is
+  # a plain sleep loop instead (same style as apps/orchestrator's retention sweep).
+  db-backup:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: talos
+      PGPASSWORD: ${TALOS_DB_PASSWORD}
+      PGDATABASE: talos
+      TALOS_DB_BACKUP_RETENTION_DAYS: ${TALOS_DB_BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./pg-backup.sh:/pg-backup.sh:ro
+      - talos_db_backups:/backups
+    entrypoint: ["sh", "/pg-backup.sh"]
+
   rabbitmq:
     image: rabbitmq:4.1-management
     restart: unless-stopped
@@ -188,6 +209,7 @@ services:
 
 volumes:
   talos_postgres_data:
+  talos_db_backups:
   talos_rabbitmq_data:
   talos_redis_data:
   # Explicit `name:` (rather than letting Compose prefix with the project name) so

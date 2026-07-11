@@ -179,8 +179,9 @@ an ops runbook.
   of residual validity. Accepted for a small-team install; revisit if user count grows.
 - **Cost capture for OpenCode/OpenHands** returns nulls (Phase 14, deliberate pending verified event
   schemas) — cost dashboards under-report when those adapters are used.
-- **Scheduled DB backups**: the Phase 11 restore drill validated the mechanism; no scheduled
-  `pg_dump` job exists. Operational task before production.
+- ~~**Scheduled DB backups**: the Phase 11 restore drill validated the mechanism; no scheduled
+  `pg_dump` job exists. Operational task before production.~~ **RESOLVED 2026-07-11** (see
+  implementation log).
 
 ## What was checked and found sound
 

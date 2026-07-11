@@ -1,3 +1,33 @@
+## 2026-07-11 — Low/housekeeping: scheduled DB backups (operator decision: cron sidecar in prod compose)
+
+**Ask:** Phase 11's restore drill validated the `pg_dump`/`pg_restore` mechanism but nothing ran it
+on a schedule -- "operational task before production" per the review.
+
+**Decision (operator, via question):** a cron-style sidecar in `infra/dokploy/docker-compose.prod.yml`
+(matching the self-hosted, compose-only deployment model), not just a runbook entry describing the
+command.
+
+**Changed:**
+- `infra/dokploy/pg-backup.sh` (new) — a sleep loop (no cron daemon in the postgres image; same
+  style as `apps/orchestrator`'s own retention sweep): `pg_dump -F c` (the same custom format
+  already validated in the Phase 11 restore drill, `docs/security-model.md` §8) once a day by
+  default, deletes anything past `TALOS_DB_BACKUP_RETENTION_DAYS` (default 14).
+- `infra/dokploy/docker-compose.prod.yml` — new `db-backup` service (same `pgvector/pgvector:pg17`
+  image as `postgres` itself, so `pg_dump`'s version always matches the server's), new
+  `talos_db_backups` volume.
+- `docs/deployment.md` §6 — documents the service, its retention default, and that it protects
+  against accidental `DROP`/bad migration on the same VPS, not VPS loss (still needs an off-box
+  copy for real disaster recovery); new optional `TALOS_DB_BACKUP_RETENTION_DAYS` row in the
+  Dokploy env var table.
+
+**Verification:** `docker compose -f infra/dokploy/docker-compose.prod.yml config -q` valid with
+all required vars stubbed. The script itself was actually run, not just read: `docker run` the
+same `pgvector/pgvector:pg17` image against the live dev stack's real `talos-postgres` container
+(pointed at it via `PGHOST`/`PGUSER`/`PGPASSWORD`/`PGDATABASE`, `infra_default` network), produced
+a real 162 KB `.dump` file. Not checked: an actual Dokploy deployment (no Dokploy environment
+here), or a full `pg_restore` round-trip of a scheduled backup (the restore side was already
+validated with a manual dump in the Phase 11 drill; this only automates producing the dump).
+
 ## 2026-07-11 — Low/housekeeping: telegram/whatsapp adapter `.env.example`s
 
 **Ask:** Appendix A's convention ("every variable ships with a commented entry in the relevant

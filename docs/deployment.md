@@ -63,6 +63,7 @@ Docker group wrapper, for example `sg docker -c "docker build -f workers/base-ag
    | `TALOS_DOCKER_GID` | Host Docker socket group id, usually from `stat -c '%g' /var/run/docker.sock`; lets the non-root `talos` user inside `talos-runner-supervisor` use the mounted socket. |
    | `TALOS_WORKER_IMAGE_BASE` / `TALOS_WORKER_IMAGE_JAVA` / `TALOS_WORKER_IMAGE_NODE` / `TALOS_WORKER_IMAGE_PYTHON` | Optional overrides if you tag or publish worker images differently. Defaults in the Compose file are `workers/*-runner:latest`. |
    | `TALOS_RUN_MEMORY_LIMIT` / `TALOS_RUN_CPU_LIMIT` / `TALOS_RUN_PIDS_LIMIT` | Optional per-run container limits; defaults are `1g`, `1`, and `256`. |
+   | `TALOS_DB_BACKUP_RETENTION_DAYS` | Optional; how long the `db-backup` service keeps daily `pg_dump` files in `talos_db_backups` before deleting them. Default `14`. |
 
 3. Deploy. Dokploy brings the compose stack up in dependency order:
    `postgres` (PostgreSQL 17 with pgvector) → `rabbitmq`/`redis` → `api` (talos-api runs Flyway migrations on boot, so it
@@ -127,5 +128,14 @@ Compose app.
   enabled, because Phase 13 memory uses the `vector` type.
 - `TALOS_SECRETS_KEY` must be backed up with the database. Without it, encrypted integration
   credentials in the restored database cannot be decrypted.
+- **Scheduled backups**: the `db-backup` service in the Compose file runs `infra/dokploy/pg-backup.sh`
+  in a loop -- `pg_dump -F c` (the same custom format used in the restore drill below) once a day
+  by default into the `talos_db_backups` volume, deleting anything older than
+  `TALOS_DB_BACKUP_RETENTION_DAYS` (default 14). It's a plain sleep loop, not real cron -- the
+  postgres image has no cron daemon, and this matches how `apps/orchestrator`'s own retention
+  sweep is written. `talos_db_backups` still lives on the same VPS as `talos_postgres_data`, so it
+  protects against accidental `DROP`/bad migration, not VPS loss -- copy it off-box periodically
+  for real disaster recovery (`docker cp`/`rsync` against the volume's mountpoint, or restore a
+  Dokploy-side snapshot job if your VPS provider offers one).
 
 The backup/restore mechanism was validated in [`docs/security-model.md`](security-model.md#8-backup-and-restore-drill-executed-2026-07-10).
