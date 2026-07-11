@@ -145,12 +145,14 @@ class TaskControllerIntegrationTest {
 				.andReturn().getResponse().getContentAsString();
 		String taskId = com.jayway.jsonpath.JsonPath.read(createResponse, "$.id");
 
+		// boardPosition is requested as 1 but the READY column is empty (only one task, being
+		// moved into it) -- move() clamps to the column's actual size, so this lands at 0, not 1.
 		mockMvc.perform(post("/api/v1/tasks/{id}/move", taskId).header("Authorization", token)
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"status\":\"READY\",\"boardPosition\":1}"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("READY"))
-				.andExpect(jsonPath("$.boardPosition").value(1));
+				.andExpect(jsonPath("$.boardPosition").value(0));
 
 		mockMvc.perform(get("/api/v1/tasks/{id}", taskId).header("Authorization", token))
 				.andExpect(status().isOk())
@@ -183,6 +185,74 @@ class TaskControllerIntegrationTest {
 		mockMvc.perform(get("/api/v1/tasks/{id}", taskId).header("Authorization", token))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("BACKLOG"));
+	}
+
+	@Test
+	void move_intoAColumnWithExistingTasks_insertsAtRequestedIndexWithoutDuplicatePositions() throws Exception {
+		String token = bearerToken();
+		String projectId = createProject(token);
+		String firstId = createTask(token, projectId, "First");
+		String secondId = createTask(token, projectId, "Second");
+		String thirdId = createTask(token, projectId, "Third");
+		move(token, firstId, "READY", 0);
+		move(token, secondId, "READY", 1);
+
+		// Insert "Third" at index 0 -- "First"/"Second" must shift to 1/2, not collide with it.
+		move(token, thirdId, "READY", 0);
+
+		String listResponse = mockMvc.perform(get("/api/v1/tasks")
+						.header("Authorization", token)
+						.param("projectId", projectId)
+						.param("status", "READY")
+						.param("size", "10"))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		List<Integer> positions = com.jayway.jsonpath.JsonPath.read(listResponse, "$.content[*].boardPosition");
+		assertThat(positions).containsExactlyInAnyOrder(0, 1, 2);
+		assertThat(new java.util.HashSet<>(positions)).hasSize(3);
+	}
+
+	@Test
+	void move_outOfAColumn_renumbersRemainingSiblingsContiguously() throws Exception {
+		String token = bearerToken();
+		String projectId = createProject(token);
+		String firstId = createTask(token, projectId, "First");
+		String secondId = createTask(token, projectId, "Second");
+		String thirdId = createTask(token, projectId, "Third");
+		move(token, firstId, "READY", 0);
+		move(token, secondId, "READY", 1);
+		move(token, thirdId, "READY", 2);
+
+		// Pull the middle task out of READY -- "First"/"Third" must close the gap to 0/1, not
+		// leave a hole at position 1.
+		move(token, secondId, "BACKLOG", 0);
+
+		String listResponse = mockMvc.perform(get("/api/v1/tasks")
+						.header("Authorization", token)
+						.param("projectId", projectId)
+						.param("status", "READY")
+						.param("size", "10"))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		List<Integer> positions = com.jayway.jsonpath.JsonPath.read(listResponse, "$.content[*].boardPosition");
+		assertThat(positions).containsExactlyInAnyOrder(0, 1);
+	}
+
+	private String createTask(String token, String projectId, String title) throws Exception {
+		String createResponse = mockMvc.perform(post("/api/v1/tasks")
+						.header("Authorization", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"projectId\":\"" + projectId + "\",\"title\":\"" + title + "\"}"))
+				.andExpect(status().isCreated())
+				.andReturn().getResponse().getContentAsString();
+		return com.jayway.jsonpath.JsonPath.read(createResponse, "$.id");
+	}
+
+	private void move(String token, String taskId, String status, int boardPosition) throws Exception {
+		mockMvc.perform(post("/api/v1/tasks/{id}/move", taskId).header("Authorization", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"status\":\"" + status + "\",\"boardPosition\":" + boardPosition + "}"))
+				.andExpect(status().isOk());
 	}
 
 	@Test

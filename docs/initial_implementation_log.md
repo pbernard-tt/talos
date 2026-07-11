@@ -1,3 +1,32 @@
+## 2026-07-11 — Low/housekeeping: board_position duplicates fixed
+
+**Ask:** Phase 4 known issue, listed in the review's Low/housekeeping section: `TaskService.move()`
+only set the dragged task's own `board_position` to whatever the client sent, never renumbering
+any other task in the source or target column -- two drags landing on the same index (or a drop
+past the end of a short column) produced duplicate positions within a column.
+
+**Changed (backend, `apps/api`):**
+- `tasks/Task.java` — new `reorder(int)`: sets `board_position` only, unlike `move()` which also
+  changes `status` -- needed to renumber siblings that aren't the task actually being moved.
+- `tasks/TaskRepository.java` — `findByProjectIdAndStatusOrderByBoardPositionAsc`.
+- `tasks/TaskService.java` `move()` — now: (1) if the status changed, reloads the *source* column
+  (excluding the moved task) and renumbers it contiguously 0..n-1; (2) reloads the *target* column
+  (excluding the moved task), clamps the requested index into `[0, size]`, inserts the task there,
+  and renumbers the whole target column contiguously. Same-column reordering (status unchanged)
+  goes through the same target-column path, since the moved task is excluded then reinserted at
+  its new index either way.
+- `tasks/TaskControllerIntegrationTest.java` — the existing `move_legalTransition_persistsAndAudits`
+  requested `boardPosition: 1` into an empty column and asserted the (buggy) verbatim echo back;
+  updated to assert the now-correct clamped `0`. Two new regression tests: inserting a third task
+  at index 0 of a two-task column shifts the others to 1/2 with no duplicate positions; pulling a
+  task out of a three-task column closes the gap so the remaining two are 0/1, not 0/2.
+
+**Verification:** full `apps/api` suite green, 189 (was 187). Not checked: a concurrent-drag race
+(two clients moving different tasks into the same column at the same instant) -- each `move()`
+call is a single `@Transactional` method reading-then-writing the whole column, so two concurrent
+calls could still interleave and reintroduce a duplicate; no optimistic locking was added for this
+pass since the review didn't flag concurrent moves specifically, just the single-mover case.
+
 ## 2026-07-11 — Review gap #11: DLQ ops runbook
 
 **Ask:** Review item #11 (medium): `talos.dlq` is declared/bound but nothing consumes it, alerts

@@ -10,6 +10,8 @@ import java.util.UUID;
 public interface TaskRepository extends JpaRepository<Task, UUID> {
 	List<Task> findByProjectIdAndStatus(UUID projectId, TaskStatus status);
 
+	List<Task> findByProjectIdAndStatusOrderByBoardPositionAsc(UUID projectId, TaskStatus status);
+
 	Page<Task> findByProjectId(UUID projectId, Pageable pageable);
 
 	Page<Task> findByStatus(TaskStatus status, Pageable pageable);

@@ -154,6 +154,12 @@ public class Task {
 		this.boardPosition = boardPosition;
 	}
 
+	/** Renumbers a sibling within its current column without touching status -- used to keep
+	 * board_position contiguous within a column after another task moves into/out of/within it. */
+	public void reorder(int boardPosition) {
+		this.boardPosition = boardPosition;
+	}
+
 	@PreUpdate
 	void onUpdate() {
 		this.updatedAt = Instant.now();

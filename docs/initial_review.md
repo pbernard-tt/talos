@@ -169,8 +169,9 @@ an ops runbook.
   commented entry in the relevant `.env.example`").
 - **`GeminiCliAdapter`** remains a `NotImplementedError` stub — correct per Section 7.4 (backlog),
   just noting it's the only stub left.
-- **Board reordering** can accumulate duplicate `board_position` values within a column (single-task
-  move endpoint renumbers only the dragged task) — Phase 4 known issue, still open, cosmetic.
+- ~~**Board reordering** can accumulate duplicate `board_position` values within a column
+  (single-task move endpoint renumbers only the dragged task) — Phase 4 known issue, still open,
+  cosmetic.~~ **RESOLVED 2026-07-11** (see implementation log).
 - **Login rate limiter trusts first `X-Forwarded-For` hop** (Phase 11 deviation 4) — safe behind
   Traefik as documented; becomes a bypass if the API is ever exposed directly. Keep the constraint
   visible in deployment docs.

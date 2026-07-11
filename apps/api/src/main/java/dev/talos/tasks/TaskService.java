@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -82,18 +83,44 @@ public class TaskService {
 		return task;
 	}
 
+	/** Review gap ("board reordering can accumulate duplicate board_position values"): renumbers
+	 * every task in the source column (if the status changed) and the target column so
+	 * board_position stays contiguous (0..n-1) within each column, rather than blindly setting
+	 * only the dragged task's own position. */
 	@Transactional
 	public Task move(UUID id, MoveTaskRequest request, UUID actorUserId) {
 		Task task = getOrThrow(id);
-		if (!TaskTransitionValidator.isLegal(task.getStatus(), request.status())) {
+		TaskStatus oldStatus = task.getStatus();
+		TaskStatus newStatus = request.status();
+		if (!TaskTransitionValidator.isLegal(oldStatus, newStatus)) {
 			throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "ILLEGAL_TRANSITION",
-					"Cannot move task from %s to %s".formatted(task.getStatus(), request.status()));
+					"Cannot move task from %s to %s".formatted(oldStatus, newStatus));
 		}
-		task.move(request.status(), request.boardPosition());
-		task = taskRepository.save(task);
+
+		if (oldStatus != newStatus) {
+			List<Task> oldColumn = taskRepository.findByProjectIdAndStatusOrderByBoardPositionAsc(task.getProjectId(), oldStatus);
+			oldColumn.removeIf(sibling -> sibling.getId().equals(id));
+			renumber(oldColumn);
+			taskRepository.saveAll(oldColumn);
+		}
+
+		List<Task> targetColumn = taskRepository.findByProjectIdAndStatusOrderByBoardPositionAsc(task.getProjectId(), newStatus);
+		targetColumn.removeIf(sibling -> sibling.getId().equals(id));
+		int insertAt = Math.max(0, Math.min(request.boardPosition(), targetColumn.size()));
+		task.move(newStatus, insertAt);
+		targetColumn.add(insertAt, task);
+		renumber(targetColumn);
+		taskRepository.saveAll(targetColumn);
+
 		auditService.record(actorUserId, "task.moved", "task", task.getId(),
 				Map.of("status", task.getStatus().name(), "boardPosition", task.getBoardPosition()));
 		return task;
+	}
+
+	private void renumber(List<Task> tasksInColumn) {
+		for (int i = 0; i < tasksInColumn.size(); i++) {
+			tasksInColumn.get(i).reorder(i);
+		}
 	}
 
 	private Task getOrThrow(UUID id) {
