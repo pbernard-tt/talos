@@ -11,6 +11,7 @@ import { HttpHeaders }                                       from '@angular/comm
 
 import { Observable }                                        from 'rxjs';
 
+import { ArtifactKind } from '../model/models';
 import { GitTokenResponse } from '../model/models';
 import { InternalChangesRequest } from '../model/models';
 import { InternalLogsRequest } from '../model/models';
@@ -23,6 +24,7 @@ import { MemorySearchResponse } from '../model/models';
 import { PullRequest } from '../model/models';
 import { RetentionCandidatesResponse } from '../model/models';
 import { Run } from '../model/models';
+import { RunArtifact } from '../model/models';
 import { RunContext } from '../model/models';
 import { Step } from '../model/models';
 
@@ -33,6 +35,10 @@ import { Configuration }                                     from '../configurat
 export interface InternalCreateRunPullRequestRequestParams {
     id: string;
     internalPullRequestRequest: InternalPullRequestRequest;
+}
+
+export interface InternalDeleteRunArtifactsRequestParams {
+    id: string;
 }
 
 export interface InternalGetRunContextRequestParams {
@@ -79,6 +85,13 @@ export interface InternalUpdateRunStatusRequestParams {
     internalStatusRequest: InternalStatusRequest;
 }
 
+export interface InternalUploadRunArtifactRequestParams {
+    id: string;
+    kind: ArtifactKind;
+    name: string;
+    file: Blob;
+}
+
 
 export interface InternalServiceInterface {
     defaultHeaders: HttpHeaders;
@@ -91,6 +104,14 @@ export interface InternalServiceInterface {
 * @param requestParameters
      */
     internalCreateRunPullRequest(requestParameters: InternalCreateRunPullRequestRequestParams, extraHttpRequestParams?: any): Observable<PullRequest>;
+
+    /**
+     * Delete every stored artifact for a run (Phase 16 extension of Phase 11\&#39;s retention sweep) -- called by the orchestrator once the runner supervisor has deleted the run\&#39;s workspace.
+     *
+     * @endpoint delete /internal/v1/runs/{id}/artifacts
+* @param requestParameters
+     */
+    internalDeleteRunArtifacts(requestParameters: InternalDeleteRunArtifactsRequestParams, extraHttpRequestParams?: any): Observable<{}>;
 
     /**
      * Run + task + project + active parsed config, for orchestrator pipeline bootstrap.
@@ -163,5 +184,13 @@ export interface InternalServiceInterface {
 * @param requestParameters
      */
     internalUpdateRunStatus(requestParameters: InternalUpdateRunStatusRequestParams, extraHttpRequestParams?: any): Observable<Run>;
+
+    /**
+     * Upload one artifact file (Phase 16, Section 10.4\&#39;s reserved contract line). Called directly by the runner supervisor -- not relayed through the orchestrator -- using the shared service token (Appendix A already reserves TALOS_INTERNAL_API_TOKEN there for \&quot;artifact/log posts\&quot;). talos-api is the only writer to the configured ArtifactStore.
+     *
+     * @endpoint post /internal/v1/runs/{id}/artifacts
+* @param requestParameters
+     */
+    internalUploadRunArtifact(requestParameters: InternalUploadRunArtifactRequestParams, extraHttpRequestParams?: any): Observable<RunArtifact>;
 
 }

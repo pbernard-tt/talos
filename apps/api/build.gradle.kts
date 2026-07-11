@@ -85,6 +85,9 @@ dependencies {
 	implementation("tools.jackson.dataformat:jackson-dataformat-yaml:3.2.0")
 	implementation("com.networknt:json-schema-validator:3.0.6")
 
+	// MinioArtifactStore (Phase 16, Section 4.2) -- S3-compatible object storage client
+	implementation("io.minio:minio:9.0.1")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-amqp-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")

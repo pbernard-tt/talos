@@ -31,6 +31,8 @@ import { PullRequest } from '../model/pullRequest';
 // @ts-ignore
 import { Run } from '../model/run';
 // @ts-ignore
+import { RunArtifact } from '../model/runArtifact';
+// @ts-ignore
 import { RunDetail } from '../model/runDetail';
 // @ts-ignore
 import { RunStatus } from '../model/runStatus';
@@ -45,11 +47,13 @@ import {
     RunsServiceInterface,
     CancelRunRequestParams,
     DeployRunRequestParams,
+    DownloadRunArtifactRequestParams,
     GetRunRequestParams,
     GetRunDeployStatusRequestParams,
     GetRunDiffRequestParams,
     GetRunLogsRequestParams,
     GetRunPullRequestRequestParams,
+    ListRunArtifactsRequestParams,
     ListRunsRequestParams,
     StartRunRequestParams,
     StreamRunEventsRequestParams
@@ -177,6 +181,60 @@ export class RunsService extends BaseService implements RunsServiceInterface {
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Stream the artifact\&#39;s bytes, byte-identical regardless of the configured ArtifactStore (Phase 16 acceptance criterion) -- no browser-visible presigned credentials in this first cut.
+     * @endpoint get /runs/{id}/artifacts/{artifactId}/download
+     * @param requestParameters
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public downloadRunArtifact(requestParameters: DownloadRunArtifactRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Blob>;
+    public downloadRunArtifact(requestParameters: DownloadRunArtifactRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Blob>>;
+    public downloadRunArtifact(requestParameters: DownloadRunArtifactRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Blob>>;
+    public downloadRunArtifact(requestParameters: DownloadRunArtifactRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const id = requestParameters?.id;
+        if (id === null || id === undefined) {
+            throw new Error('Required parameter id was null or undefined when calling downloadRunArtifact.');
+        }
+        const artifactId = requestParameters?.artifactId;
+        if (artifactId === null || artifactId === undefined) {
+            throw new Error('Required parameter artifactId was null or undefined when calling downloadRunArtifact.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/octet-stream',
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let localVarPath = `/runs/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/artifacts/${this.configuration.encodeParam({name: "artifactId", value: artifactId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/download`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: "blob",
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,
                 observe: observe,
@@ -497,6 +555,66 @@ export class RunsService extends BaseService implements RunsServiceInterface {
         let localVarPath = `/runs/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/pull-request`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<PullRequest>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * List the run\&#39;s stored artifacts (transcripts, patches, test reports, generated docs -- Section 4.2, Phase 16). Recorded via POST /internal/v1/runs/{id}/artifacts, behind the configured ArtifactStore (local volume or MinIO).
+     * @endpoint get /runs/{id}/artifacts
+     * @param requestParameters
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public listRunArtifacts(requestParameters: ListRunArtifactsRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<RunArtifact>>;
+    public listRunArtifacts(requestParameters: ListRunArtifactsRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<RunArtifact>>>;
+    public listRunArtifacts(requestParameters: ListRunArtifactsRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<RunArtifact>>>;
+    public listRunArtifacts(requestParameters: ListRunArtifactsRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const id = requestParameters?.id;
+        if (id === null || id === undefined) {
+            throw new Error('Required parameter id was null or undefined when calling listRunArtifacts.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/runs/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/artifacts`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<Array<RunArtifact>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

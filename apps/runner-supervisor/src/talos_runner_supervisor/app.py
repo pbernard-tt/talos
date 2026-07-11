@@ -10,6 +10,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 
+from talos_runner_supervisor.artifact_client import post_artifact
 from talos_runner_supervisor.config import Settings, load_settings
 from talos_runner_supervisor.diff_capture import capture_diff
 from talos_runner_supervisor.execute import RunAlreadyExecutingError, execute_run
@@ -88,20 +89,23 @@ async def execute(
 
 
 @app.post("/runs/{run_id}/tests")
-async def run_tests(run_id: str, request: RunTestsRequest) -> StreamingResponse:
+async def run_tests(run_id: str, request: RunTestsRequest, settings: Settings = Depends(get_settings)) -> StreamingResponse:
     async def ndjson() -> None:
-        async for item in stream_test_command(request.workspace_path, request.command, request.timeout_seconds):
+        async for item in stream_test_command(
+            settings, run_id, request.workspace_path, request.command, request.timeout_seconds
+        ):
             yield json.dumps(item) + "\n"
 
     return StreamingResponse(ndjson(), media_type="application/x-ndjson")
 
 
 @app.post("/runs/{run_id}/diff", response_model=DiffResponse)
-async def diff(run_id: str, request: DiffRequest) -> DiffResponse:
+async def diff(run_id: str, request: DiffRequest, settings: Settings = Depends(get_settings)) -> DiffResponse:
     worktree_dir = Path(request.workspace_path)
     if not worktree_dir.exists():
         raise HTTPException(status_code=404, detail={"error": {"code": "WORKSPACE_NOT_FOUND", "message": str(worktree_dir)}})
     files, diff_text, diff_artifact_path = capture_diff(worktree_dir)
+    await post_artifact(settings, run_id, "DIFF_PATCH", "diff.patch", Path(diff_artifact_path), "text/x-diff")
     return DiffResponse(
         files=[GitChange(filePath=f.file_path, changeType=f.change_type, additions=f.additions, deletions=f.deletions) for f in files],
         diff=diff_text,

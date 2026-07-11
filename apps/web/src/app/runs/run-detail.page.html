@@ -92,6 +92,25 @@
     }
   </section>
 
+  <section class="artifacts">
+    <h3>Artifacts</h3>
+    @if (store.artifacts().length) {
+      <mat-list>
+        @for (artifact of store.artifacts(); track artifact.id) {
+          <mat-list-item>
+            <span matListItemTitle>{{ artifact.name }} ({{ artifact.kind }})</span>
+            <span matListItemLine>{{ artifact.sizeBytes }} bytes</span>
+            <button mat-icon-button matListItemMeta (click)="downloadArtifact(artifact)" aria-label="Download">
+              &darr;
+            </button>
+          </mat-list-item>
+        }
+      </mat-list>
+    } @else {
+      <p>No artifacts recorded yet.</p>
+    }
+  </section>
+
   <section class="logs">
     <h3>Live log</h3>
     <div class="log-pane">

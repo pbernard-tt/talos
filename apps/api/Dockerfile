@@ -15,7 +15,11 @@ RUN ./gradlew --no-daemon bootJar -x test
 FROM eclipse-temurin:21-jre
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --system --create-home talos
+    && useradd --system --create-home talos \
+    # Phase 16: LocalVolumeArtifactStore's default root (Section 18's "/var/talos" volume) --
+    # must exist and be writable by the non-root `talos` user before the app ever calls write().
+    && mkdir -p /var/talos/artifacts \
+    && chown -R talos:talos /var/talos
 WORKDIR /app
 COPY --from=build /build/apps/api/build/libs/talos-api-*.jar app.jar
 USER talos

@@ -17,6 +17,8 @@ import { Observable }                                        from 'rxjs';
 import { OpenApiHttpParams, QueryParamStyle } from '../query.params';
 
 // @ts-ignore
+import { ArtifactKind } from '../model/artifactKind';
+// @ts-ignore
 import { GitTokenResponse } from '../model/gitTokenResponse';
 // @ts-ignore
 import { InternalChangesRequest } from '../model/internalChangesRequest';
@@ -41,6 +43,8 @@ import { RetentionCandidatesResponse } from '../model/retentionCandidatesRespons
 // @ts-ignore
 import { Run } from '../model/run';
 // @ts-ignore
+import { RunArtifact } from '../model/runArtifact';
+// @ts-ignore
 import { RunContext } from '../model/runContext';
 // @ts-ignore
 import { Step } from '../model/step';
@@ -52,6 +56,7 @@ import { BaseService } from '../api.base.service';
 import {
     InternalServiceInterface,
     InternalCreateRunPullRequestRequestParams,
+    InternalDeleteRunArtifactsRequestParams,
     InternalGetRunContextRequestParams,
     InternalGetRunGitTokenRequestParams,
     InternalGetRunRetentionCandidatesRequestParams,
@@ -60,7 +65,8 @@ import {
     InternalRecordRunChangesRequestParams,
     InternalRecordRunStepRequestParams,
     InternalSearchProjectMemoryRequestParams,
-    InternalUpdateRunStatusRequestParams
+    InternalUpdateRunStatusRequestParams,
+    InternalUploadRunArtifactRequestParams
 } from './internal.serviceInterface';
 
 
@@ -138,6 +144,65 @@ export class InternalService extends BaseService implements InternalServiceInter
             {
                 context: localVarHttpContext,
                 body: internalPullRequestRequest,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Delete every stored artifact for a run (Phase 16 extension of Phase 11\&#39;s retention sweep) -- called by the orchestrator once the runner supervisor has deleted the run\&#39;s workspace.
+     * @endpoint delete /internal/v1/runs/{id}/artifacts
+     * @param requestParameters
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public internalDeleteRunArtifacts(requestParameters: InternalDeleteRunArtifactsRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public internalDeleteRunArtifacts(requestParameters: InternalDeleteRunArtifactsRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public internalDeleteRunArtifacts(requestParameters: InternalDeleteRunArtifactsRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public internalDeleteRunArtifacts(requestParameters: InternalDeleteRunArtifactsRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const id = requestParameters?.id;
+        if (id === null || id === undefined) {
+            throw new Error('Required parameter id was null or undefined when calling internalDeleteRunArtifacts.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (serviceToken) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('serviceToken', 'X-Talos-Internal-Token', localVarHeaders);
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/internal/v1/runs/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/artifacts`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<any>('delete', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,
@@ -793,6 +858,122 @@ export class InternalService extends BaseService implements InternalServiceInter
             {
                 context: localVarHttpContext,
                 body: internalStatusRequest,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Upload one artifact file (Phase 16, Section 10.4\&#39;s reserved contract line). Called directly by the runner supervisor -- not relayed through the orchestrator -- using the shared service token (Appendix A already reserves TALOS_INTERNAL_API_TOKEN there for \&quot;artifact/log posts\&quot;). talos-api is the only writer to the configured ArtifactStore.
+     * @endpoint post /internal/v1/runs/{id}/artifacts
+     * @param requestParameters
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public internalUploadRunArtifact(requestParameters: InternalUploadRunArtifactRequestParams, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<RunArtifact>;
+    public internalUploadRunArtifact(requestParameters: InternalUploadRunArtifactRequestParams, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<RunArtifact>>;
+    public internalUploadRunArtifact(requestParameters: InternalUploadRunArtifactRequestParams, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<RunArtifact>>;
+    public internalUploadRunArtifact(requestParameters: InternalUploadRunArtifactRequestParams, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        const id = requestParameters?.id;
+        if (id === null || id === undefined) {
+            throw new Error('Required parameter id was null or undefined when calling internalUploadRunArtifact.');
+        }
+        const kind = requestParameters?.kind;
+        if (kind === null || kind === undefined) {
+            throw new Error('Required parameter kind was null or undefined when calling internalUploadRunArtifact.');
+        }
+        const name = requestParameters?.name;
+        if (name === null || name === undefined) {
+            throw new Error('Required parameter name was null or undefined when calling internalUploadRunArtifact.');
+        }
+        const file = requestParameters?.file;
+        if (file === null || file === undefined) {
+            throw new Error('Required parameter file was null or undefined when calling internalUploadRunArtifact.');
+        }
+
+        let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'kind',
+            <any>kind,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'name',
+            <any>name,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (serviceToken) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('serviceToken', 'X-Talos-Internal-Token', localVarHeaders);
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'multipart/form-data'
+        ];
+
+        const canConsumeForm = this.canConsumeForm(consumes);
+
+        let localVarFormParams: { append(param: string, value: any): any; };
+        let localVarUseForm = false;
+        let localVarConvertFormParamsToString = false;
+        // use FormData to transmit files using content-type "multipart/form-data"
+        // see https://stackoverflow.com/questions/4007969/application-x-www-form-urlencoded-or-multipart-form-data
+        localVarUseForm = canConsumeForm;
+        if (localVarUseForm) {
+            localVarFormParams = new FormData();
+        } else {
+            localVarFormParams = new HttpParams({encoder: this.encoder});
+        }
+
+        if (file !== undefined) {
+            localVarFormParams = localVarFormParams.append('file', <any>file) as any || localVarFormParams;
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/internal/v1/runs/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/artifacts`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<RunArtifact>('post', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: localVarConvertFormParamsToString ? localVarFormParams.toString() : localVarFormParams,
+                params: localVarQueryParameters.toHttpParams(),
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

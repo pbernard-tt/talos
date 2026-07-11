@@ -36,6 +36,7 @@ model/approval.ts
 model/approvalDetail.ts
 model/approvalStatus.ts
 model/approveRequest.ts
+model/artifactKind.ts
 model/chatRejectedSenderRequest.ts
 model/createProjectRequest.ts
 model/createTaskRequest.ts
@@ -92,6 +93,7 @@ model/reviewStatus.ts
 model/riskFlag.ts
 model/role.ts
 model/run.ts
+model/runArtifact.ts
 model/runContext.ts
 model/runDetail.ts
 model/runStatus.ts

@@ -38,6 +38,7 @@ def settings(tmp_path: Path) -> Settings:
         workspaces_root=str(tmp_path / "workspaces"),
         provider_homes_root=str(tmp_path / "provider-homes"),
         internal_api_token="",
+        api_base_url="http://talos-api:8080",
         max_workspace_age_days=7,
         run_workspaces_volume="talos_workspaces",
         run_provider_homes_volume="talos_provider_homes",

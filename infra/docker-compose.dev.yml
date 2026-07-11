@@ -60,6 +60,30 @@ services:
       timeout: 5s
       retries: 10
 
+  minio:
+    image: minio/minio:latest
+    container_name: talos-minio
+    restart: unless-stopped
+    # Dev-only placeholder credentials, committed deliberately -- see the postgres/rabbitmq
+    # comment above. Section 18 lists talos-minio as "optional, later" for production; here it's
+    # brought up unconditionally so it's available to opt into (talos-api's TALOS_ARTIFACT_STORE_TYPE
+    # stays unset below, i.e. "local", so bringing this container up changes no default behavior --
+    # Phase 16's acceptance criterion that unconfigured behavior is exactly pre-Phase-16).
+    environment:
+      MINIO_ROOT_USER: talos-minio-admin
+      MINIO_ROOT_PASSWORD: talos-dev-minio-password
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - talos_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build:
       context: ..
@@ -72,6 +96,8 @@ services:
       rabbitmq:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     environment:
       # Dev-only placeholders, committed deliberately (same spirit as the postgres/rabbitmq
@@ -93,6 +119,17 @@ services:
       TALOS_TELEGRAM_SERVICE_PASSWORD: talos-dev-telegram-password
       TALOS_WHATSAPP_SERVICE_EMAIL: whatsapp-bot@talos.local
       TALOS_WHATSAPP_SERVICE_PASSWORD: talos-dev-whatsapp-password
+      # Phase 16: talos-minio is up (above) and ready to opt into -- TALOS_ARTIFACT_STORE_TYPE is
+      # deliberately left unset (defaults to "local") so this compose file's default behavior is
+      # unchanged; set it to "minio" here to exercise the MinioArtifactStore path locally.
+      TALOS_MINIO_ENDPOINT: http://minio:9000
+      TALOS_MINIO_ACCESS_KEY: talos-minio-admin
+      TALOS_MINIO_SECRET_KEY: talos-dev-minio-password
+      TALOS_MINIO_BUCKET: talos-artifacts
+    volumes:
+      # LocalVolumeArtifactStore's default root (Section 18: "/var/talos" -- workspaces + provider
+      # homes + artifacts); the Dockerfile pre-creates and chowns this to the non-root `talos` user.
+      - talos_artifacts:/var/talos/artifacts
     ports:
       - "8080:8080"
 
@@ -102,11 +139,16 @@ services:
       dockerfile: apps/runner-supervisor/Dockerfile
     container_name: talos-runner-supervisor
     restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
     environment:
       TALOS_WORKSPACES_ROOT: /var/talos/workspaces
       TALOS_PROVIDER_HOMES_ROOT: /var/talos/provider-homes
       # Dev-only placeholder, committed deliberately -- see the api service's comment above.
       TALOS_INTERNAL_API_TOKEN: dev-only-internal-api-token-do-not-use-in-production
+      # Phase 16: direct runner -> talos-api artifact posts (artifact_client.py), same token as above.
+      TALOS_API_BASE_URL: http://api:8080
       TALOS_MAX_WORKSPACE_AGE_DAYS: "7"
       # Phase 11 (Section 8): per-run `docker run` containers -- volume/network names must match the
       # `name:` fields declared below so they resolve regardless of this file's compose project name.
@@ -227,6 +269,8 @@ volumes:
   talos_postgres_data:
   talos_rabbitmq_data:
   talos_redis_data:
+  talos_minio_data:
+  talos_artifacts:
   # Explicit `name:` (rather than letting Compose prefix with the project name) so
   # talos-runner-supervisor's `docker run --mount type=volume,source=talos_workspaces,...` resolves
   # the same volume Compose created here, independent of this file's project name.

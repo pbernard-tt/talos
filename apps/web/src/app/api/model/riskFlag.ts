@@ -16,4 +16,3 @@ export interface RiskFlag {
     fileArea: string;
     riskFlaggedRunCount: number;
 }
-

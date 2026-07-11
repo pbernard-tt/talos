@@ -19,5 +19,13 @@ public record TalosProperties(
 		String telegramServiceEmail,
 		String telegramServicePassword,
 		String whatsappServiceEmail,
-		String whatsappServicePassword) {
+		String whatsappServicePassword,
+		// Phase 16: ArtifactStore selection (ArtifactStoreConfig) -- "local" (default) or "minio".
+		String artifactStoreType,
+		String artifactLocalDir,
+		String minioEndpoint,
+		String minioAccessKey,
+		String minioSecretKey,
+		String minioBucket,
+		Boolean migrateArtifactsOnBoot) {
 }

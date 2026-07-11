@@ -11,6 +11,7 @@ class Settings:
     workspaces_root: str
     provider_homes_root: str
     internal_api_token: str
+    api_base_url: str
     max_workspace_age_days: int
     # Phase 11 (Section 8/12.1): per-run Docker execution. Volume/network names must match
     # infra/docker-compose.dev.yml's (and the prod compose's) explicit `name:` fields exactly --
@@ -29,11 +30,12 @@ def load_settings() -> Settings:
     return Settings(
         workspaces_root=os.environ.get("TALOS_WORKSPACES_ROOT", "/var/talos/workspaces"),
         provider_homes_root=os.environ.get("TALOS_PROVIDER_HOMES_ROOT", "/var/talos/provider-homes"),
-        # Not used to authenticate this service's own HTTP surface in Phase 6 (runner-api.yaml is
-        # unauthenticated -- it's reachable only on the internal Docker network); provisioned here
-        # for a possible future direct runner -> talos-api call (Appendix A lists it for
-        # "artifact/log posts", which today are relayed through the orchestrator instead).
+        # Not used to authenticate this service's own HTTP surface (runner-api.yaml is
+        # unauthenticated -- it's reachable only on the internal Docker network). Used since
+        # Phase 16 for the direct runner -> talos-api artifact-post call Appendix A already
+        # reserved this token for ("artifact/log posts") -- see artifact_client.py.
         internal_api_token=os.environ.get("TALOS_INTERNAL_API_TOKEN", ""),
+        api_base_url=os.environ.get("TALOS_API_BASE_URL", "http://talos-api:8080"),
         max_workspace_age_days=int(os.environ.get("TALOS_MAX_WORKSPACE_AGE_DAYS", "7")),
         run_workspaces_volume=os.environ.get("TALOS_RUN_WORKSPACES_VOLUME", "talos_workspaces"),
         run_provider_homes_volume=os.environ.get("TALOS_RUN_PROVIDER_HOMES_VOLUME", "talos_provider_homes"),

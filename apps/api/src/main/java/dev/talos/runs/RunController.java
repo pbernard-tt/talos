@@ -1,5 +1,8 @@
 package dev.talos.runs;
 
+import dev.talos.artifacts.ArtifactService;
+import dev.talos.artifacts.RunArtifact;
+import dev.talos.artifacts.dto.RunArtifactResponse;
 import dev.talos.auth.AuthenticatedUser;
 import dev.talos.common.PageResponse;
 import dev.talos.integrations.DeployService;
@@ -10,9 +13,13 @@ import dev.talos.runs.dto.LogEntryResponse;
 import dev.talos.runs.dto.PullRequestResponse;
 import dev.talos.runs.dto.RunDetailResponse;
 import dev.talos.runs.dto.RunResponse;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -33,11 +41,14 @@ public class RunController {
 	private final RunService runService;
 	private final RunEventBroadcaster broadcaster;
 	private final DeployService deployService;
+	private final ArtifactService artifactService;
 
-	public RunController(RunService runService, RunEventBroadcaster broadcaster, DeployService deployService) {
+	public RunController(RunService runService, RunEventBroadcaster broadcaster, DeployService deployService,
+			ArtifactService artifactService) {
 		this.runService = runService;
 		this.broadcaster = broadcaster;
 		this.deployService = deployService;
+		this.artifactService = artifactService;
 	}
 
 	@GetMapping
@@ -68,6 +79,27 @@ public class RunController {
 	@GetMapping("/{id}/pull-request")
 	public PullRequestResponse pullRequest(@PathVariable UUID id) {
 		return runService.getPullRequest(id);
+	}
+
+	/** Phase 16: transcripts/patches/test reports/generated docs recorded via the internal artifacts endpoint. */
+	@GetMapping("/{id}/artifacts")
+	public List<RunArtifactResponse> artifacts(@PathVariable UUID id) {
+		runService.getOrThrow(id);
+		return artifactService.list(id).stream().map(RunArtifactResponse::from).toList();
+	}
+
+	/** Streams the artifact's bytes byte-identical regardless of the configured {@code ArtifactStore} (Phase 16 acceptance). */
+	@GetMapping("/{id}/artifacts/{artifactId}/download")
+	public ResponseEntity<InputStreamResource> downloadArtifact(@PathVariable UUID id, @PathVariable UUID artifactId) {
+		runService.getOrThrow(id);
+		RunArtifact artifact = artifactService.getOrThrow(id, artifactId);
+		InputStreamResource body = new InputStreamResource(artifactService.download(artifact));
+		return ResponseEntity.ok()
+				.contentType(MediaType.parseMediaType(artifact.getContentType()))
+				.contentLength(artifact.getSizeBytes())
+				.header(HttpHeaders.CONTENT_DISPOSITION,
+						ContentDisposition.attachment().filename(artifact.getName()).build().toString())
+				.body(body);
 	}
 
 	@PostMapping("/{id}/deploy")

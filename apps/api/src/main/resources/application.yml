@@ -23,6 +23,13 @@ spring:
   rabbitmq:
     addresses: ${TALOS_RABBITMQ_URL:amqp://guest:guest@localhost:5672}
 
+  servlet:
+    multipart:
+      # Phase 16: POST /internal/v1/runs/{id}/artifacts multipart uploads (transcripts can run
+      # into low tens of MB for long agent sessions).
+      max-file-size: 64MB
+      max-request-size: 64MB
+
 management:
   endpoints:
     web:
@@ -45,3 +52,15 @@ talos:
   telegram-service-password: ${TALOS_TELEGRAM_SERVICE_PASSWORD:}
   whatsapp-service-email: ${TALOS_WHATSAPP_SERVICE_EMAIL:}
   whatsapp-service-password: ${TALOS_WHATSAPP_SERVICE_PASSWORD:}
+  # Phase 16: ArtifactStore selection -- "local" (default, pre-Phase-16 behavior) or "minio".
+  artifact-store-type: ${TALOS_ARTIFACT_STORE_TYPE:local}
+  artifact-local-dir: ${TALOS_ARTIFACT_LOCAL_DIR:/var/talos/artifacts}
+  minio-endpoint: ${TALOS_MINIO_ENDPOINT:}
+  minio-access-key: ${TALOS_MINIO_ACCESS_KEY:}
+  minio-secret-key: ${TALOS_MINIO_SECRET_KEY:}
+  minio-bucket: ${TALOS_MINIO_BUCKET:talos-artifacts}
+  # One-shot: copies every already-recorded artifact from the local volume into the
+  # currently-configured MinIO store on the next boot, then leaves itself disabled again --
+  # ArtifactMigrationRunner does not clear this back to false itself (Section: operator sets it,
+  # confirms the log line, then unsets it -- see phase-16-report.md).
+  migrate-artifacts-on-boot: ${TALOS_MIGRATE_ARTIFACTS_ON_BOOT:false}

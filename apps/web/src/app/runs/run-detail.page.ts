@@ -14,6 +14,7 @@ import {
   ApprovalActionDialogResult,
 } from '../approvals/approval-action-dialog.component';
 import { AuthStore } from '../core/auth/auth.store';
+import { RunArtifact } from '../api';
 import { RunStore } from './run.store';
 
 const CANCELLABLE_STATUSES = new Set([
@@ -131,6 +132,15 @@ export class RunDetailPage implements OnInit, OnDestroy {
         .then(() => this.snackBar.open('Deploy rejected.', 'Dismiss', { duration: 4000 }))
         .catch(() => this.snackBar.open('Could not reject the deploy.', 'Dismiss', { duration: 4000 }));
     });
+  }
+
+  downloadArtifact(artifact: RunArtifact): void {
+    if (!this.runId) {
+      return;
+    }
+    this.store
+      .downloadArtifact(this.runId, artifact)
+      .catch(() => this.snackBar.open('Could not download the artifact.', 'Dismiss', { duration: 4000 }));
   }
 
   private openDialog(data: ApprovalActionDialogData) {

@@ -23,4 +23,3 @@ export interface RecommendationResponse {
     agentStats: Array<AgentStat>;
     riskFlags: Array<RiskFlag>;
 }
-

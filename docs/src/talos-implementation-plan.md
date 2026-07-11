@@ -1107,7 +1107,7 @@ Two independent tracks, gated together. Track A proves the agent-agnostic claim 
 - **Acceptance:** role × endpoint-class matrix covered by tests; a `VIEWER` attempting an approval receives 403 plus an audit row; a fresh single-user install behaves exactly as before (seeded admin is `OWNER`); no endpoint relies on UI hiding for protection.
 - **Tests:** exhaustive matrix (MockMvc per role); self-approval test; migration test that existing installs map the admin to `OWNER`.
 
-#### Phase 16 (provisional) — MinIO artifact storage
+#### Phase 16 — MinIO artifact storage
 
 - **Goal:** Move run artifacts (transcripts, patches, test reports, generated docs — Section 4.2) from the local volume to S3-compatible object storage, behind an interface so the local volume remains the default for small installs.
 - **Files:** an `ArtifactStore` interface in `dev.talos` with `LocalVolumeArtifactStore` (current behavior, default) and `MinioArtifactStore` implementations; `talos-minio` Dokploy app (the Section 18 table already reserves its row).

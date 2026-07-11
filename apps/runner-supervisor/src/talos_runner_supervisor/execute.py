@@ -9,6 +9,7 @@ from pathlib import Path, PurePosixPath
 
 from talos_agent_adapter_spec import AgentSessionRequest, ContainerConfig, ensure_network, get_adapter_class
 
+from talos_runner_supervisor.artifact_client import post_artifact
 from talos_runner_supervisor.config import Settings
 from talos_runner_supervisor.run_registry import RunRegistry
 
@@ -78,6 +79,10 @@ async def execute_run(
             async for event in adapter.events():
                 yield json.dumps(dataclasses.asdict(event)) + "\n"
             result = await adapter.result()
+            if result.raw_output_path:
+                transcript_path = Path(result.raw_output_path)
+                content_type = "application/x-ndjson" if transcript_path.suffix == ".jsonl" else "text/plain"
+                await post_artifact(settings, run_id, "TRANSCRIPT", transcript_path.name, transcript_path, content_type)
             yield json.dumps({"type": "result", **dataclasses.asdict(result)}) + "\n"
         finally:
             registry.release(run_id)

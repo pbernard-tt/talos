@@ -18,6 +18,7 @@ import { PageRunSummary } from '../model/models';
 import { ProjectEnvironment } from '../model/models';
 import { PullRequest } from '../model/models';
 import { Run } from '../model/models';
+import { RunArtifact } from '../model/models';
 import { RunDetail } from '../model/models';
 import { RunStatus } from '../model/models';
 import { StartRunRequest } from '../model/models';
@@ -32,6 +33,11 @@ export interface CancelRunRequestParams {
 
 export interface DeployRunRequestParams {
     id: string;
+}
+
+export interface DownloadRunArtifactRequestParams {
+    id: string;
+    artifactId: string;
 }
 
 export interface GetRunRequestParams {
@@ -53,6 +59,10 @@ export interface GetRunLogsRequestParams {
 }
 
 export interface GetRunPullRequestRequestParams {
+    id: string;
+}
+
+export interface ListRunArtifactsRequestParams {
     id: string;
 }
 
@@ -94,6 +104,14 @@ export interface RunsServiceInterface {
     deployRun(requestParameters: DeployRunRequestParams, extraHttpRequestParams?: any): Observable<DeployTriggerResponse>;
 
     /**
+     * Stream the artifact\&#39;s bytes, byte-identical regardless of the configured ArtifactStore (Phase 16 acceptance criterion) -- no browser-visible presigned credentials in this first cut.
+     *
+     * @endpoint get /runs/{id}/artifacts/{artifactId}/download
+* @param requestParameters
+     */
+    downloadRunArtifact(requestParameters: DownloadRunArtifactRequestParams, extraHttpRequestParams?: any): Observable<Blob>;
+
+    /**
      * Get a run and its steps.
      *
      * @endpoint get /runs/{id}
@@ -132,6 +150,14 @@ export interface RunsServiceInterface {
 * @param requestParameters
      */
     getRunPullRequest(requestParameters: GetRunPullRequestRequestParams, extraHttpRequestParams?: any): Observable<PullRequest>;
+
+    /**
+     * List the run\&#39;s stored artifacts (transcripts, patches, test reports, generated docs -- Section 4.2, Phase 16). Recorded via POST /internal/v1/runs/{id}/artifacts, behind the configured ArtifactStore (local volume or MinIO).
+     *
+     * @endpoint get /runs/{id}/artifacts
+* @param requestParameters
+     */
+    listRunArtifacts(requestParameters: ListRunArtifactsRequestParams, extraHttpRequestParams?: any): Observable<Array<RunArtifact>>;
 
     /**
      * List agent runs.

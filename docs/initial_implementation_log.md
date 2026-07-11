@@ -1,3 +1,66 @@
+## 2026-07-11 — Phase 16: MinIO artifact storage
+
+**Ask:** Implement Phase 16 per Section 16 of the plan: move run artifacts (transcripts, patches,
+test reports, generated docs) behind an `ArtifactStore` interface with `LocalVolumeArtifactStore`
+(default) and `MinioArtifactStore` implementations, finally building the
+`POST /internal/v1/runs/{id}/artifacts` endpoint Section 10.4 had reserved but no phase had
+implemented; extend Phase 11's retention sweep to the object store; add a one-shot migration path.
+
+**Changed (backend, `apps/api`):**
+- `V008__run_artifacts.sql` — new `run_artifacts` table (id, run_id, kind, name, storage_key,
+  content_type, size_bytes, created_at).
+- `dev.talos.artifacts` (new package) — `ArtifactStore` interface; `LocalVolumeArtifactStore`
+  (path-traversal-guarded); `MinioArtifactStore` (`io.minio:minio`, ensures its bucket on
+  construction, never logs credentials); `ArtifactStoreConfig` (`@ConditionalOnProperty` bean
+  selection on `talos.artifact-store-type`); `ArtifactService` (name validation, storage-key
+  layout, the only caller of `ArtifactStore`); `ArtifactMigrationRunner` (boot-time one-shot
+  local -> MinIO copy, gated by `talos.migrate-artifacts-on-boot`).
+- `InternalRunController` — `POST`/`DELETE /internal/v1/runs/{id}/artifacts` (multipart upload;
+  delete-all for retention).
+- `RunController` — `GET /api/v1/runs/{id}/artifacts` (list), `GET .../artifacts/{id}/download`
+  (streams bytes, `Content-Disposition: attachment`).
+- `TalosProperties`/`application.yml` — `artifact-store-type`, `artifact-local-dir`,
+  `minio-endpoint/access-key/secret-key/bucket`, `migrate-artifacts-on-boot`; multipart size limits
+  raised to 64MB.
+- `apps/api/Dockerfile` — pre-creates and chowns `/var/talos/artifacts` to the non-root `talos` user
+  (found live, see below).
+
+**Changed (`apps/runner-supervisor`, `apps/orchestrator`):**
+- `artifact_client.py` (new) — posts artifacts directly to `talos-api`'s `/internal/v1` (not
+  relayed through the orchestrator; see deviation below), best-effort (logged, never raised).
+- `diff_capture` flow (`app.py`) posts `diff.patch` after every diff capture; `execute.py` posts the
+  agent transcript (`AgentResult.raw_output_path`, previously computed but never forwarded past this
+  service); `test_command.py` now tees test output to `test-report.log` alongside streaming it, and
+  posts that file too.
+- `apps/orchestrator/retention.py`/`api_client.py` — `delete_artifacts(run_id)`, called once per run
+  id the runner supervisor's cleanup actually reported deleted (not every candidate).
+
+**Changed (contracts/frontend):**
+- `packages/contracts/openapi.yaml` — version `0.16.0`; `ArtifactKind`/`RunArtifact` schemas, four
+  new paths.
+- `apps/web` — regenerated Angular client; run detail page gained an Artifacts section with a
+  download button (fetches the authenticated blob, then triggers a browser download — not a raw
+  `<a href>`, since the endpoint needs the JWT bearer header).
+- `infra/docker-compose.dev.yml` — new `talos-minio` service + `talos_artifacts` volume;
+  `talos-api`'s `TALOS_ARTIFACT_STORE_TYPE` left unset by default (unconfigured behavior unchanged).
+
+**Found live (not by unit tests):** the first `scripts/smoke.sh` run against the rebuilt dev stack
+reached `WAITING_APPROVAL` but every artifact post 502'd — `docker exec talos-api id` showed the
+container runs as non-root `talos` (uid 999) and `/var/talos` didn't exist at all; nothing before
+this phase ever needed a writable path outside the JVM's own working directory. Fixed in the
+Dockerfile (`mkdir -p /var/talos/artifacts && chown -R talos:talos /var/talos` before `USER talos`)
+plus a named volume mount so ownership persists across recreates. Re-verified: `scripts/smoke.sh`
+passed and both `diff.patch`/`transcript.txt` showed up via `GET /api/v1/runs/{id}/artifacts`.
+
+**Documented deviations:** the runner supervisor posts artifacts to `talos-api` directly rather than
+relayed through the orchestrator — Section 10.1 already lists the runner supervisor as an allowed
+`/internal/v1` caller and Appendix A's token row for it was already annotated "artifact/log posts"
+since Phase 6, so this uses an already-reserved path rather than inventing a new
+runner-supervisor -> orchestrator relay; `GENERATED_DOC` has no producer yet (schema/storage support
+exists, nothing emits one); migration is a boot-time flag (mirroring
+`IntegrationServiceAccountSeeder`'s shape), not a standalone CLI tool. Full detail in
+`docs/phase-reports/phase-16-report.md`.
+
 ## 2026-07-10 — Phase 15: Multi-user RBAC enforcement
 
 **Ask:** Implement Phase 15 per Section 16 of the plan: replace MVP owner-mode with real

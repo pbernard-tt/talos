@@ -13,7 +13,7 @@ info:
     (Dokploy integration), Phase 12 (chat trigger support), Phase 13 (memory ingestion and
     internal retrieval), Phase 14 (per-run cost tracking and advisory recommendations), and
     Phase 15 (multi-user RBAC enforcement and user management).
-  version: "0.15.0"
+  version: "0.16.0"
 servers:
   - url: /api/v1
     description: "Public API (JWT via Authorization: Bearer)"
@@ -653,6 +653,54 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
+  /runs/{id}/artifacts:
+    get:
+      operationId: listRunArtifacts
+      summary: >
+        List the run's stored artifacts (transcripts, patches, test reports, generated docs --
+        Section 4.2, Phase 16). Recorded via POST /internal/v1/runs/{id}/artifacts, behind the
+        configured ArtifactStore (local volume or MinIO).
+      tags: [runs]
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RunArtifact"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /runs/{id}/artifacts/{artifactId}/download:
+    get:
+      operationId: downloadRunArtifact
+      summary: >
+        Stream the artifact's bytes, byte-identical regardless of the configured ArtifactStore
+        (Phase 16 acceptance criterion) -- no browser-visible presigned credentials in this first cut.
+      tags: [runs]
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+        - name: artifactId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          $ref: "#/components/responses/Error"
+
   /runs/{id}/pull-request:
     get:
       operationId: getRunPullRequest
@@ -1080,6 +1128,73 @@ paths:
           description: No Content
         "404":
           $ref: "#/components/responses/Error"
+
+  /internal/v1/runs/{id}/artifacts:
+    post:
+      operationId: internalUploadRunArtifact
+      summary: >
+        Upload one artifact file (Phase 16, Section 10.4's reserved contract line). Called directly
+        by the runner supervisor -- not relayed through the orchestrator -- using the shared
+        service token (Appendix A already reserves TALOS_INTERNAL_API_TOKEN there for
+        "artifact/log posts"). talos-api is the only writer to the configured ArtifactStore.
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+        - name: kind
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/ArtifactKind"
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunArtifact"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          description: Artifact name failed validation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: internalDeleteRunArtifacts
+      summary: >
+        Delete every stored artifact for a run (Phase 16 extension of Phase 11's retention sweep) --
+        called by the orchestrator once the runner supervisor has deleted the run's workspace.
+      tags: [internal]
+      security:
+        - serviceToken: []
+      servers:
+        - url: /internal/v1
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "204":
+          description: No Content
 
   /internal/v1/runs/{id}/context:
     get:
@@ -2167,6 +2282,31 @@ components:
         diff:
           type: string
           description: Unified diff text, or null if the run hasn't reached REVIEWING yet.
+
+    ArtifactKind:
+      type: string
+      description: Section 4.2's artifact classes (Phase 16).
+      enum: [DIFF_PATCH, TRANSCRIPT, TEST_REPORT, GENERATED_DOC]
+
+    RunArtifact:
+      type: object
+      required: [id, kind, name, sizeBytes, contentType, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/ArtifactKind"
+        name:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        contentType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
 
     ApprovalStatus:
       type: string

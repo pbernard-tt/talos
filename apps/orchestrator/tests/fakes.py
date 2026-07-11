@@ -34,6 +34,7 @@ class FakeApiClient:
         self._reject_status_updates_to = reject_status_updates_to or set()
         self.retention_candidates: list[dict[str, Any]] = []
         self.retention_candidates_calls: list[int] = []
+        self.delete_artifacts_calls: list[str] = []
         self.memory_results: list[dict[str, Any]] = []
         self.memory_search_calls: list[dict[str, Any]] = []
         self.memory_ingest_calls: list[dict[str, Any]] = []
@@ -105,6 +106,9 @@ class FakeApiClient:
     async def get_retention_candidates(self, max_age_days: int) -> list[dict[str, Any]]:
         self.retention_candidates_calls.append(max_age_days)
         return self.retention_candidates
+
+    async def delete_artifacts(self, run_id: str) -> None:
+        self.delete_artifacts_calls.append(run_id)
 
     async def search_memory(
         self,

@@ -1,7 +1,17 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { catchError, firstValueFrom, of } from 'rxjs';
 
-import { Approval, ApprovalsService, Diff, LogEntry, ProjectEnvironment, PullRequest, RunDetail, RunsService } from '../api';
+import {
+  Approval,
+  ApprovalsService,
+  Diff,
+  LogEntry,
+  ProjectEnvironment,
+  PullRequest,
+  RunArtifact,
+  RunDetail,
+  RunsService,
+} from '../api';
 import { RunEventStreamService, RunStreamEvent } from './run-event-stream.service';
 
 /** One signal-based store per domain (Section 6.1); components read signals and call store methods. */
@@ -13,6 +23,7 @@ export class RunStore {
 
   private readonly runSignal = signal<RunDetail | null>(null);
   private readonly diffSignal = signal<Diff | null>(null);
+  private readonly artifactsSignal = signal<RunArtifact[]>([]);
   private readonly logsSignal = signal<LogEntry[]>([]);
   private readonly pullRequestSignal = signal<PullRequest | null>(null);
   private readonly deployStatusSignal = signal<ProjectEnvironment | null>(null);
@@ -22,6 +33,7 @@ export class RunStore {
 
   readonly run = this.runSignal.asReadonly();
   readonly diff = this.diffSignal.asReadonly();
+  readonly artifacts = this.artifactsSignal.asReadonly();
   readonly logs = this.logsSignal.asReadonly();
   readonly pullRequest = this.pullRequestSignal.asReadonly();
   readonly deployStatus = this.deployStatusSignal.asReadonly();
@@ -60,6 +72,7 @@ export class RunStore {
     this.disconnectLiveUpdates();
     this.runSignal.set(null);
     this.diffSignal.set(null);
+    this.artifactsSignal.set([]);
     this.logsSignal.set([]);
     this.pullRequestSignal.set(null);
     this.deployStatusSignal.set(null);
@@ -109,13 +122,33 @@ export class RunStore {
     }
   }
 
+  /** Phase 16: transcripts/patches/test reports/generated docs recorded for this run. */
+  async downloadArtifact(runId: string, artifact: RunArtifact): Promise<void> {
+    const blob = await firstValueFrom(
+      this.runsService.downloadRunArtifact(
+        { id: runId, artifactId: artifact.id },
+        'body',
+        false,
+        { httpHeaderAccept: 'application/octet-stream' },
+      ),
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = artifact.name;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   private async refresh(runId: string): Promise<void> {
-    const [run, diff] = await Promise.all([
+    const [run, diff, artifacts] = await Promise.all([
       firstValueFrom(this.runsService.getRun({ id: runId })),
       firstValueFrom(this.runsService.getRunDiff({ id: runId })),
+      firstValueFrom(this.runsService.listRunArtifacts({ id: runId }).pipe(catchError(() => of([])))),
     ]);
     this.runSignal.set(run);
     this.diffSignal.set(diff);
+    this.artifactsSignal.set(artifacts);
 
     // Only COMPLETED runs have a PR (Section 8.2's APPROVED -> COMPLETED, commit/push/PR); 404
     // before that is expected, not an error -- surface it as "no PR yet" rather than failing load().

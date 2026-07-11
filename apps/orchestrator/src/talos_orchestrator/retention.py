@@ -25,7 +25,12 @@ async def run_once(api_client: ApiClient, runner_client: RunnerClient, max_age_d
     deleted = 0
     for project_slug, run_ids in run_ids_by_project.items():
         result = await runner_client.cleanup(project_slug, run_ids, max_age_days)
-        deleted += len(result.get("deletedRunIds", []))
+        deleted_run_ids = result.get("deletedRunIds", [])
+        deleted += len(deleted_run_ids)
+        # Phase 16: only for runs whose workspace was actually deleted -- a run left alone by
+        # cleanup (e.g. younger than max_age_days) keeps its artifacts too.
+        for run_id in deleted_run_ids:
+            await api_client.delete_artifacts(run_id)
     return deleted
 
 

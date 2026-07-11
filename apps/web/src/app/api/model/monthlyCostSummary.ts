@@ -24,4 +24,3 @@ export interface MonthlyCostSummary {
     runCount: number;
     subscriptionRunCount: number;
 }
-

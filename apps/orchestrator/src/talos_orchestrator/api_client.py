@@ -150,6 +150,12 @@ class ApiClient:
         response.raise_for_status()
         return response.json()["candidates"]
 
+    async def delete_artifacts(self, run_id: str) -> None:
+        """Phase 16: extends the retention sweep to the ArtifactStore -- called once the runner
+        supervisor's workspace directory for run_id has actually been deleted."""
+        response = await self._client.delete(f"/internal/v1/runs/{run_id}/artifacts")
+        response.raise_for_status()
+
     async def create_pull_request(self, run_id: str, branch_name: str, commit_sha: str) -> dict[str, Any]:
         """Opens the PR and completes the run server-side (APPROVED -> COMPLETED, Section 8.2)."""
         response = await self._client.post(
