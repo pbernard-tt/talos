@@ -1,3 +1,49 @@
+## 2026-07-11 — Fix CI: two API integration tests depended on the dev-compose Redis
+
+**Ask:** GitHub CI's `api` job was failing — five tests across `MemoryControllerIntegrationTest`
+and `TaskControllerIntegrationTest` with `RedisConnectionFailureException`.
+
+**Root cause:** both tests reached Redis at `localhost:6379` — the Task test set
+`spring.data.redis.url` there explicitly, the Memory test fell through to Spring's default. That
+only works on a dev machine with the compose Redis running; the CI runner has no Redis, so the
+first login in each test (rate limiting touches Redis) failed. Every other integration test
+already runs its own Redis testcontainer.
+
+**Changed (backend, `apps/api` tests only):**
+- `TaskControllerIntegrationTest.java` — replaced the hardcoded `redis://localhost:6379` with a
+  `redis:7` `GenericContainer` and its mapped port, matching `AuthControllerIntegrationTest`.
+- `MemoryControllerIntegrationTest.java` — added the same Redis container plus a
+  `@DynamicPropertySource` (it previously had no Redis wiring at all).
+
+**Verification:** both test classes green individually, then the full `apps/api` suite green
+(`./gradlew test`, 4m47s, Testcontainers via `sg docker`). The local pass is meaningful for CI
+because the tests now target the container's mapped port, not the dev Redis. Not checked: an
+actual CI run — happens on push.
+
+## 2026-07-11 — Post-implementation gap review (docs/initial_review.md)
+
+**Ask:** With all planned phases (0–16) implemented, review the implementation plan against the
+codebase to identify gaps left behind or issues to address before production; log the findings in
+`docs/initial_review.md`.
+
+**Changed (docs):**
+- `docs/initial_review.md` (new) — full findings. Headlines: `POST /api/v1/webhooks/github` never
+  implemented, which also leaves `pull_requests.status` stuck `OPEN` and permanently blocks the
+  retention sweep for any run with a PR; no UI path to start a run; latest 9 commits never pushed,
+  so CI hasn't exercised Phases ~13–16; approval expiry/reminders inert; runner supervisor
+  endpoints still unauthenticated (open Phase 11 deviation); Command Center/Integrations/approvals
+  UI screens missing; `talos-web` absent from the dev compose; plus medium/low items (no OpenAPI
+  drift check, `TALOS_MAX_ACTIVE_RUNS` unenforced, unconsumed DLQ, missing adapter `.env.example`s).
+
+**Verification:** All suites re-run from scratch for the review, not taken from phase reports:
+`apps/api` 175 tests green (`--rerun-tasks`, Testcontainers), `packages/agent-adapter-spec` 75
+green (with Docker; its container tests error rather than skip when the docker binary exists but
+the socket is inaccessible — noted in the review), orchestrator 33, runner-supervisor 31,
+telegram-adapter 31, whatsapp-adapter 39, `apps/web` 14 green under Node 22.23.1, scoped naming
+guard clean. Endpoint/schema/event/adapter/UI-route claims verified by direct grep/read of the
+code, not report text. Not checked: a live compose-up smoke run (CI's smoke job covers it, but has
+not run on the unpushed commits — that is itself finding #3).
+
 ## 2026-07-11 — Phase 16: MinIO artifact storage
 
 **Ask:** Implement Phase 16 per Section 16 of the plan: move run artifacts (transcripts, patches,
