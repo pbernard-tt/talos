@@ -4,16 +4,22 @@ info:
   description: >
     Source of truth for the talos-runner-supervisor HTTP surface (Section 6.4 / 10.5 of the
     implementation plan). Called only by talos-orchestrator over the internal Docker network --
-    never by the browser, never by talos-api. No authentication scheme is defined because the
-    runner supervisor is not reachable outside the Docker network in the MVP.
-  version: "0.2.0"
+    never by the browser, never by talos-api. Every endpoint except /health requires the shared
+    service token as X-Talos-Internal-Token (the same TALOS_INTERNAL_API_TOKEN talos-api's
+    /internal/v1 uses); missing/wrong token is 401, unconfigured token fails closed with 503.
+    Network topology remains the outer boundary; the token removes the "anything on the internal
+    network can drive the runner" class of risk (Phase 11 deviation 1 / initial review #5).
+  version: "0.3.0"
 servers:
   - url: /
+security:
+  - internalToken: []
 paths:
   /health:
     get:
       operationId: health
       summary: Liveness check.
+      security: []
       responses:
         "200":
           description: OK
@@ -223,6 +229,12 @@ paths:
                       format: uuid
 
 components:
+  securitySchemes:
+    internalToken:
+      type: apiKey
+      in: header
+      name: X-Talos-Internal-Token
+      description: Shared service token (TALOS_INTERNAL_API_TOKEN), same value as talos-api's /internal/v1.
   parameters:
     RunId:
       name: id

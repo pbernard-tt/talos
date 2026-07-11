@@ -14,6 +14,8 @@ from talos_runner_supervisor.app import app, get_settings
 def client(settings):
     app.dependency_overrides[get_settings] = lambda: settings
     with TestClient(app) as test_client:
+        # Every endpoint except /health requires the shared internal token (initial review #5).
+        test_client.headers["X-Talos-Internal-Token"] = settings.internal_api_token
         yield test_client
     app.dependency_overrides.clear()
 
@@ -38,6 +40,44 @@ def test_health(client):
     resp = client.get("/health")
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
+
+
+def test_health_requiresNoToken(client):
+    resp = client.get("/health", headers={"X-Talos-Internal-Token": ""})
+    assert resp.status_code == 200
+
+
+def test_missingToken_rejected401(settings):
+    app.dependency_overrides[get_settings] = lambda: settings
+    try:
+        with TestClient(app) as bare_client:
+            resp = bare_client.post("/workspaces/cleanup", json={})
+            assert resp.status_code == 401
+            assert resp.json()["detail"]["error"]["code"] == "INTERNAL_TOKEN_INVALID"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_wrongToken_rejected401(client):
+    resp = client.post("/workspaces/cleanup", json={}, headers={"X-Talos-Internal-Token": "wrong-token"})
+    assert resp.status_code == 401
+    assert resp.json()["detail"]["error"]["code"] == "INTERNAL_TOKEN_INVALID"
+
+
+def test_unconfiguredToken_failsClosed503(settings):
+    import dataclasses
+
+    unconfigured = dataclasses.replace(settings, internal_api_token="")
+    app.dependency_overrides[get_settings] = lambda: unconfigured
+    try:
+        with TestClient(app) as bare_client:
+            resp = bare_client.post(
+                "/workspaces/cleanup", json={}, headers={"X-Talos-Internal-Token": "anything"}
+            )
+            assert resp.status_code == 503
+            assert resp.json()["detail"]["error"]["code"] == "INTERNAL_TOKEN_NOT_CONFIGURED"
+    finally:
+        app.dependency_overrides.clear()
 
 
 def test_prepare_workspace_endpoint(client, origin_repo):

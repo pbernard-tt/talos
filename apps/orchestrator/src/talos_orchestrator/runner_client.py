@@ -12,7 +12,13 @@ from talos_orchestrator.config import Settings
 
 class RunnerClient:
     def __init__(self, settings: Settings) -> None:
-        self._client = httpx.AsyncClient(base_url=settings.runner_base_url, timeout=None)
+        # Same shared service token as talos-api's /internal/v1 -- the runner supervisor
+        # authenticates every endpoint except /health with it (initial review #5).
+        self._client = httpx.AsyncClient(
+            base_url=settings.runner_base_url,
+            timeout=None,
+            headers={"X-Talos-Internal-Token": settings.internal_api_token},
+        )
 
     async def aclose(self) -> None:
         await self._client.aclose()

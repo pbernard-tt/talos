@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
+import secrets
 import shutil
 import time
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 
 from talos_runner_supervisor.artifact_client import post_artifact
@@ -39,12 +40,44 @@ def get_settings() -> Settings:
     return load_settings()
 
 
+async def require_internal_token(
+    settings: Settings = Depends(get_settings),
+    x_talos_internal_token: str | None = Header(default=None),
+) -> None:
+    """Shared-token auth on every endpoint except /health (closes Phase 11 deviation 1 / initial
+    review #5): the orchestrator already holds TALOS_INTERNAL_API_TOKEN for talos-api's
+    /internal/v1, so the same token authenticates it here rather than relying on network topology
+    alone. Fails closed when the token is unconfigured."""
+    if not settings.internal_api_token:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": {
+                    "code": "INTERNAL_TOKEN_NOT_CONFIGURED",
+                    "message": "TALOS_INTERNAL_API_TOKEN is not set; refusing all requests",
+                }
+            },
+        )
+    if x_talos_internal_token is None or not secrets.compare_digest(
+        x_talos_internal_token, settings.internal_api_token
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": {
+                    "code": "INTERNAL_TOKEN_INVALID",
+                    "message": "Missing or invalid X-Talos-Internal-Token",
+                }
+            },
+        )
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/workspaces/prepare", response_model=PrepareWorkspaceResponse)
+@app.post("/workspaces/prepare", response_model=PrepareWorkspaceResponse, dependencies=[Depends(require_internal_token)])
 async def prepare(
     request: PrepareWorkspaceRequest, settings: Settings = Depends(get_settings)
 ) -> PrepareWorkspaceResponse:
@@ -64,7 +97,7 @@ async def prepare(
     return PrepareWorkspaceResponse(workspacePath=workspace_path, branchName=branch_name)
 
 
-@app.post("/runs/{run_id}/execute")
+@app.post("/runs/{run_id}/execute", dependencies=[Depends(require_internal_token)])
 async def execute(
     run_id: str, request: ExecuteRunRequest, settings: Settings = Depends(get_settings)
 ) -> StreamingResponse:
@@ -88,7 +121,7 @@ async def execute(
     return StreamingResponse(event_stream, media_type="application/x-ndjson")
 
 
-@app.post("/runs/{run_id}/tests")
+@app.post("/runs/{run_id}/tests", dependencies=[Depends(require_internal_token)])
 async def run_tests(run_id: str, request: RunTestsRequest, settings: Settings = Depends(get_settings)) -> StreamingResponse:
     async def ndjson() -> None:
         async for item in stream_test_command(
@@ -99,7 +132,7 @@ async def run_tests(run_id: str, request: RunTestsRequest, settings: Settings = 
     return StreamingResponse(ndjson(), media_type="application/x-ndjson")
 
 
-@app.post("/runs/{run_id}/diff", response_model=DiffResponse)
+@app.post("/runs/{run_id}/diff", response_model=DiffResponse, dependencies=[Depends(require_internal_token)])
 async def diff(run_id: str, request: DiffRequest, settings: Settings = Depends(get_settings)) -> DiffResponse:
     worktree_dir = Path(request.workspace_path)
     if not worktree_dir.exists():
@@ -113,7 +146,7 @@ async def diff(run_id: str, request: DiffRequest, settings: Settings = Depends(g
     )
 
 
-@app.post("/runs/{run_id}/push", response_model=PushResponse)
+@app.post("/runs/{run_id}/push", response_model=PushResponse, dependencies=[Depends(require_internal_token)])
 async def push(run_id: str, request: PushRequest) -> PushResponse:
     worktree_dir = Path(request.workspace_path)
     if not worktree_dir.exists():
@@ -134,7 +167,7 @@ async def push(run_id: str, request: PushRequest) -> PushResponse:
     )
 
 
-@app.post("/runs/{run_id}/stop", status_code=204)
+@app.post("/runs/{run_id}/stop", status_code=204, dependencies=[Depends(require_internal_token)])
 async def stop(run_id: str) -> None:
     adapter = registry.get(run_id)
     if adapter is None:
@@ -142,7 +175,7 @@ async def stop(run_id: str) -> None:
     await adapter.stop()
 
 
-@app.post("/workspaces/cleanup", response_model=CleanupResponse)
+@app.post("/workspaces/cleanup", response_model=CleanupResponse, dependencies=[Depends(require_internal_token)])
 async def cleanup(
     request: CleanupRequest | None = None, settings: Settings = Depends(get_settings)
 ) -> CleanupResponse:
