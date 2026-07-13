@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<sc-if value="{{ isSub }}" hint-placeholder-val="{{ false }}">
+  <span style="display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:6px; font:600 10.5px/1.6 'JetBrains Mono',monospace; background:rgba(245,158,11,0.1); color:#F59E0B; border:1px solid rgba(245,158,11,0.28);">personal subscription</span>
+</sc-if>
+<sc-if value="{{ isApiKey }}" hint-placeholder-val="{{ false }}">
+  <span style="display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:6px; font:600 10.5px/1.6 'JetBrains Mono',monospace; background:rgba(56,189,248,0.1); color:#38BDF8; border:1px solid rgba(56,189,248,0.28);">api key</span>
+</sc-if>
+<sc-if value="{{ isNone }}" hint-placeholder-val="{{ false }}">
+  <span style="display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:6px; font:600 10.5px/1.6 'JetBrains Mono',monospace; background:rgba(160,167,181,0.1); color:#687080; border:1px solid rgba(160,167,181,0.2);">n/a</span>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:160,&quot;height&quot;:24},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;api_key&quot;,&quot;options&quot;:[&quot;api_key&quot;,&quot;subscription_local&quot;,&quot;n/a&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode || 'n/a';
+    return { isSub: mode === 'subscription_local', isApiKey: mode === 'api_key', isNone: mode !== 'subscription_local' && mode !== 'api_key' };
+  }
+}
+</script>
+</body>
+</html>

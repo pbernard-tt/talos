@@ -1,0 +1,69 @@
+/* Talos — color tokens
+   Deep graphite / blue-black foundation with a restrained purple accent.
+   Purple is reserved for: selected nav, primary actions, active-agent pulses,
+   progress fills, focus rings, and small orchestration signatures — never a
+   full-surface background. */
+
+:root {
+  /* ---- base palette ---- */
+  --talos-bg-page: #080A0F;
+  --talos-bg-secondary: #0C0F16;
+  --talos-bg-surface: #11151E;
+  --talos-bg-elevated: #161B26;
+  --talos-bg-hover: #1A2030;
+
+  --talos-border: rgba(255, 255, 255, 0.08);
+  --talos-border-strong: rgba(255, 255, 255, 0.14);
+
+  --talos-text-primary: #F3F5FA;
+  --talos-text-secondary: #A0A7B5;
+  --talos-text-muted: #687080;
+
+  --talos-purple: #8B5CF6;
+  --talos-purple-deep: #7C3AED;
+  --talos-purple-soft: #A78BFA;
+  --talos-purple-tint: rgba(139, 92, 246, 0.10);
+  --talos-purple-tint-strong: rgba(139, 92, 246, 0.16);
+  --talos-purple-border: rgba(139, 92, 246, 0.3);
+
+  --talos-success: #22C55E;
+  --talos-success-tint: rgba(34, 197, 94, 0.14);
+  --talos-warning: #F59E0B;
+  --talos-warning-tint: rgba(245, 158, 11, 0.14);
+  --talos-error: #EF4444;
+  --talos-error-tint: rgba(239, 68, 68, 0.14);
+  --talos-info: #38BDF8;
+  --talos-info-tint: rgba(56, 189, 248, 0.14);
+
+  /* ---- semantic aliases (use these in components) ---- */
+  --surface-app: var(--talos-bg-page);
+  --surface-sunken: var(--talos-bg-secondary);
+  --surface-card: var(--talos-bg-surface);
+  --surface-elevated: var(--talos-bg-elevated);
+  --surface-hover: var(--talos-bg-hover);
+
+  --border-default: var(--talos-border);
+  --border-strong: var(--talos-border-strong);
+  --border-focus: var(--talos-purple);
+
+  --text-primary: var(--talos-text-primary);
+  --text-secondary: var(--talos-text-secondary);
+  --text-muted: var(--talos-text-muted);
+  --text-on-accent: #ffffff;
+
+  --accent: var(--talos-purple);
+  --accent-hover: var(--talos-purple-deep);
+  --accent-soft: var(--talos-purple-soft);
+  --accent-tint: var(--talos-purple-tint);
+  --accent-tint-strong: var(--talos-purple-tint-strong);
+  --accent-border: var(--talos-purple-border);
+
+  --status-success: var(--talos-success);
+  --status-success-tint: var(--talos-success-tint);
+  --status-warning: var(--talos-warning);
+  --status-warning-tint: var(--talos-warning-tint);
+  --status-error: var(--talos-error);
+  --status-error-tint: var(--talos-error-tint);
+  --status-info: var(--talos-info);
+  --status-info-tint: var(--talos-info-tint);
+}

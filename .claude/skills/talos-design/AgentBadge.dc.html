@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<span style="display:inline-flex; align-items:center; gap:6px; padding:3px 9px 3px 7px; border-radius:7px; font:600 11px/1.5 'Inter',sans-serif; white-space:nowrap; background:{{ bg }}; color:{{ fg }}; border:1px solid {{ border }};">
+  <span style="width:14px; height:14px; border-radius:4px; background:{{ fg }}; flex:none; display:flex; align-items:center; justify-content:center; font:700 8px 'JetBrains Mono',monospace; color:{{ bg }};">{{ initial }}</span>{{ label }}
+</span>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:120,&quot;height&quot;:28},&quot;agentKey&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;claude-code&quot;,&quot;options&quot;:[&quot;claude-code&quot;,&quot;codex-cli&quot;,&quot;opencode&quot;,&quot;openhands&quot;,&quot;custom-shell&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const map = {
+      'claude-code':  { label: 'Claude Code', initial: 'C', fg: '#A78BFA', bg: '#161B26', border: 'rgba(139,92,246,0.3)' },
+      'codex-cli':    { label: 'Codex CLI',   initial: 'X', fg: '#38BDF8', bg: '#161B26', border: 'rgba(56,189,248,0.3)' },
+      'opencode':     { label: 'OpenCode',    initial: 'O', fg: '#22C55E', bg: '#161B26', border: 'rgba(34,197,94,0.3)' },
+      'openhands':    { label: 'OpenHands',   initial: 'H', fg: '#F59E0B', bg: '#161B26', border: 'rgba(245,158,11,0.3)' },
+      'custom-shell': { label: 'Custom Shell',initial: 'S', fg: '#A0A7B5', bg: '#161B26', border: 'rgba(160,167,181,0.3)' }
+    };
+    const key = this.props.agentKey || 'custom-shell';
+    const m = map[key] || map['custom-shell'];
+    return { label: m.label, initial: m.initial, fg: m.fg, bg: m.bg, border: m.border };
+  }
+}
+</script>
+</body>
+</html>

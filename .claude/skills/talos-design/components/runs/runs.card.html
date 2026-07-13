@@ -1,0 +1,31 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Runs" subtitle="RunRow and DiffBlock" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:22px;background:var(--surface-app);}</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { RunRow, DiffBlock } = window.TalosDesignSystem;
+function Demo() {
+  return (
+    <div>
+      <div style={{ background: "var(--surface-card)", border: "1px solid var(--border-default)", borderRadius: "var(--r-lg)", overflow: "hidden", marginBottom: 20 }}>
+        <RunRow run={{ id: "r-2", taskTitle: "Invoice detail page: add PDF download", projectName: "Ledgerly Web", agentKey: "codex-cli", authMode: "api_key", duration: "10h 32m", cost: "$0.61", status: "WAITING_APPROVAL", statusTone: "purple" }} />
+        <RunRow run={{ id: "r-1", taskTitle: "Add idempotency keys to POST /invoices", projectName: "Ledgerly API", agentKey: "claude-code", authMode: "subscription_local", duration: "10h 24m", cost: "subscription", status: "RUNNING_AGENT", statusTone: "purple" }} />
+      </div>
+      <DiffBlock file={{ path: "db/migrations/V014__cohort_retention_view.sql", additions: 26, deletions: 0, hunkText: "@@ -0,0 +1,26 @@\n+CREATE MATERIALIZED VIEW cohort_retention AS\n+SELECT cohort_month, active_month, count(distinct user_id)\n+FROM user_activity GROUP BY 1, 2;", risk: true, riskLabel: "Matches policy pattern **/migrations/**" }} />
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!-- @dsCard group="Talos" viewport="1440x900" subtitle="Full click-through recreation — all 16 screens" name="Talos control plane" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Talos</title>
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>html,body{margin:0;height:100%;background:var(--surface-app);}#root{height:100%;}</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+window.Button = window.TalosDesignSystem.Button;
+window.Input = window.TalosDesignSystem.Input;
+window.Select = window.TalosDesignSystem.Select;
+window.Tabs = window.TalosDesignSystem.Tabs;
+window.Dialog = window.TalosDesignSystem.Dialog;
+window.Toast = window.TalosDesignSystem.Toast;
+window.MetricCard = window.TalosDesignSystem.MetricCard;
+window.StatusTimeline = window.TalosDesignSystem.StatusTimeline;
+window.StatusBadge = window.TalosDesignSystem.StatusBadge;
+window.AgentBadge = window.TalosDesignSystem.AgentBadge;
+window.AuthModeBadge = window.TalosDesignSystem.AuthModeBadge;
+window.RiskBadge = window.TalosDesignSystem.RiskBadge;
+window.TaskCard = window.TalosDesignSystem.TaskCard;
+window.RunRow = window.TalosDesignSystem.RunRow;
+window.DiffBlock = window.TalosDesignSystem.DiffBlock;
+</script>
+<script src="./mockData.js"></script>
+<script type="text/babel" data-presets="react" src="./Login.jsx"></script>
+<script type="text/babel" data-presets="react" src="./Shell.jsx"></script>
+<script type="text/babel" data-presets="react" src="./screens-core.jsx"></script>
+<script type="text/babel" data-presets="react" src="./screens-runs.jsx"></script>
+<script type="text/babel" data-presets="react" src="./screens-ops.jsx"></script>
+<script type="text/babel" data-presets="react" src="./screens-admin.jsx"></script>
+<script type="text/babel" data-presets="react" src="./Dialogs.jsx"></script>
+<script type="text/babel" data-presets="react" src="./App.jsx"></script>
+</body>
+</html>

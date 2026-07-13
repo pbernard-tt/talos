@@ -1,0 +1,51 @@
+<!-- @dsCard group="Components" viewport="700x260" name="Badges" subtitle="Status, agent, auth-mode, and risk chips" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:22px;background:var(--surface-app);}</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { StatusBadge, AgentBadge, AuthModeBadge, RiskBadge } = window.TalosDesignSystem;
+const row = { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 };
+function Demo() {
+  return (
+    <div>
+      <div style={row}>
+        <StatusBadge label="COMPLETED" tone="success" />
+        <StatusBadge label="WAITING_APPROVAL" tone="purple" />
+        <StatusBadge label="FAILED" tone="error" />
+        <StatusBadge label="BLOCKED" tone="warning" />
+        <StatusBadge label="QUEUED" tone="info" />
+        <StatusBadge label="CANCELLED" tone="neutral" />
+      </div>
+      <div style={row}>
+        <AgentBadge agentKey="claude-code" />
+        <AgentBadge agentKey="codex-cli" />
+        <AgentBadge agentKey="opencode" />
+        <AgentBadge agentKey="openhands" />
+        <AgentBadge agentKey="custom-shell" />
+      </div>
+      <div style={row}>
+        <AuthModeBadge mode="subscription_local" />
+        <AuthModeBadge mode="api_key" />
+        <AuthModeBadge mode="n/a" />
+      </div>
+      <div style={row}>
+        <RiskBadge level="HIGH" />
+        <span style={{ font: "12px var(--font-ui)", color: "var(--text-muted)" }}>(RiskBadge renders nothing for level="NORMAL")</span>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+</script>
+</body>
+</html>

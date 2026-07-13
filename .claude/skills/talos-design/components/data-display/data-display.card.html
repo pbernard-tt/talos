@@ -1,0 +1,43 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Data display" subtitle="MetricCard and StatusTimeline" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:22px;background:var(--surface-app);}</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { MetricCard, StatusTimeline } = window.TalosDesignSystem;
+function Demo() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+        <MetricCard label="Active projects" value={6} />
+        <MetricCard label="Running agents" value={3} color="var(--accent-soft)" />
+        <MetricCard label="Pending approvals" value={4} color="var(--accent-soft)" />
+        <MetricCard label="Failed runs" value={2} color="var(--status-error)" />
+      </div>
+      <StatusTimeline
+        steps={[
+          { key: "workspace", label: "Workspace prep", state: "COMPLETED" },
+          { key: "agent", label: "Agent execution", state: "COMPLETED" },
+          { key: "tests", label: "Test execution", state: "RUNNING" },
+          { key: "review", label: "Policy scan + review", state: "PENDING" },
+          { key: "push", label: "Commit & push", state: "PENDING" },
+          { key: "pr", label: "Pull request", state: "PENDING" },
+          { key: "deploy", label: "Deploy trigger", state: "PENDING" },
+        ]}
+      />
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+</script>
+</body>
+</html>
