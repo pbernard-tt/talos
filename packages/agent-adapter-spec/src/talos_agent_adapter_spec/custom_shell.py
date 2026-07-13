@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """CustomShellAdapter (Section 7.4 #1, Phase 6): executes a configured deterministic script in the
 workspace. No AI -- proves the run pipeline end to end and is reused for build/test/deploy steps.
 

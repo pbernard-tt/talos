@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Production reference composition for Dokploy's "Compose" application type (Section 18 of the
 # implementation plan). Import this file as a Dokploy Compose app, then set the ${VAR} placeholders
 # below as environment variables on that app -- Dokploy substitutes them at deploy time. Every

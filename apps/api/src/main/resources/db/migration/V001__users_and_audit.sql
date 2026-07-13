@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2026 Vulkan Technologies
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 CREATE TABLE users (
   id UUID PRIMARY KEY,
   email VARCHAR(320) NOT NULL UNIQUE,

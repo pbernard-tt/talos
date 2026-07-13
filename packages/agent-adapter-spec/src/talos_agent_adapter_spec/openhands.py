@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """OpenHands adapter (Section 7.4 #5, implemented in Phase 12 Track A).
 
 The first non-subprocess adapter: an HTTP client against a locally deployed OpenHands

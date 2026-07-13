@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2026 Vulkan Technologies
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Phase 13: project memory. pgvector is required because memory_chunks.embedding is queried with
 -- vector distance; use a PostgreSQL 17 image that includes the extension (pgvector/pgvector:pg17).
 CREATE EXTENSION IF NOT EXISTS vector;

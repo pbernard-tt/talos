@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Shared subprocess plumbing for CLI-based coding-agent adapters (Phase 12, Track A).
 
 Everything OpenCodeAdapter and CodexCliAdapter have in common lives here: local/containerized

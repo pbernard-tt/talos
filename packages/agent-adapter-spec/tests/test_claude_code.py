@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Recorded stream-json parser tests; no Claude credential or live CLI is needed in CI."""
 
 from __future__ import annotations

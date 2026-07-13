@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Section 7.2 contract suite against CodexCliAdapter using a deterministic fake CLI."""
 
 from __future__ import annotations

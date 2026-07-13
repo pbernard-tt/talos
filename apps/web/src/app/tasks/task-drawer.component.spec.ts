@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Vulkan Technologies
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { describe, expect, it } from 'vitest';
 
 import { RunSummary, TaskDetail } from '../api';

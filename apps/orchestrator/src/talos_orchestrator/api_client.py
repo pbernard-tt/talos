@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """httpx client for talos-api's /internal/v1 namespace (Section 10.4). This is the *only* way the
 orchestrator touches durable state -- it never opens a database connection (Section 6.2)."""
 

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """FastAPI app: talos-whatsapp-adapter's webhook + health surface (Section 16 Phase 12 Track B).
 Unlike Telegram's long-poll, the Cloud API only supports webhooks -- Meta requires a public HTTPS
 endpoint, so this adapter (unlike apps/telegram-adapter) needs its own web server."""

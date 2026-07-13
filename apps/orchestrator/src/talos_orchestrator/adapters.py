@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Adapter selection from the registry in packages/agent-adapter-spec. The orchestrator only needs
 an adapter's capabilities (e.g. default_timeout_seconds) to drive the pipeline -- actual execution
 happens inside the runner supervisor (Section 7: "Adapters ... execute inside the runner

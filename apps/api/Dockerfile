@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Build context must be the repository root, e.g.:
 #   docker build -f apps/api/Dockerfile -t talos-api .
 # (Needed because build.gradle.kts pulls packages/project-config-schema/talos.schema.json
@@ -13,6 +16,10 @@ COPY apps/api/src/ /build/apps/api/src/
 RUN ./gradlew --no-daemon bootJar -x test
 
 FROM eclipse-temurin:21-jre
+LABEL org.opencontainers.image.title="Talos API" \
+      org.opencontainers.image.vendor="Vulkan Technologies" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
+      org.opencontainers.image.source="https://github.com/pbernard-tt/talos"
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --create-home talos \

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Phase 16: posts run artifacts (diff.patch, transcript, test-report) directly to talos-api's
 `/internal/v1/runs/{id}/artifacts`, using TALOS_INTERNAL_API_TOKEN -- Appendix A already reserved
 this token for "artifact/log posts" (config.py). Best-effort: a failed post is logged, not raised,

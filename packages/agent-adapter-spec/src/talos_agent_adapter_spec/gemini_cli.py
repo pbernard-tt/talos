@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """GeminiCliAdapter (Section 7.4 #6, backlog). Stub -- fixed adapter order forbids implementing
 this ahead of ClaudeCodeAdapter (Phase 7)."""
 

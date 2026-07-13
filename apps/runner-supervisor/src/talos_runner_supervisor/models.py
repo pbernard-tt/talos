@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Pydantic models mirroring packages/contracts/runner-api.yaml."""
 
 from __future__ import annotations

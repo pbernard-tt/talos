@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 from talos_agent_adapter_spec.adapter import (
     AgentAdapter,
     AgentEvent,

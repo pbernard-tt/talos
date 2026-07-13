@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Claude Code adapter (Section 7.4 #2, implemented in Phase 7).
 
 Verified against Anthropic's CLI reference on 2026-07-09.  Claude Code supports print mode,

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Thin httpx wrapper for the Telegram Bot API (long-poll mode -- no public webhook needed for a
 self-hosted single-VPS deployment, Section 18). https://core.telegram.org/bots/api#getupdates /
 #sendmessage. The bot token is masked in every log path (never interpolated into a log message)."""

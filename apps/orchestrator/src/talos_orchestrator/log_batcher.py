@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Log flow (Section 6.2 core-services table / "Log flow" narrative): the orchestrator batches log
 lines (50 lines or 2s) before POSTing them to /internal/v1/runs/{id}/logs.
 """

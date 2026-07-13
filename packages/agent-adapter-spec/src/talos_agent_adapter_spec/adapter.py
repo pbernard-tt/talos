@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """The AgentAdapter contract (Section 7.1 of the implementation plan, transcribed verbatim, plus
 the Phase 11 addition noted on AgentSessionRequest below)."""
 

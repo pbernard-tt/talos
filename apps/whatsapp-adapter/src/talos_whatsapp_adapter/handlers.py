@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Executes a parsed inbound command (commands.py) against the ApiClient and formats a reply.
 No command here can approve, reject, deploy, or push -- those stay dashboard-only (Section 16)."""
 

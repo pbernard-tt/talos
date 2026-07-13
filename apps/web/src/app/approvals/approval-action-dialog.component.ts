@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Vulkan Technologies
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';

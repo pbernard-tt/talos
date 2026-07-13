@@ -1,6 +1,13 @@
 {
   "name": "talos-web",
   "version": "0.0.0",
+  "license": "AGPL-3.0-or-later",
+  "author": "Vulkan Technologies",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pbernard-tt/talos.git",
+    "directory": "apps/web"
+  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

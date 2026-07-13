@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Phase 12 Track A acceptance (Section 16): the Phase 6 fixture-repo smoke flow reaches
 # WAITING_APPROVAL with a *real* second/third adapter, with only the agent key (and its auth mode)
 # changed relative to scripts/smoke.sh -- zero orchestrator/runner code differences.

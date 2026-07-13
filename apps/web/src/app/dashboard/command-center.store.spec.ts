@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Vulkan Technologies
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';

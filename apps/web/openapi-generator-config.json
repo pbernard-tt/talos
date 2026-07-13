@@ -1,5 +1,8 @@
 {
   "npmName": "@talos/api-client",
+  "licenseName": "Apache-2.0",
+  "gitUserId": "pbernard-tt",
+  "gitRepoId": "talos",
   "ngVersion": "22.0.0",
   "providedInRoot": true,
   "useSingleRequestParameter": true,

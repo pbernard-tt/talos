@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Thin httpx wrapper for the WhatsApp Business Cloud API
 (https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages) plus the
 X-Hub-Signature-256 webhook signature check every inbound request must pass before anything else

@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Scheduled backup loop for the db-backup sidecar (docs/deployment.md Section 6). Same
 # `pg_dump -F c` custom format validated end-to-end in the Phase 11 restore drill
 # (docs/security-model.md#8-backup-and-restore-drill-executed-2026-07-10), just run on a timer

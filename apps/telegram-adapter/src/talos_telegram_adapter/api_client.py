@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """REST client against talos-api's public /api/v1 surface (Section 16 Phase 12 Track B) -- this
 adapter never touches /internal/v1 and never opens a database connection; talos-api remains the
 sole PostgreSQL writer. Authenticates as the seeded Telegram service account, re-logging in before

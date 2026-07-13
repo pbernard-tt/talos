@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Recorded-stream parser tests (fixture drift; see tests/fixtures/README.md) plus the
 provider-home permission-config merge; no OpenCode credential or live CLI is needed in CI."""
 

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Workspace manager (Section 8.3/8.5): clone-or-fetch, git worktree + branch naming, copy filter."""
 
 from __future__ import annotations

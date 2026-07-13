@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """aio-pika consumer bootstrap (Section 6.3/11): consumes task.run.requested (prefetch 1, manual
 ack) and this phase's run.cancel.requested extension, dispatching each to the run pipeline.
 """

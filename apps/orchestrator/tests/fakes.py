@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Lightweight test doubles for ApiClient/RunnerClient/RunLock. Hand-written rather than
 unittest.mock.AsyncMock because execute_run/run_tests are async generators, which AsyncMock
 doesn't model cleanly.

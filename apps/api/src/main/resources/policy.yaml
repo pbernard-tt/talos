@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Bundled default global policy (Section 12.3). Override the whole file via TALOS_POLICY_FILE;
 # per-project additions come from talos.yaml's `rules` (Section 14), merged in at scan time.
 commands:

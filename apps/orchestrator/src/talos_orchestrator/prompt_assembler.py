@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Section 7.3's fixed, auditable prompt assembly."""
 
 from __future__ import annotations

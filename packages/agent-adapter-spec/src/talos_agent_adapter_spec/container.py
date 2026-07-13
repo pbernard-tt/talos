@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Per-run Docker execution (Phase 11, Section 8/12.1): wraps an adapter's command in `docker run`
 so the agent process is isolated in its own container instead of sharing talos-runner-supervisor's
 own filesystem/process namespace. talos-runner-supervisor holds the Docker socket to launch these;

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Phase 11 (Section 8.3): periodic workspace retention job. Only the orchestrator can reach both
 talos-api (for candidates) and talos-runner-supervisor (to delete workspace directories) -- per the
 architecture's four communication paths, this can't live in talos-api itself.

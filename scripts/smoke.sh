@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # End-to-end smoke test (Section 17: "create project → task → run → CustomShellAdapter → diff →
 # approval requested"). Assumes `docker compose -f infra/docker-compose.dev.yml up -d` is already
 # running and healthy. Requires curl and jq (both preinstalled on GitHub Actions ubuntu-latest).

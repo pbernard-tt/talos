@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2026 Vulkan Technologies
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Phase 14: per-run cost tracking (Section 16). Usage/cost columns are nullable -- adapters that
 -- can't report them (CustomShellAdapter; OpenCode/OpenHands pending a verified usage event schema)
 -- leave a row with nulls instead of failing the pipeline. subscription_local runs must never get a

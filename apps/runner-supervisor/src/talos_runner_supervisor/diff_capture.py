@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Diff capture (Section 8.1 step 8 / 8.3): changed-file summary + unified diff of a workspace's
 uncommitted changes (agents do not commit -- Section 8.4), plus the diff.patch artifact.
 """

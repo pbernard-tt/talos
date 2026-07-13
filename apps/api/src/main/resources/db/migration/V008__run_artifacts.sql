@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2026 Vulkan Technologies
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Phase 16: MinIO artifact storage (Section 4.2/10.4). Durable metadata for artifacts written
 -- through the ArtifactStore interface -- the file bytes themselves live in whichever
 -- ArtifactStore implementation is configured (LocalVolumeArtifactStore or MinioArtifactStore),

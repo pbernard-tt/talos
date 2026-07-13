@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Adapter registry keyed by AgentAdapter.key (Section 7.4). Selection only -- instantiating a
 not-yet-implemented adapter class succeeds; calling any of its methods raises NotImplementedError."""
 

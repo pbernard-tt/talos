@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """OpenCode adapter (Section 7.4 #3, implemented in Phase 12 Track A).
 
 Verified 2026-07-10 against the OpenCode CLI reference (opencode.ai/docs/cli) and the ``run``

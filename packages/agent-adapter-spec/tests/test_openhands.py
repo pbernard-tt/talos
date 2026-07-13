@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """OpenHands event-mapping (fixture drift; see tests/fixtures/README.md) and capability-check
 tests; no live agent-server is needed in CI."""
 

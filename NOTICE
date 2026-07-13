@@ -1,0 +1,29 @@
+Talos
+Copyright 2026 Vulkan Technologies
+
+Talos is developed and maintained by Vulkan Technologies. Vulkan Technologies owns the
+copyright in original first-party work identified as its work. Individual contributors may
+retain copyright in their contributions under the Talos Contributor Licence Agreement.
+
+LICENSING SUMMARY
+
+The Talos Community Edition core is licensed under AGPL-3.0-or-later. Selected public SDKs,
+interface definitions, and reusable integration libraries are licensed under Apache-2.0 where
+a directory-level licence or SPDX identifier says so. Original Talos documentation is licensed
+under CC-BY-4.0 where identified, while code samples retain their applicable software licence.
+Commercially licensed modules and rights, if any, are provided only under separate written terms.
+See LICENSE, LICENSING.md, and the directory-specific licence files for controlling details.
+
+THIRD-PARTY SOFTWARE
+
+Talos includes and depends on third-party software. Those components remain subject to their
+respective copyright notices and licence terms. Nothing in the Talos licences changes those terms.
+See THIRD_PARTY_LICENSES.md and distributed dependency notices. Distributors are responsible for
+preserving all required third-party notices and for reviewing the complete dependency and container
+image bill of materials for the version they ship.
+
+TRADEMARKS
+
+Talos, its logo, product names, and visual identity are trademarks or protected branding of Vulkan
+Technologies. The software and documentation licences do not grant trademark rights. See
+TRADEMARKS.md.

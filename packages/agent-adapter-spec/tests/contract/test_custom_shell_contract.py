@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Section 7.2 shared adapter contract suite, run against CustomShellAdapter (the only adapter
 implemented in Phase 6). When ClaudeCodeAdapter lands in Phase 7, lift these test bodies into a
 suite parametrized over both adapters instead of duplicating them -- premature to generalize a

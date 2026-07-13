@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Git push (Section 8.4): stages, commits (preserving anything the agent already committed), and
 pushes the run's branch after approval. The token is delivered only as a transient GIT_ASKPASS
 environment variable for the single push subprocess call -- never embedded in the remote URL,

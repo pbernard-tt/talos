@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 from fakes import FakeApiClient, FakeRunLock, FakeRunnerClient
 
 from talos_orchestrator.config import Settings

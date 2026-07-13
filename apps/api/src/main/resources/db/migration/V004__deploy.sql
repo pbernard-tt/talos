@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2026 Vulkan Technologies
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Phase 10 (Dokploy integration): project_environments was explicitly deferred to this phase
 -- (Section 9.4). approvals.environment lets a DEPLOY-type approval remember which environment it
 -- is for (see docs/phase-reports/phase-10-report.md).

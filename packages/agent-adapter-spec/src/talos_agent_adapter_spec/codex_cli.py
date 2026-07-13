@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Codex CLI adapter (Section 7.4 #4, implemented in Phase 12 Track A).
 
 Verified 2026-07-10 against a locally installed **codex-cli 0.144.0** (``codex exec --help``) and

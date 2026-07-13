@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 name: CI
 
 on:
@@ -6,6 +9,13 @@ on:
   pull_request:
 
 jobs:
+  license-compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check SPDX headers and licence boundaries
+        run: ./scripts/check-licenses.sh
+
   naming-guard:
     runs-on: ubuntu-latest
     steps:

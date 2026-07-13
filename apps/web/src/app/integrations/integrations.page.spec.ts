@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Vulkan Technologies
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';

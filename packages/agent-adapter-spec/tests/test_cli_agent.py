@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Pre-launch capability check (Phase 12 Track A): CLI present, version compatible, credentials
 present -- a failed check fails the run with a SYSTEM log line, never a mid-run crash."""
 

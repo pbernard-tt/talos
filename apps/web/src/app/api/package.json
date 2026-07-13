@@ -5,13 +5,13 @@
   "author": "OpenAPI-Generator Contributors",
   "repository": {
     "type": "git",
-    "url": "https://github.com/GIT_USER_ID/GIT_REPO_ID.git"
+    "url": "https://github.com/pbernard-tt/talos.git"
   },
   "keywords": [
     "openapi-client",
     "openapi-generator"
   ],
-  "license": "Unlicense",
+  "license": "Apache-2.0",
   "scripts": {
     "prepare": "npm run build",
     "build": "ng-packagr -p ng-package.json"

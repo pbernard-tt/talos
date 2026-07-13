@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Bootstrap: the Telegram long-poll loop (inbound task intake) and the talos.events notifier
 consumer run concurrently (Section 16 Phase 12 Track B)."""
 

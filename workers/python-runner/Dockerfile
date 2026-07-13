@@ -1,6 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Stack image for project.type: python (Section 14). Build workers/base-agent-runner first.
 # Build: docker build -f workers/python-runner/Dockerfile -t workers/python-runner .
 FROM workers/base-agent-runner:latest
+LABEL org.opencontainers.image.title="Talos Python Runner" \
+      org.opencontainers.image.vendor="Vulkan Technologies" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
+      org.opencontainers.image.source="https://github.com/pbernard-tt/talos"
 
 USER root
 COPY --from=ghcr.io/astral-sh/uv:0.11.28 /uv /uvx /usr/local/bin/

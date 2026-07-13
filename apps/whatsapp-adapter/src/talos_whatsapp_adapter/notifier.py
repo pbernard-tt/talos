@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Section 11: talos.events -> notifiers consumer for approval.requested/pr.created/run.status.changed,
 on this adapter's own quorum queue, idempotent on event_id (processed IDs cached in Redis, 24h TTL) --
 the same pattern apps/orchestrator and apps/telegram-adapter use for their own queues. Chat receives

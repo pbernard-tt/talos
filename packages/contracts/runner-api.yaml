@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 openapi: 3.1.0
 info:
   title: Talos Runner Supervisor API
@@ -10,6 +13,9 @@ info:
     Network topology remains the outer boundary; the token removes the "anything on the internal
     network can drive the runner" class of risk (Phase 11 deviation 1 / initial review #5).
   version: "0.3.0"
+  license:
+    name: Apache License 2.0
+    identifier: Apache-2.0
 servers:
   - url: /
 security:

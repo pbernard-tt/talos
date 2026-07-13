@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Section 7.2 contract suite against OpenHandsAdapter using a mocked agent-server
 (httpx.MockTransport). Point 3 ("stop() leaves no child processes") for this non-subprocess
 adapter means: no local process is ever spawned and the remote session is cancelled."""

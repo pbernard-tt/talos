@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """POST /runs/{id}/tests: runs the project's configured talos.yaml commands.test in the
 workspace, streaming output. A null command (none configured) short-circuits with exit 0.
 """

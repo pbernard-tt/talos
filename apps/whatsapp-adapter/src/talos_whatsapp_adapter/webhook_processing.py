@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Core per-message handling for an inbound WhatsApp webhook POST, split out from app.py so it's
 testable without spinning up FastAPI/lifespan (mirrors apps/telegram-adapter's poll_once)."""
 

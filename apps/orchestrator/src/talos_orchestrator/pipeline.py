@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """The run pipeline (Section 6.3): one class, one run at a time per message. Drives a run through
 Section 8.2's state machine by calling the runner supervisor for workspace prep and adapter
 execution and posting results back to talos-api's /internal/v1.

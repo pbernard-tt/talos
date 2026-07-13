@@ -170,6 +170,14 @@ talos/
 - [`docs/phase-reports/`](docs/phase-reports) — what works, what is stubbed, and verification per phase.
 - [`docs/initial_implementation_log.md`](docs/initial_implementation_log.md) — chronological implementation log.
 
-## License
+## Licensing
 
-Talos is open source under the [MIT License](LICENSE).
+Talos Community Edition is licensed under
+[`AGPL-3.0-or-later`](LICENSE). Selected public SDKs and reusable integration packages are
+licensed under `Apache-2.0` where explicitly identified, and original Talos documentation is
+licensed under `CC-BY-4.0` subject to the exceptions described in the licensing guide. Talos
+trademarks and branding are governed separately. Commercial licensing is available for uses that
+require alternative terms.
+
+See [LICENSING.md](LICENSING.md), [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md), and
+[TRADEMARKS.md](TRADEMARKS.md) for the applicable boundaries and policies.

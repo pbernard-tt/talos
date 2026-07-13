@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Redis lock helpers (Section 6.3/11): talos:lock:run:{project_id}:{base_branch}, TTL = run
 timeout, released on terminal state. A second concurrent start on the same project/branch is
 rejected while the lock is held.

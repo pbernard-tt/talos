@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Build context must be the repository root, e.g.:
 #   docker build -f apps/runner-supervisor/Dockerfile -t talos-runner-supervisor .
 #
@@ -7,6 +10,10 @@
 # /var/run/docker.sock; the containers it spawns never do). Stripping the agent toolchains out of
 # this image is a real hardening win since it's the privileged, docker.sock-holding one.
 FROM python:3.12-slim
+LABEL org.opencontainers.image.title="Talos Runner Supervisor" \
+      org.opencontainers.image.vendor="Vulkan Technologies" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
+      org.opencontainers.image.source="https://github.com/pbernard-tt/talos"
 COPY --from=ghcr.io/astral-sh/uv:0.11.28 /uv /uvx /usr/local/bin/
 
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git curl docker-cli \

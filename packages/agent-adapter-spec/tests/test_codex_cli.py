@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Recorded-JSONL parser tests (fixture drift; see tests/fixtures/README.md); no Codex
 credential or live CLI is needed in CI."""
 

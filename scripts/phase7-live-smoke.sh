@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Phase 7 live acceptance (Section 16): authenticated Claude Code changes a fixture Spring Boot
 # project, Gradle runs the resulting tests, and the Talos pipeline reaches WAITING_APPROVAL.
 #

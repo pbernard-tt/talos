@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Parses a Telegram Update into the normalized inbound-command shape defined in
 packages/contracts/chat/inbound-command.schema.json. Deterministic slash-command parsing only --
 Talos orchestrates agents, it does not add its own NLU/LLM layer for chat intake (hard constraint 1)."""

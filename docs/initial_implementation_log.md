@@ -1,3 +1,58 @@
+## 2026-07-12 — Dual-licensing and public-release compliance structure
+
+**Ask:** Replace the repository's single MIT licence with a professional dual-licensing structure:
+AGPL Community Edition core, Apache-licensed public SDK/integration packages, CC BY documentation,
+separate trademark policy, future commercial licensing, contributor/security policies, per-file
+SPDX declarations, automated compliance checks, and a preliminary third-party licence inventory.
+
+**Changed:**
+- Root legal/policy documents — replaced `LICENSE` only after reviewing the existing MIT text, using
+  the byte-for-byte official GNU AGPL v3 text; added `LICENSING.md`, `COMMERCIAL-LICENSE.md`,
+  `TRADEMARKS.md`, `CONTRIBUTING.md`, `SECURITY.md`, `NOTICE`, and the attorney-review-required
+  `CLA.md`. Legal/security email addresses are explicit placeholders rather than invented contacts.
+- Public Apache boundaries — added the complete Apache 2.0 text and README licensing sections to
+  `packages/agent-adapter-spec`, `packages/contracts`, `packages/project-config-schema`, and the
+  generated Angular SDK in `apps/web/src/app/api`; corrected the generated SDK's `Unlicense`
+  metadata and generator configuration so regeneration retains `Apache-2.0` and the real repository.
+- Documentation/branding boundaries — added `docs/README.md` for `CC-BY-4.0` original documentation
+  with software-code/third-party exceptions; documented that the Talos name, favicon, product names,
+  logos, and visual identity are outside the software/documentation grants. No enterprise or
+  proprietary module directory exists today; future proprietary code must carry an explicit boundary.
+- Package/artifact metadata — added SPDX-compatible licence declarations to npm, Python, Gradle,
+  OpenAPI, lockfile root metadata, JAR manifest attributes, and OCI image labels. Added 2026 Vulkan
+  Technologies SPDX headers to 460 header-capable first-party source/config/test files; generated
+  sources, JSON, PDFs, binaries, wrapper/vendored files, locks, and build output remain untouched.
+- Compliance/reporting — added `scripts/check-licenses.sh` and the CI `license-compliance` job. The
+  script checks tracked plus untracked source, enforces the expected SPDX identifier by boundary,
+  excludes generated/vendor/non-commentable files, rejects unapproved licence-file locations, checks
+  package metadata, and verifies official AGPL/Apache texts by SHA-256. Added
+  `THIRD_PARTY_LICENSES.md` with direct dependencies, significant transitive terms, container/tool
+  dependencies, compatibility cautions, and manual-review decisions.
+
+**Coverage:** `scripts/check-licenses.sh` covers 460 current first-party files and will pick up new
+header-capable files under the core and Apache source roots. Directory-level licences cover generated
+SDK source and JSON contracts/schemas that cannot safely carry comments.
+
+**Notes:** preliminary dependency review flags `redis:7` (floating Redis 7.4 builds may be
+RSALv2/SSPLv1), the proprietary unpinned Claude Code apt package, `minio/minio:latest`, floating base
+images/OS packages, BlueOak npm utilities, CC-licensed npm data, MPL/EPL notice handling, and missing
+licence metadata in `annotated-types` for human review. Confirming Vulkan Technologies' right to
+relicense all historical MIT-era contributions is a release-blocking legal decision; the new CLA is
+prospective and does not fix historical chain-of-title gaps.
+
+**Verification:** `./scripts/check-licenses.sh` passes (460 files plus all approved licence
+boundaries); root AGPL SHA-256 is `0d96a4ff...abcb0` and all four Apache texts are
+`cfc7749b...23d30`, matching the official downloads. `git diff --check`, the exact scoped naming
+guard from `AGENTS.md` (with ignored `node_modules` temporarily outside the tree), `bash -n` for all
+shell scripts, `jq` for JSON, dev `docker compose config --quiet`, and all five `uv lock --check`
+commands pass. Angular/Vitest: 8 files, 29 tests passed. Python: agent-adapter-spec's full 75-test
+suite passed through `sg docker`; orchestrator 35/35; Telegram 31/31; runner-supervisor's 18
+non-HTTP/non-streaming tests; WhatsApp's 33 non-HTTP tests. Not checked: Angular production build
+could not fetch the existing Google Fonts URL in the sandbox and network escalation was declined;
+Gradle build/tests require sandbox-external local networking/Docker and escalation was declined;
+runner-supervisor and WhatsApp full suites time out on their first FastAPI `TestClient` case in this
+sandbox; Docker image builds and final release SBOM generation were not run.
+
 ## 2026-07-11 — Low/housekeeping: scheduled DB backups (operator decision: cron sidecar in prod compose)
 
 **Ask:** Phase 11's restore drill validated the `pg_dump`/`pg_restore` mechanism but nothing ran it

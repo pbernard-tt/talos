@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Vulkan Technologies
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 plugins {
 	java
 	id("org.springframework.boot") version "4.1.0"
@@ -7,6 +10,7 @@ plugins {
 group = "dev.talos"
 version = "0.0.1-SNAPSHOT"
 description = "Talos control API"
+extra["license"] = "AGPL-3.0-or-later"
 
 java {
 	toolchain {
@@ -120,4 +124,13 @@ tasks.named<Jar>("jar") {
 
 tasks.withType<JavaCompile> {
 	options.compilerArgs.add("-Xlint:deprecation")
+}
+
+tasks.withType<Jar> {
+	manifest {
+		attributes(
+			"Implementation-Vendor" to "Vulkan Technologies",
+			"Bundle-License" to "AGPL-3.0-or-later",
+		)
+	}
 }

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Vulkan Technologies
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 

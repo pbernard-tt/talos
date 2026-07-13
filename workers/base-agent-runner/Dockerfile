@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Base image for per-run agent execution (Phase 11, Section 8/12.1): non-root, no Docker socket
 # (never mounted into any per-run container -- see packages/agent-adapter-spec/container.py),
 # git + the agent CLIs (used across every stack, not stack-specific): Claude Code (Phase 7),
@@ -10,6 +13,10 @@
 # Debian bookworm (not Ubuntu): confirmed compatible with the Claude Code apt repo below (this is
 # the same base talos-runner-supervisor's own Dockerfile used successfully through Phase 10).
 FROM debian:bookworm-slim
+LABEL org.opencontainers.image.title="Talos Base Agent Runner" \
+      org.opencontainers.image.vendor="Vulkan Technologies" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
+      org.opencontainers.image.source="https://github.com/pbernard-tt/talos"
 
 # Phase 12 Track A adapter CLIs -- keep in lockstep with min_cli_version in
 # packages/agent-adapter-spec/{opencode,codex_cli}.py.

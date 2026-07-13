@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Vulkan Technologies
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package dev.talos.integrations;
 
 /** Section 6.2/10.4's deploy trigger, behind an interface so DokployDeployProvider is swappable (Phase 10). */

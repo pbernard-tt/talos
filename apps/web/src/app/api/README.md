@@ -4,6 +4,8 @@ Source of truth for the talos-api public (/api/v1) and internal (/internal/v1) R
 
 The version of the OpenAPI document: 0.17.0
 
+Copyright 2026 Vulkan Technologies.
+
 ## Building
 
 To install the required dependencies and to build the typescript sources run:
@@ -183,3 +185,10 @@ new Configuration({
 [parameter-locations-url]: https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#parameter-locations
 [style-values-url]: https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#style-values
 [@honoluluhenk/http-param-expander]: https://www.npmjs.com/package/@honoluluhenk/http-param-expander
+
+## Licensing
+
+This generated Talos Angular API client is licensed under the
+[Apache License 2.0](LICENSE) (`Apache-2.0`). It is a standalone public SDK and an explicit
+exception to the repository root's AGPL licence. The OpenAPI Generator project and the client's
+third-party peer dependencies remain under their respective licences.

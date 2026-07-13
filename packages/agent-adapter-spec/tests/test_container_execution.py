@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: Apache-2.0
+
 """Real per-run Docker execution (Phase 11): exercises CustomShellAdapter with request.container
 set against a real Docker daemon and a real named volume with `volume-subpath` isolation -- not
 mocked, mirroring the contract suite's "test real behavior when possible" philosophy. Skipped

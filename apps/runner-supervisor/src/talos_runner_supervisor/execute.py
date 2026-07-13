@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Vulkan Technologies
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """POST /runs/{id}/execute: run the selected AgentAdapter and stream its events as ndjson."""
 
 from __future__ import annotations
