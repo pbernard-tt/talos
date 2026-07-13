@@ -1,0 +1,69 @@
+/* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+:host {
+  display: block;
+  max-width: 1300px;
+}
+
+.project-select {
+  width: auto;
+  min-width: 240px;
+  margin-bottom: 18px;
+}
+
+.memory-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 16px;
+}
+
+.card-title {
+  font: var(--weight-bold) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+.ingest-form .talos-field {
+  margin-bottom: 12px;
+}
+
+.doc-row {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-default);
+
+  &:last-of-type {
+    border-bottom: 0;
+  }
+}
+
+.doc-title {
+  font: var(--weight-medium) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+}
+
+.doc-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.info-note {
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: var(--r-md);
+  background: var(--status-info-tint);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  font: var(--weight-regular) var(--text-xs) var(--font-ui);
+  line-height: 1.6;
+  color: var(--status-info);
+}

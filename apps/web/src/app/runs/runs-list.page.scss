@@ -1,0 +1,72 @@
+/* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+:host {
+  display: block;
+  max-width: 1400px;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.talos-select {
+  width: auto;
+  min-width: 160px;
+}
+
+.runs-table {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.runs-row {
+  display: grid;
+  grid-template-columns: 0.8fr 1.6fr 1.1fr 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 16px;
+}
+
+.runs-head {
+  font: var(--weight-semibold) 10.5px var(--font-ui);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.runs-body {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border-default);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.mono {
+  font: var(--weight-medium) var(--text-xs) var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.ellipsis {
+  font: var(--weight-medium) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

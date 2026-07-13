@@ -1,0 +1,55 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<div class="page-header">
+  <div>
+    <h1>Agent Runs</h1>
+    <p class="subtitle">Every execution across every project, from queued to completed.</p>
+  </div>
+</div>
+
+<div class="filters">
+  <select class="talos-select" [value]="filterProjectId()" (change)="setProjectFilter($any($event.target).value)">
+    <option value="">All projects</option>
+    @for (project of projectStore.projects(); track project.id) {
+      <option [value]="project.id">{{ project.name }}</option>
+    }
+  </select>
+  <select class="talos-select" [value]="filterStatus()" (change)="setStatusFilter($any($event.target).value)">
+    <option value="">All statuses</option>
+    @for (status of statusOptions; track status) {
+      <option [value]="status">{{ status }}</option>
+    }
+  </select>
+</div>
+
+@if (store.runsListLoading()) {
+  <div class="state-container">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (rows().length === 0) {
+  <div class="state-container">
+    <p>No runs match these filters.</p>
+  </div>
+} @else {
+  <div class="runs-table">
+    <div class="runs-row runs-head">
+      <div>Run</div>
+      <div>Task</div>
+      <div>Project</div>
+      <div>Agent</div>
+      <div>Created</div>
+      <div>Status</div>
+    </div>
+    @for (row of rows(); track row.run.id) {
+      <button type="button" class="runs-row runs-body" (click)="openRun(row.run.id)">
+        <span class="mono">{{ row.run.id }}</span>
+        <span class="ellipsis">{{ row.taskTitle }}</span>
+        <span class="ellipsis">{{ row.projectName }}</span>
+        <span><app-agent-badge [agentKey]="row.run.agentKey" /></span>
+        <span class="mono">{{ row.run.createdAt | date: 'short' }}</span>
+        <span><app-status-badge [label]="row.run.status" [tone]="runStatusTone(row.run.status)" /></span>
+      </button>
+    }
+  </div>
+}

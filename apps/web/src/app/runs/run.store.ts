@@ -13,6 +13,8 @@ import {
   PullRequest,
   RunArtifact,
   RunDetail,
+  RunStatus,
+  RunSummary,
   RunsService,
 } from '../api';
 import { RunEventStreamService, RunStreamEvent } from './run-event-stream.service';
@@ -33,6 +35,8 @@ export class RunStore {
   private readonly pendingDeployApprovalSignal = signal<Approval | null>(null);
   private readonly loadingSignal = signal(false);
   private readonly errorSignal = signal<string | null>(null);
+  private readonly runsListSignal = signal<RunSummary[]>([]);
+  private readonly runsListLoadingSignal = signal(false);
 
   readonly run = this.runSignal.asReadonly();
   readonly diff = this.diffSignal.asReadonly();
@@ -43,8 +47,26 @@ export class RunStore {
   readonly pendingDeployApproval = this.pendingDeployApprovalSignal.asReadonly();
   readonly loading = this.loadingSignal.asReadonly();
   readonly error = this.errorSignal.asReadonly();
+  readonly runsList = this.runsListSignal.asReadonly();
+  readonly runsListLoading = this.runsListLoadingSignal.asReadonly();
 
   private streamAbort: AbortController | null = null;
+
+  /** GET /runs (Section 15's Agent Runs screen) -- every run across every project, optionally
+   * filtered. Backs the /runs list page. */
+  async listAll(filter?: { projectId?: string; status?: RunStatus }): Promise<void> {
+    this.runsListLoadingSignal.set(true);
+    try {
+      const page = await firstValueFrom(
+        this.runsService.listRuns({ projectId: filter?.projectId, status: filter?.status, size: 100 }),
+      );
+      this.runsListSignal.set(page.content);
+    } catch {
+      this.runsListSignal.set([]);
+    } finally {
+      this.runsListLoadingSignal.set(false);
+    }
+  }
 
   async load(runId: string): Promise<void> {
     this.loadingSignal.set(true);

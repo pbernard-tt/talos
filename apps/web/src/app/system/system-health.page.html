@@ -1,0 +1,43 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<div class="page-header">
+  <div>
+    <h1>System Health</h1>
+    <p class="subtitle">Every service in the deployment, with the latest health check.</p>
+  </div>
+  <button type="button" class="refresh-btn" (click)="refresh()">Refresh</button>
+</div>
+
+<div class="service-grid">
+  <div class="service-card">
+    <div class="service-head">
+      <div class="service-name">{{ apiRow().name }}</div>
+      <app-status-badge [label]="apiRow().status" [tone]="apiRow().tone" />
+    </div>
+    <div class="service-kind">{{ apiRow().kind }}</div>
+    @if (apiComponents().length > 0) {
+      <div class="components">
+        @for (component of apiComponents(); track component.name) {
+          <div class="component-row">
+            <span>{{ component.name }}</span>
+            <span [class.up]="component.status === 'UP'" [class.down]="component.status !== 'UP'">{{ component.status }}</span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  @for (row of unreachableRows; track row.name) {
+    <div class="service-card">
+      <div class="service-head">
+        <div class="service-name">{{ row.name }}</div>
+        <app-status-badge [label]="row.status" [tone]="row.tone" />
+      </div>
+      <div class="service-kind">{{ row.kind }}</div>
+      @if (row.extra) {
+        <div class="service-extra">{{ row.extra }}</div>
+      }
+    </div>
+  }
+</div>

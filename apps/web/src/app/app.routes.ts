@@ -33,6 +33,10 @@ export const routes: Routes = [
         loadComponent: () => import('./tasks/board.page').then((m) => m.BoardPage),
       },
       {
+        path: 'runs',
+        loadComponent: () => import('./runs/runs-list.page').then((m) => m.RunsListPage),
+      },
+      {
         path: 'runs/:id',
         loadComponent: () => import('./runs/run-detail.page').then((m) => m.RunDetailPage),
       },
@@ -41,8 +45,36 @@ export const routes: Routes = [
         loadComponent: () => import('./approvals/approval-inbox.page').then((m) => m.ApprovalInboxPage),
       },
       {
+        path: 'deployments',
+        loadComponent: () => import('./deployments/deployments.page').then((m) => m.DeploymentsPage),
+      },
+      {
+        path: 'memory',
+        loadComponent: () => import('./memory/memory.page').then((m) => m.MemoryPage),
+      },
+      {
+        path: 'costs',
+        loadComponent: () => import('./costs/costs.page').then((m) => m.CostsPage),
+      },
+      {
         path: 'integrations',
         loadComponent: () => import('./integrations/integrations.page').then((m) => m.IntegrationsPage),
+      },
+      {
+        path: 'team',
+        loadComponent: () => import('./team/team.page').then((m) => m.TeamPage),
+      },
+      {
+        path: 'audit',
+        loadComponent: () => import('./audit/audit.page').then((m) => m.AuditPage),
+      },
+      {
+        path: 'system',
+        loadComponent: () => import('./system/system-health.page').then((m) => m.SystemHealthPage),
+      },
+      {
+        path: 'settings',
+        loadComponent: () => import('./settings/settings.page').then((m) => m.SettingsPage),
       },
       {
         path: 'review/:runId',

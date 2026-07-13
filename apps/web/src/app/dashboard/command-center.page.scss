@@ -37,3 +37,81 @@
   border-radius: var(--r-pill);
   padding: 1px 7px;
 }
+
+.project-health {
+  margin-top: 22px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 4px;
+}
+
+.project-health-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 8px;
+}
+
+.project-health-head h3 {
+  margin: 0;
+  font: var(--weight-bold) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+}
+
+.link-out {
+  font: var(--weight-semibold) var(--text-xs) var(--font-ui);
+  color: var(--accent-soft);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.health-table {
+  border-top: 1px solid var(--border-default);
+}
+
+.health-row {
+  display: grid;
+  grid-template-columns: 1.6fr 0.8fr 0.9fr 0.8fr;
+  gap: 8px;
+  padding: 10px 14px;
+  align-items: center;
+}
+
+.health-head {
+  font: var(--weight-semibold) 10.5px var(--font-ui);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.health-body {
+  text-decoration: none;
+  border-top: 1px solid var(--border-default);
+  color: inherit;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.ellipsis {
+  font: var(--weight-semibold) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.muted {
+  font: var(--weight-medium) var(--text-xs) var(--font-ui);
+  color: var(--text-secondary);
+}
+
+.mono {
+  font: var(--weight-medium) var(--text-xs) var(--font-mono);
+  color: var(--text-muted);
+}

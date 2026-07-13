@@ -68,4 +68,31 @@
       }
     </section>
   </div>
+
+  <div class="project-health">
+    <div class="project-health-head">
+      <h3>Project health</h3>
+      <a routerLink="/costs" class="link-out">Costs &amp; Insights →</a>
+    </div>
+    @if (projectStore.projects().length === 0) {
+      <p class="empty">No projects yet.</p>
+    } @else {
+      <div class="health-table">
+        <div class="health-row health-head">
+          <div>Project</div>
+          <div>Stack</div>
+          <div>Status</div>
+          <div>Branch</div>
+        </div>
+        @for (project of projectStore.projects(); track project.id) {
+          <a class="health-row health-body" [routerLink]="['/projects', project.id]">
+            <span class="ellipsis">{{ project.name }}</span>
+            <span class="muted">{{ project.stackType }}</span>
+            <span><app-status-badge [label]="project.status" [tone]="projectStatusTone(project.status)" /></span>
+            <span class="mono">{{ project.defaultBranch }}</span>
+          </a>
+        }
+      </div>
+    }
+  </div>
 }

@@ -1,0 +1,75 @@
+/* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+:host {
+  display: block;
+  max-width: 1300px;
+}
+
+.deploy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.deploy-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 16px;
+}
+
+.deploy-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.deploy-project {
+  font: var(--weight-bold) var(--text-md) var(--font-ui);
+  color: var(--text-primary);
+}
+
+.deploy-env {
+  font: var(--weight-semibold) var(--text-xs) var(--font-ui);
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.deploy-meta {
+  font: var(--weight-regular) var(--text-xs) var(--font-ui);
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.approval-note {
+  color: var(--status-warning);
+  margin-top: 8px;
+}
+
+.deploy-action {
+  width: 100%;
+  margin-top: 14px;
+  background: none;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  border-radius: var(--r-md);
+  padding: 9px;
+  font: var(--weight-semibold) var(--text-sm) var(--font-ui);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}

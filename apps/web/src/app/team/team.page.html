@@ -1,0 +1,76 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<div class="page-header">
+  <div>
+    <h1>Team</h1>
+    <p class="subtitle">
+      Owner controls integrations, secrets, and deploys. Reviewer approves. Maintainer runs agents. Viewer reads.
+    </p>
+  </div>
+  <button mat-flat-button color="primary" (click)="openCreateDialog()">New user</button>
+</div>
+
+@if (!authStore.hasRole('OWNER')) {
+  <div class="state-container">
+    <p>Only owners can manage the team.</p>
+  </div>
+} @else if (store.loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (store.error()) {
+  <div class="state-container">
+    <p>{{ store.error() }}</p>
+  </div>
+} @else {
+  <div class="team-table">
+    <div class="team-row team-head">
+      <div>User</div>
+      <div>Role</div>
+      <div>Status</div>
+      <div>Updated</div>
+    </div>
+    @for (user of store.users(); track user.id) {
+      <div class="team-row team-body">
+        <div class="user-cell">
+          <span class="avatar">{{ user.name.slice(0, 2).toUpperCase() }}</span>
+          <span class="user-info">
+            <span class="user-name">{{ user.name }}</span>
+            <span class="user-email">{{ user.email }}</span>
+          </span>
+        </div>
+        <div>
+          <select
+            class="talos-select"
+            [value]="user.role"
+            [disabled]="isSelf(user)"
+            [title]="isSelf(user) ? 'You cannot change your own role.' : ''"
+            (change)="changeRole(user, $any($event.target).value)"
+          >
+            @for (role of roles; track role) {
+              <option [value]="role">{{ role }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <app-status-badge
+            [label]="user.active ? 'ACTIVE' : 'INACTIVE'"
+            [tone]="user.active ? 'success' : 'neutral'"
+          />
+        </div>
+        <div class="updated-cell">
+          <span class="mono">{{ user.updatedAt | date: 'short' }}</span>
+          <button
+            mat-button
+            [disabled]="isSelf(user)"
+            [title]="isSelf(user) ? 'You cannot deactivate yourself.' : ''"
+            (click)="toggleActive(user)"
+          >
+            {{ user.active ? 'Deactivate' : 'Activate' }}
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+}

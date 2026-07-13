@@ -1,0 +1,37 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<div class="page-header">
+  <div>
+    <h1>Audit &amp; Security</h1>
+    <p class="subtitle">A searchable record of every consequential action, plus the security posture behind it.</p>
+  </div>
+</div>
+
+<div class="panel-grid">
+  @for (panel of securityPanels; track panel.title) {
+    <div class="panel-card">
+      <div class="panel-head">
+        <span class="dot"></span>
+        <span class="panel-title">{{ panel.title }}</span>
+      </div>
+      <div class="panel-detail">{{ panel.detail }}</div>
+    </div>
+  }
+</div>
+
+<div class="audit-table">
+  <div class="audit-head">
+    <div>Actor</div>
+    <div>Action</div>
+    <div>Resource</div>
+    <div>Project</div>
+    <div>When</div>
+    <div>Result</div>
+  </div>
+  <div class="audit-empty">
+    Audit rows are written server-side on every consequential action (dev.talos.audit.AuditService)
+    but there's no browser-facing endpoint to query them yet -- this table is deliberately empty
+    rather than fabricated.
+  </div>
+</div>

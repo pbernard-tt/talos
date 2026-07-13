@@ -1,0 +1,33 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<h2 mat-dialog-title>New user</h2>
+<form [formGroup]="form" (ngSubmit)="save()">
+  <mat-dialog-content>
+    <div class="talos-field">
+      <label class="talos-label" for="user-name">Name</label>
+      <input id="user-name" class="talos-input" formControlName="name" />
+    </div>
+    <div class="talos-field">
+      <label class="talos-label" for="user-email">Email</label>
+      <input id="user-email" class="talos-input" type="email" formControlName="email" placeholder="you@company.com" />
+    </div>
+    <div class="talos-field">
+      <label class="talos-label" for="user-password">Password</label>
+      <input id="user-password" class="talos-input" type="password" formControlName="password" />
+      <span class="talos-field-hint">Set directly -- Talos has no mail infrastructure for invite links yet.</span>
+    </div>
+    <div class="talos-field">
+      <label class="talos-label" for="user-role">Role</label>
+      <select id="user-role" class="talos-select" formControlName="role">
+        @for (role of roles; track role) {
+          <option [value]="role">{{ role }}</option>
+        }
+      </select>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid">Create</button>
+  </mat-dialog-actions>
+</form>

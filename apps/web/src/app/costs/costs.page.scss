@@ -1,0 +1,92 @@
+/* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+:host {
+  display: block;
+  max-width: 1300px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 14px;
+}
+
+.stat-label {
+  font: var(--weight-semibold) 10.5px var(--font-ui);
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font: var(--weight-bold) var(--text-xl) var(--font-mono);
+  color: var(--text-primary);
+
+  &.error {
+    color: var(--status-error);
+  }
+
+  &.warning {
+    color: var(--status-warning);
+  }
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 16px;
+}
+
+.card-title {
+  font: var(--weight-bold) var(--text-sm) var(--font-ui);
+  margin-bottom: 14px;
+}
+
+.bar-row {
+  margin-bottom: 12px;
+}
+
+.bar-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font: var(--weight-semibold) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+}
+
+.bar-track {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--surface-hover);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--accent);
+
+  &.provider {
+    background: var(--status-info);
+  }
+}
+
+.subscription-note {
+  margin-top: 3px;
+  font: var(--weight-medium) 10.5px var(--font-ui);
+  color: var(--status-warning);
+}

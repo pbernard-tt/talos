@@ -1,0 +1,68 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<div class="page-header">
+  <div>
+    <h1>Costs &amp; Insights</h1>
+    <p class="subtitle">Provider spend, usage, and quality signals across every project.</p>
+  </div>
+</div>
+
+@if (store.loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (store.error()) {
+  <div class="state-container">
+    <p>{{ store.error() }}</p>
+  </div>
+} @else {
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Spend this month</div>
+      <div class="stat-value">{{ totalSpendThisMonth() }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg cost / priced run</div>
+      <div class="stat-value">{{ avgCostPerRun() }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Failure rate</div>
+      <div class="stat-value error">{{ percent(store.failureRate()) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Review rejection rate</div>
+      <div class="stat-value warning">{{ percent(store.rejectionRate()) }}</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Cost by project</div>
+      @if (costByProject().length === 0) {
+        <p class="empty">No priced runs recorded yet.</p>
+      }
+      @for (bar of costByProject(); track bar.label) {
+        <div class="bar-row">
+          <div class="bar-labels"><span>{{ bar.label }}</span><span>{{ bar.valueLabel }}</span></div>
+          <div class="bar-track"><div class="bar-fill" [style.width.%]="bar.widthPct"></div></div>
+        </div>
+      }
+    </div>
+    <div class="card">
+      <div class="card-title">Cost by provider</div>
+      @if (costByProvider().length === 0) {
+        <p class="empty">No priced runs recorded yet.</p>
+      }
+      @for (bar of costByProvider(); track bar.label) {
+        <div class="bar-row">
+          <div class="bar-labels"><span>{{ bar.label }}</span><span>{{ bar.valueLabel }}</span></div>
+          <div class="bar-track"><div class="bar-fill provider" [style.width.%]="bar.widthPct"></div></div>
+          @if (bar.isSubscription) {
+            <div class="subscription-note">also has subscription-auth runs — their dollar cost isn't reported</div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

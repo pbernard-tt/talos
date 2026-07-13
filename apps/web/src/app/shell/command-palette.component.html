@@ -1,0 +1,39 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<div class="backdrop" (click)="close()">
+  <div class="palette" (click)="$event.stopPropagation()">
+    <div class="palette-search">
+      <app-icon name="search" [size]="16" />
+      <input
+        #paletteInput
+        type="text"
+        autofocus
+        [value]="query()"
+        (input)="setQuery($any($event.target).value)"
+        placeholder="Navigate or search projects…"
+      />
+      <span class="kbd">ESC</span>
+    </div>
+
+    <div class="palette-results">
+      @if (isEmpty()) {
+        <div class="empty-state">No matches.</div>
+      }
+      @for (group of groups(); track group.label) {
+        <div class="group-label">{{ group.label }}</div>
+        @for (item of group.items; track item.title) {
+          <button type="button" class="result" (click)="item.navigate()">
+            <span class="result-icon">{{ item.iconChar }}</span>
+            <span class="result-text">
+              <span class="result-title">{{ item.title }}</span>
+              @if (item.subtitle) {
+                <span class="result-subtitle">{{ item.subtitle }}</span>
+              }
+            </span>
+          </button>
+        }
+      }
+    </div>
+  </div>
+</div>

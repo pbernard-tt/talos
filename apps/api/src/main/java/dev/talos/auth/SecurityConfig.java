@@ -102,7 +102,9 @@ public class SecurityConfig {
 	 * and prod (TALOS_WEB_DOMAIN vs TALOS_API_DOMAIN) -- the browser calls the API directly (no
 	 * reverse-proxy path rewriting), so without this every fetch from the SPA fails the CORS
 	 * preflight. Unset/blank TALOS_CORS_ALLOWED_ORIGINS allows nothing (fail closed, Section 12.2's
-	 * "safe defaults everywhere"); the operator must opt in per environment. */
+	 * "safe defaults everywhere"); the operator must opt in per environment. Also registered for
+	 * /actuator/health (already permitAll below) so the System Health screen can read it directly --
+	 * without this the response has no Access-Control-Allow-Origin header and the browser blocks it. */
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		String configured = talosProperties.corsAllowedOrigins();
@@ -117,6 +119,7 @@ public class SecurityConfig {
 
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/api/v1/**", configuration);
+		source.registerCorsConfiguration("/actuator/health", configuration);
 		return source;
 	}
 

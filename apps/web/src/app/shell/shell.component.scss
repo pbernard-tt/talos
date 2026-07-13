@@ -157,8 +157,200 @@
   color: var(--border-strong);
 }
 
+.palette-trigger {
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 420px;
+  height: 36px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  padding: 0 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  overflow: hidden;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.palette-text {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font: var(--weight-regular) var(--text-sm) var(--font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kbd {
+  font: var(--weight-semibold) 10.5px var(--font-mono);
+  background: var(--surface-hover);
+  border: 1px solid var(--border-default);
+  border-radius: 5px;
+  padding: 2px 6px;
+  color: var(--text-muted);
+  flex: none;
+}
+
 .spacer {
   flex: 1;
+  min-width: 8px;
+}
+
+.new-task-btn {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border: 0;
+  border-radius: var(--r-md);
+  padding: 8px 13px;
+  font: var(--weight-semibold) var(--text-sm) var(--font-ui);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--accent-soft);
+  }
+}
+
+.dropdown-anchor {
+  position: relative;
+  flex: none;
+}
+
+.icon-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.badge-dot {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-error);
+  border: 1.5px solid var(--surface-app);
+}
+
+.dropdown-panel {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  width: 320px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-4);
+  z-index: 60;
+  padding: 8px;
+}
+
+.dropdown-title {
+  font: var(--weight-bold) var(--text-xs) var(--font-ui);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  padding: 8px 10px 4px;
+}
+
+.dropdown-empty {
+  padding: 14px 10px;
+  color: var(--text-muted);
+  font: var(--weight-regular) var(--text-sm) var(--font-ui);
+}
+
+.notif-item {
+  display: flex;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.notif-dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+
+.notif-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.notif-title {
+  font: var(--weight-medium) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+}
+
+.notif-time {
+  font: var(--weight-regular) var(--text-xs) var(--font-ui);
+  color: var(--text-muted);
+}
+
+.health-pill {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border-radius: var(--r-md);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: var(--weight-semibold) var(--text-xs) var(--font-ui);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.health-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong);
+
+  &.up {
+    background: var(--status-success);
+  }
 }
 
 .user-chip {
@@ -174,6 +366,35 @@
 
   &:hover {
     background: var(--surface-hover);
+  }
+}
+
+.user-panel {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-item {
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: var(--r-xs);
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font: var(--weight-medium) var(--text-sm) var(--font-ui);
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+
+  &.danger {
+    color: var(--status-error);
   }
 }
 

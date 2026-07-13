@@ -1,0 +1,23 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<div class="page-header">
+  <div>
+    <h1>Settings</h1>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Profile</div>
+  <div class="profile-row">
+    <span class="avatar">{{ initials() }}</span>
+    <span class="profile-text">
+      <span class="profile-email">{{ authStore.email() }}</span>
+    </span>
+    <span class="role-chip">{{ authStore.role() }}</span>
+  </div>
+</div>
+
+<div class="card build-card">
+  Talos self-hosted. See <a routerLink="/system">System Health</a> for live service status.
+</div>

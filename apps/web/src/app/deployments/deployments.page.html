@@ -1,0 +1,61 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<div class="page-header">
+  <div>
+    <h1>Deployments</h1>
+    <p class="subtitle">Every deploy target across every project, gated on approval.</p>
+  </div>
+</div>
+
+@if (store.loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (store.error()) {
+  <div class="state-container">
+    <p>{{ store.error() }}</p>
+  </div>
+} @else if (store.rows().length === 0) {
+  <div class="state-container">
+    <p>No deploy targets configured for any project yet.</p>
+  </div>
+} @else {
+  <div class="deploy-grid">
+    @for (row of store.rows(); track row.environment.id) {
+      <div class="deploy-card">
+        <div class="deploy-head">
+          <div>
+            <div class="deploy-project">{{ row.project.name }}</div>
+            <div class="deploy-env">{{ row.environment.environment }}</div>
+          </div>
+          @if (row.environment.lastDeployStatus) {
+            <app-status-badge
+              [label]="row.environment.lastDeployStatus"
+              [tone]="deployStatusTone(row.environment.lastDeployStatus)"
+            />
+          } @else {
+            <app-status-badge label="NOT DEPLOYED" tone="neutral" />
+          }
+        </div>
+        <div class="deploy-meta mono">{{ row.environment.provider }} · {{ row.environment.appId }}</div>
+        @if (row.environment.lastDeployedAt) {
+          <div class="deploy-meta">Last deployed {{ row.environment.lastDeployedAt | date: 'medium' }}</div>
+        } @else {
+          <div class="deploy-meta">Never deployed.</div>
+        }
+        @if (row.environment.approvalRequired) {
+          <div class="deploy-meta approval-note">Approval required before this environment deploys.</div>
+        }
+        <button
+          type="button"
+          class="deploy-action"
+          [disabled]="!row.environment.lastRunId"
+          (click)="openRun(row.environment.lastRunId)"
+        >
+          {{ row.environment.lastRunId ? 'Open last run to deploy →' : 'No runs yet' }}
+        </button>
+      </div>
+    }
+  </div>
+}

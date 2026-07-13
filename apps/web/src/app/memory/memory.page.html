@@ -1,0 +1,81 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<div class="page-header">
+  <div>
+    <h1>Memory &amp; Docs</h1>
+    <p class="subtitle">Project conventions, decisions, and ingested docs — always isolated per project.</p>
+  </div>
+</div>
+
+<select class="talos-select project-select" [value]="selectedProjectId()" (change)="selectProject($any($event.target).value)">
+  <option value="">Choose a project…</option>
+  @for (project of projectStore.projects(); track project.id) {
+    <option [value]="project.id">{{ project.name }}</option>
+  }
+</select>
+
+@if (!selectedProjectId()) {
+  <div class="state-container">
+    <p>Choose a project to ingest a memory document for it.</p>
+  </div>
+} @else {
+  <div class="memory-grid">
+    <form class="card ingest-form" [formGroup]="form" (ngSubmit)="ingest()">
+      <div class="card-title">Add a memory document</div>
+      <div class="talos-field">
+        <label class="talos-label" for="memory-source-type">Source type</label>
+        <select id="memory-source-type" class="talos-select" formControlName="sourceType">
+          @for (type of sourceTypes; track type) {
+            <option [value]="type">{{ type }}</option>
+          }
+        </select>
+      </div>
+      <div class="talos-field">
+        <label class="talos-label" for="memory-title">Title</label>
+        <input id="memory-title" class="talos-input" formControlName="title" placeholder="Optional" />
+      </div>
+      <div class="talos-field">
+        <label class="talos-label" for="memory-source-ref">Source reference</label>
+        <input
+          id="memory-source-ref"
+          class="talos-input"
+          formControlName="sourceRef"
+          placeholder="e.g. docs/architecture.md"
+        />
+      </div>
+      <div class="talos-field">
+        <label class="talos-label" for="memory-content">Content</label>
+        <textarea
+          id="memory-content"
+          class="talos-textarea"
+          formControlName="content"
+          rows="8"
+          placeholder="Convention, decision, or context to inject into future agent prompts for this project."
+        ></textarea>
+      </div>
+      <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || store.ingesting()">
+        {{ store.ingesting() ? 'Ingesting…' : 'Ingest document' }}
+      </button>
+    </form>
+
+    <div class="card">
+      <div class="card-title">Ingested this session</div>
+      @if (store.ingested().length === 0) {
+        <p class="empty">Nothing ingested yet in this session.</p>
+      } @else {
+        @for (doc of store.ingested(); track doc.id) {
+          <div class="doc-row">
+            <div class="doc-title">{{ doc.title || doc.sourceRef || doc.sourceType }}</div>
+            <div class="doc-meta mono">{{ doc.sourceType }} · {{ doc.createdAt | date: 'short' }}</div>
+          </div>
+        }
+      }
+      <div class="info-note">
+        Reading back or searching previously indexed memory isn't exposed to the browser -- only
+        the orchestrator can query it (internal, service-token authenticated) when preparing an
+        agent run. This list only reflects documents you ingest right now.
+      </div>
+    </div>
+  </div>
+}

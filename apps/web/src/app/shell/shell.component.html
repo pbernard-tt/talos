@@ -11,16 +11,15 @@
     </div>
 
     <nav class="nav">
-      @for (item of navItems(); track item.path) {
+      @for (item of visibleNavItems(); track item.path) {
         <a
           class="nav-item"
           [routerLink]="item.path"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.exact }"
-          #rla="routerLinkActive"
           [title]="item.label"
         >
-          <span class="nav-dot" [class.active]="rla.isActive"></span>
+          <app-icon [name]="item.icon" [size]="18" />
           @if (!collapsed()) {
             <span class="nav-label">{{ item.label }}</span>
           }
@@ -41,15 +40,72 @@
   <div class="main">
     <header class="topbar">
       <div class="breadcrumb">Talos <span class="sep">/</span> {{ breadcrumb() }}</div>
-      <div class="spacer"></div>
-      <button type="button" class="user-chip" (click)="logout()" title="Sign out">
-        <span class="avatar">{{ initials() }}</span>
-        <span class="user-text">
-          <span class="user-email">{{ authStore.email() }}</span>
-          <span class="user-role">{{ authStore.role() }} &middot; Sign out</span>
-        </span>
-        <app-icon name="log-out" [size]="14" />
+
+      <button type="button" class="palette-trigger" (click)="openPalette()">
+        <app-icon name="search" [size]="15" />
+        <span class="palette-text">Search projects, tasks, runs…</span>
+        <span class="kbd">⌘K</span>
       </button>
+
+      <div class="spacer"></div>
+
+      <button type="button" class="new-task-btn" (click)="openNewTask()">
+        <app-icon name="plus" [size]="14" />
+        New task
+      </button>
+
+      <div class="dropdown-anchor">
+        <button type="button" class="icon-btn" (click)="toggleNotifications()" title="Review queue">
+          <app-icon name="bell" [size]="16" />
+          @if (approvalStore.approvals().length > 0) {
+            <span class="badge-dot"></span>
+          }
+        </button>
+        @if (notifOpen()) {
+          <div class="dropdown-panel notif-panel">
+            <div class="dropdown-title">Pending your review</div>
+            @if (approvalStore.approvals().length === 0) {
+              <div class="dropdown-empty">Nothing waiting for approval right now.</div>
+            } @else {
+              @for (approval of approvalStore.approvals(); track approval.id) {
+                <a
+                  class="notif-item"
+                  [routerLink]="['/review', approval.runId]"
+                  (click)="closeNotifications()"
+                >
+                  <span class="notif-dot"></span>
+                  <span class="notif-text">
+                    <span class="notif-title">Run {{ approval.runId }}</span>
+                    <span class="notif-time">{{ approval.approvalType }}</span>
+                  </span>
+                </a>
+              }
+            }
+          </div>
+        }
+      </div>
+
+      <button type="button" class="health-pill" [routerLink]="'/system'" title="System Health">
+        <span class="health-dot" [class.up]="healthService.apiHealth()?.status === 'UP'"></span>
+        <span>{{ healthService.apiHealth()?.status === 'UP' ? 'Operational' : 'Checking…' }}</span>
+      </button>
+
+      <div class="dropdown-anchor">
+        <button type="button" class="user-chip" (click)="toggleUserMenu()">
+          <span class="avatar">{{ initials() }}</span>
+          <span class="user-text">
+            <span class="user-email">{{ authStore.email() }}</span>
+            <span class="user-role">{{ authStore.role() }}</span>
+          </span>
+          <app-icon name="chevron-down" [size]="14" />
+        </button>
+        @if (userMenuOpen()) {
+          <div class="dropdown-panel user-panel">
+            <a class="menu-item" routerLink="/settings" (click)="closeUserMenu()">Settings</a>
+            <button type="button" class="menu-item danger" (click)="logout()">Sign out</button>
+          </div>
+        }
+      </div>
     </header>
 
     <main class="content">
@@ -57,3 +113,7 @@
     </main>
   </div>
 </div>
+
+@if (paletteOpen()) {
+  <app-command-palette [navItems]="visibleNavItems()" (closed)="closePalette()" />
+}

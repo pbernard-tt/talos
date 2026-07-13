@@ -1,0 +1,68 @@
+/* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+:host {
+  display: block;
+  max-width: 640px;
+}
+
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  font: var(--weight-bold) var(--text-sm) var(--font-ui);
+  margin-bottom: 14px;
+}
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--accent-tint-strong);
+  color: var(--accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--weight-bold) var(--text-md) var(--font-mono);
+  flex: none;
+}
+
+.profile-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-email {
+  font: var(--weight-bold) var(--text-md) var(--font-ui);
+  color: var(--text-primary);
+}
+
+.role-chip {
+  margin-left: auto;
+  font: var(--weight-bold) var(--text-xs) var(--font-ui);
+  color: var(--accent-soft);
+  background: var(--accent-tint);
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+}
+
+.build-card {
+  font: var(--weight-regular) var(--text-sm) var(--font-ui);
+  line-height: 1.7;
+  color: var(--text-muted);
+
+  a {
+    color: var(--accent-soft);
+  }
+}

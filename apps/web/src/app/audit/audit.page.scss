@@ -1,0 +1,72 @@
+/* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+:host {
+  display: block;
+  max-width: 1400px;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.panel-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 13px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-success);
+}
+
+.panel-title {
+  font: var(--weight-bold) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+}
+
+.panel-detail {
+  font: var(--weight-regular) var(--text-xs) var(--font-ui);
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.audit-table {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.audit-head {
+  display: grid;
+  grid-template-columns: 1.1fr 1.3fr 1.3fr 0.9fr 0.9fr 0.9fr;
+  gap: 10px;
+  padding: 11px 16px;
+  font: var(--weight-semibold) 10.5px var(--font-ui);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.audit-empty {
+  padding: 26px 16px;
+  color: var(--text-muted);
+  font: var(--weight-regular) var(--text-sm) var(--font-ui);
+  line-height: 1.6;
+}
