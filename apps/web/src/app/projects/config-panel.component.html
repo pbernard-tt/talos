@@ -4,15 +4,15 @@
 <h3>Configuration</h3>
 
 @if (project().activeConfig) {
-  <p>Active version: {{ project().activeConfig!.version }}</p>
+  <p class="active-version">Active version: {{ project().activeConfig!.version }}</p>
 } @else {
-  <p>No active talos.yaml yet — paste one below to validate and activate it.</p>
+  <p class="active-version">No active talos.yaml yet — paste one below to validate and activate it.</p>
 }
 
-<mat-form-field appearance="outline" class="full-width">
-  <mat-label>talos.yaml</mat-label>
-  <textarea matInput rows="12" [(ngModel)]="configYaml" name="configYaml"></textarea>
-</mat-form-field>
+<div class="talos-field">
+  <label class="talos-label" for="config-yaml">talos.yaml</label>
+  <textarea id="config-yaml" class="talos-textarea" rows="12" [(ngModel)]="configYaml" name="configYaml"></textarea>
+</div>
 
 @if (fieldErrorEntries().length > 0) {
   <div class="field-errors">

@@ -1,16 +1,12 @@
 <!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-<mat-toolbar>
-  <span>Approvals</span>
-  <button mat-button [routerLink]="['/']">Command Center</button>
-  <span class="spacer"></span>
-  <button mat-button [routerLink]="['/projects']">Projects</button>
-  <button mat-button [routerLink]="['/board']">Board</button>
-  <button mat-button (click)="togglePendingOnly()">
+<div class="page-header">
+  <h1>Approvals</h1>
+  <button mat-stroked-button (click)="togglePendingOnly()">
     {{ showAll() ? 'Show pending only' : 'Show all' }}
   </button>
-</mat-toolbar>
+</div>
 
 @if (store.loading()) {
   <div class="state-container">

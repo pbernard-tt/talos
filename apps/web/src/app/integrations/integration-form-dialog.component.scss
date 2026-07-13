@@ -1,11 +1,7 @@
 /* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
-.full-width {
-  width: 100%;
-}
-
-.error {
-  color: var(--mat-sys-error, #b3261e);
-  font-size: 0.85rem;
+:host {
+  display: block;
+  min-width: 420px;
 }

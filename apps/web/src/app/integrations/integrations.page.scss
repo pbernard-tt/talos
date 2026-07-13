@@ -1,17 +1,23 @@
 /* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
-.spacer {
-  flex: 1 1 auto;
-}
-
-.state-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px;
-}
-
 .full-width {
   width: 100%;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.enabled-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  margin-right: 6px;
+
+  &.on {
+    background: var(--status-success);
+  }
 }

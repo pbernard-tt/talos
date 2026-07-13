@@ -1,10 +1,10 @@
 <!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-<mat-toolbar>
-  <button mat-button [routerLink]="['/board']">&larr; Board</button>
-  <span>Run detail</span>
-</mat-toolbar>
+<a class="back-link" [routerLink]="['/board']">
+  <app-icon name="arrow-left" [size]="14" />
+  Board
+</a>
 
 @if (store.loading()) {
   <div class="state-container">
@@ -15,40 +15,58 @@
     <p>{{ store.error() }}</p>
   </div>
 } @else if (store.run(); as run) {
+  <div class="page-header">
+    <h1>Run {{ run.id }}</h1>
+  </div>
+
   <section class="summary">
-    <mat-chip-set>
-      <mat-chip>{{ run.status }}</mat-chip>
-      <mat-chip>tests: {{ run.testStatus }}</mat-chip>
-      <mat-chip [class.risk]="run.reviewStatus === 'RISK_FLAGGED'">review: {{ run.reviewStatus }}</mat-chip>
-    </mat-chip-set>
-    <p><strong>Agent:</strong> {{ run.agentKey }} ({{ run.providerAuthMode }})</p>
-    @if (run.branchName) {
-      <p><strong>Branch:</strong> {{ run.branchName }}</p>
+    <div class="badges">
+      <app-status-badge [label]="run.status" [tone]="runStatusTone(run.status)" />
+      <app-status-badge [label]="'tests: ' + run.testStatus" [tone]="testStatusTone(run.testStatus)" />
+      <app-status-badge [label]="'review: ' + run.reviewStatus" [tone]="reviewStatusTone(run.reviewStatus)" />
+    </div>
+
+    @if (timelineSteps().length > 0) {
+      <app-status-timeline [steps]="timelineSteps()" />
     }
-    @if (run.summary) {
-      <p><strong>Summary:</strong> {{ run.summary }}</p>
-    }
-    @if (run.errorMessage) {
-      <p class="error"><strong>Error:</strong> {{ run.errorMessage }}</p>
-    }
-    @if (run.inputTokens != null || run.outputTokens != null) {
-      <p>
-        <strong>Usage:</strong>
-        {{ run.inputTokens ?? 0 }} in / {{ run.outputTokens ?? 0 }} out tokens
-        @if (run.costUsd != null) {
-          &middot; ${{ run.costUsd }} ({{ run.costModel }})
-        } @else if (run.providerAuthMode === 'subscription_local') {
-          &middot; subscription usage (cost not tracked)
-        }
-      </p>
-    }
-    @if (store.pullRequest(); as pullRequest) {
-      <p>
-        <strong>Pull request:</strong>
-        <a [href]="pullRequest.url" target="_blank" rel="noopener">#{{ pullRequest.prNumber }}</a>
-        ({{ pullRequest.status }})
-      </p>
-    }
+
+    <dl>
+      <dt>Agent</dt>
+      <dd>
+        <app-agent-badge [agentKey]="run.agentKey" />
+        <app-auth-mode-badge [authMode]="run.providerAuthMode" />
+      </dd>
+      @if (run.branchName) {
+        <dt>Branch</dt>
+        <dd class="mono">{{ run.branchName }}</dd>
+      }
+      @if (run.summary) {
+        <dt>Summary</dt>
+        <dd>{{ run.summary }}</dd>
+      }
+      @if (run.errorMessage) {
+        <dt>Error</dt>
+        <dd class="error">{{ run.errorMessage }}</dd>
+      }
+      @if (run.inputTokens != null || run.outputTokens != null) {
+        <dt>Usage</dt>
+        <dd>
+          {{ run.inputTokens ?? 0 }} in / {{ run.outputTokens ?? 0 }} out tokens
+          @if (run.costUsd != null) {
+            &middot; ${{ run.costUsd }} ({{ run.costModel }})
+          } @else if (run.providerAuthMode === 'subscription_local') {
+            &middot; subscription usage (cost not tracked)
+          }
+        </dd>
+      }
+      @if (store.pullRequest(); as pullRequest) {
+        <dt>Pull request</dt>
+        <dd>
+          <a [href]="pullRequest.url" target="_blank" rel="noopener">#{{ pullRequest.prNumber }}</a>
+          ({{ pullRequest.status }})
+        </dd>
+      }
+    </dl>
 
     <div class="actions">
       @if (isCancellable(run.status) && authStore.hasRole('MAINTAINER')) {
@@ -60,57 +78,34 @@
     </div>
   </section>
 
-  <section class="steps">
-    <h3>Steps</h3>
-    <mat-list>
-      @for (step of run.steps; track step.id) {
-        <mat-list-item>
-          <span matListItemTitle>{{ step.stepType }} &middot; {{ step.status }}</span>
-          @if (step.summary) {
-            <span matListItemLine>{{ step.summary }}</span>
-          }
-        </mat-list-item>
-      }
-    </mat-list>
-  </section>
-
   <section class="changed-files">
     <h3>Changed files</h3>
     @if (store.diff()?.files?.length) {
-      <mat-list>
-        @for (file of store.diff()?.files; track file.filePath) {
-          <mat-list-item [class.risk]="file.riskFlagged">
-            <span matListItemTitle>{{ file.filePath }} ({{ file.changeType }})</span>
-            <span matListItemLine>
-              +{{ file.additions }} -{{ file.deletions }}
-              @if (file.riskFlagged) {
-                &middot; flagged: {{ file.matchedPattern }}
-              }
-            </span>
-          </mat-list-item>
-        }
-      </mat-list>
+      @for (file of store.diff()?.files; track file.filePath) {
+        <app-file-change-row [file]="file" />
+      }
     } @else {
-      <p>No file changes recorded yet.</p>
+      <p class="empty">No file changes recorded yet.</p>
     }
   </section>
 
   <section class="artifacts">
     <h3>Artifacts</h3>
     @if (store.artifacts().length) {
-      <mat-list>
+      <div class="artifact-list">
         @for (artifact of store.artifacts(); track artifact.id) {
-          <mat-list-item>
-            <span matListItemTitle>{{ artifact.name }} ({{ artifact.kind }})</span>
-            <span matListItemLine>{{ artifact.sizeBytes }} bytes</span>
-            <button mat-icon-button matListItemMeta (click)="downloadArtifact(artifact)" aria-label="Download">
-              &darr;
+          <div class="artifact-row">
+            <span class="name">{{ artifact.name }}</span>
+            <span class="kind">{{ artifact.kind }}</span>
+            <span class="size">{{ artifact.sizeBytes }} bytes</span>
+            <button type="button" class="icon-button" (click)="downloadArtifact(artifact)" aria-label="Download">
+              <app-icon name="download" [size]="16" />
             </button>
-          </mat-list-item>
+          </div>
         }
-      </mat-list>
+      </div>
     } @else {
-      <p>No artifacts recorded yet.</p>
+      <p class="empty">No artifacts recorded yet.</p>
     }
   </section>
 
@@ -127,10 +122,10 @@
     <section class="deploy">
       <h3>Deploy</h3>
       @if (store.pendingDeployApproval(); as approval) {
-        <mat-chip-set>
-          <mat-chip>deploy: {{ approval.status }}</mat-chip>
-          <mat-chip>{{ approval.environment }}</mat-chip>
-        </mat-chip-set>
+        <div class="badges">
+          <app-status-badge [label]="'deploy: ' + approval.status" [tone]="'warning'" />
+          <app-status-badge [label]="approval.environment ?? ''" [tone]="'neutral'" />
+        </div>
         <p>Deploy to {{ approval.environment }} is pending approval.</p>
         @if (authStore.hasRole('REVIEWER')) {
           <div class="actions">
@@ -139,10 +134,13 @@
           </div>
         }
       } @else if (store.deployStatus(); as deployStatus) {
-        <mat-chip-set>
-          <mat-chip>{{ deployStatus.environment }}</mat-chip>
-          <mat-chip>{{ deployStatus.lastDeployStatus || 'NOT_DEPLOYED' }}</mat-chip>
-        </mat-chip-set>
+        <div class="badges">
+          <app-status-badge [label]="deployStatus.environment" [tone]="'neutral'" />
+          <app-status-badge
+            [label]="deployStatus.lastDeployStatus || 'NOT_DEPLOYED'"
+            [tone]="deployStatusTone(deployStatus.lastDeployStatus || 'NOT_DEPLOYED')"
+          />
+        </div>
         @if (authStore.hasRole('OWNER')) {
           <div class="actions">
             <!-- Deploy button disabled without approval (Section 12.2): re-requesting while a prior

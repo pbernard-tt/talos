@@ -1,0 +1,14 @@
+/* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/* Talos — corner radii. Moderate, never pill-happy. Pills reserved for
+   status badges, tags, and chips. */
+
+:root {
+  --r-xs: 5px;    /* inline chips, small system tags */
+  --r-sm: 8px;    /* icon buttons, small controls */
+  --r-md: 10px;   /* buttons, inputs */
+  --r-lg: 12px;   /* cards, panels (default) */
+  --r-xl: 14px;   /* elevated cards, dialogs */
+  --r-pill: 999px; /* status badges, tags */
+}

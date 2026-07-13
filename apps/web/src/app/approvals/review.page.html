@@ -1,14 +1,17 @@
 <!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-<mat-toolbar>
-  @if (store.detail(); as detail) {
-    <button mat-button [routerLink]="['/runs', detail.approval.runId]">&larr; Run</button>
-  } @else {
-    <button mat-button [routerLink]="['/board']">&larr; Board</button>
-  }
-  <span>Review</span>
-</mat-toolbar>
+@if (store.detail(); as detail) {
+  <a class="back-link" [routerLink]="['/runs', detail.approval.runId]">
+    <app-icon name="arrow-left" [size]="14" />
+    Run
+  </a>
+} @else {
+  <a class="back-link" [routerLink]="['/board']">
+    <app-icon name="arrow-left" [size]="14" />
+    Board
+  </a>
+}
 
 @if (store.loading()) {
   <div class="state-container">
@@ -19,12 +22,19 @@
     <p>{{ store.error() }}</p>
   </div>
 } @else if (store.detail(); as detail) {
+  <div class="page-header">
+    <h1>Review</h1>
+  </div>
+
   <section class="risk-panel">
-    <mat-chip-set>
-      <mat-chip>{{ detail.approval.status }}</mat-chip>
-      <mat-chip [class.risk]="detail.run.reviewStatus === 'RISK_FLAGGED'">review: {{ detail.run.reviewStatus }}</mat-chip>
-      <mat-chip>tests: {{ detail.run.testStatus }}</mat-chip>
-    </mat-chip-set>
+    <div class="badges">
+      <app-status-badge [label]="detail.approval.status" [tone]="approvalStatusTone(detail.approval.status)" />
+      <app-status-badge
+        [label]="'review: ' + detail.run.reviewStatus"
+        [tone]="reviewStatusTone(detail.run.reviewStatus)"
+      />
+      <app-status-badge [label]="'tests: ' + detail.run.testStatus" [tone]="testStatusTone(detail.run.testStatus)" />
+    </div>
     @if (detail.run.reviewStatus === 'RISK_FLAGGED') {
       <p class="warning">This run touched files matching a policy pattern &mdash; review carefully before approving.</p>
     }
@@ -33,21 +43,11 @@
   <section class="files">
     <h3>Changed files</h3>
     @if (detail.changes.length === 0) {
-      <p>No files changed.</p>
+      <p class="empty">No files changed.</p>
     } @else {
-      <mat-list>
-        @for (file of detail.changes; track file.filePath) {
-          <mat-list-item [class.risk]="file.riskFlagged">
-            <span matListItemTitle>{{ file.filePath }} ({{ file.changeType }})</span>
-            <span matListItemLine>
-              +{{ file.additions }} -{{ file.deletions }}
-              @if (file.riskFlagged) {
-                &middot; flagged: {{ file.matchedPattern }}
-              }
-            </span>
-          </mat-list-item>
-        }
-      </mat-list>
+      @for (file of detail.changes; track file.filePath) {
+        <app-file-change-row [file]="file" />
+      }
     }
   </section>
 

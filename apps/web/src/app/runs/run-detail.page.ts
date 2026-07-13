@@ -1,15 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Vulkan Technologies
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatToolbarModule } from '@angular/material/toolbar';
 
 import {
   ApprovalActionDialogComponent,
@@ -18,6 +15,13 @@ import {
 } from '../approvals/approval-action-dialog.component';
 import { AuthStore } from '../core/auth/auth.store';
 import { RunArtifact } from '../api';
+import { AgentBadgeComponent } from '../shared/badges/agent-badge.component';
+import { AuthModeBadgeComponent } from '../shared/badges/auth-mode-badge.component';
+import { StatusBadgeComponent } from '../shared/badges/status-badge.component';
+import { deployStatusTone, reviewStatusTone, runStatusTone, testStatusTone } from '../shared/badges/status-tone';
+import { FileChangeRowComponent } from '../shared/file-change-row/file-change-row.component';
+import { IconComponent } from '../shared/icon/icon.component';
+import { StatusTimelineComponent, TimelineStep } from '../shared/status-timeline/status-timeline.component';
 import { RunStore } from './run.store';
 
 const CANCELLABLE_STATUSES = new Set([
@@ -34,10 +38,13 @@ const CANCELLABLE_STATUSES = new Set([
   imports: [
     RouterLink,
     MatButtonModule,
-    MatChipsModule,
-    MatListModule,
     MatProgressSpinnerModule,
-    MatToolbarModule,
+    AgentBadgeComponent,
+    AuthModeBadgeComponent,
+    StatusBadgeComponent,
+    StatusTimelineComponent,
+    FileChangeRowComponent,
+    IconComponent,
   ],
   templateUrl: './run-detail.page.html',
   styleUrl: './run-detail.page.scss',
@@ -50,6 +57,20 @@ export class RunDetailPage implements OnInit, OnDestroy {
   private readonly dialog = inject(MatDialog);
 
   private runId: string | null = null;
+
+  protected readonly runStatusTone = runStatusTone;
+  protected readonly testStatusTone = testStatusTone;
+  protected readonly reviewStatusTone = reviewStatusTone;
+  protected readonly deployStatusTone = deployStatusTone;
+
+  protected readonly timelineSteps = computed<TimelineStep[]>(
+    () =>
+      this.store.run()?.steps.map((step) => ({
+        key: step.id,
+        label: step.stepType,
+        state: step.status,
+      })) ?? [],
+  );
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');

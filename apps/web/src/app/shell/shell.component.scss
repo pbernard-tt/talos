@@ -1,0 +1,217 @@
+/* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.shell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+.sidebar {
+  width: var(--nav-width-expanded);
+  flex: none;
+  background: var(--surface-sunken);
+  border-right: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  transition: width var(--duration-default) var(--ease-out);
+}
+
+.shell.collapsed .sidebar {
+  width: var(--nav-width-collapsed);
+}
+
+.sidebar-header {
+  height: var(--topbar-height);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.logo {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  object-fit: cover;
+  flex: none;
+}
+
+.wordmark {
+  font: var(--weight-bold) var(--text-md) var(--font-ui);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--duration-micro) var(--ease-out);
+
+  &:hover {
+    background: var(--surface-hover);
+    text-decoration: none;
+    color: var(--text-secondary);
+  }
+
+  &.active {
+    background: var(--accent-tint-strong);
+    color: var(--text-primary);
+  }
+}
+
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  flex: none;
+
+  &.active {
+    background: var(--accent);
+  }
+}
+
+.nav-label {
+  font: var(--weight-semibold) var(--text-sm) var(--font-ui);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-footer {
+  flex: none;
+  padding: 10px;
+  border-top: 1px solid var(--border-default);
+}
+
+.collapse-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: var(--weight-semibold) var(--text-xs) var(--font-ui);
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.topbar {
+  height: var(--topbar-height);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.breadcrumb {
+  font: var(--weight-semibold) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+  flex: none;
+  white-space: nowrap;
+}
+
+.sep {
+  color: var(--border-strong);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  padding: 5px 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-sm);
+  background: var(--accent-tint-strong);
+  color: var(--accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--weight-bold) 10.5px var(--font-mono);
+  flex: none;
+}
+
+.user-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: var(--leading-tight);
+}
+
+.user-email {
+  font: var(--weight-semibold) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+}
+
+.user-role {
+  font: var(--weight-medium) var(--text-2xs) var(--font-ui);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 26px 30px 60px;
+}

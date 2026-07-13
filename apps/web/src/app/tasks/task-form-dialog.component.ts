@@ -5,9 +5,6 @@ import { Component, OnInit, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 
 import { CreateTaskRequest, TaskPriority, TaskRiskLevel } from '../api';
 import { ProjectStore } from '../projects/project.store';
@@ -18,14 +15,7 @@ const AGENT_KEYS = ['custom-shell', 'claude-code', 'opencode', 'codex-cli', 'ope
 
 @Component({
   selector: 'app-task-form-dialog',
-  imports: [
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-  ],
+  imports: [ReactiveFormsModule, MatButtonModule, MatDialogModule],
   templateUrl: './task-form-dialog.component.html',
   styleUrl: './task-form-dialog.component.scss',
 })

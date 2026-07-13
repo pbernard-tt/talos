@@ -4,12 +4,9 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatToolbarModule } from '@angular/material/toolbar';
 
 import {
   ApprovalActionDialogComponent,
@@ -18,16 +15,20 @@ import {
 } from './approval-action-dialog.component';
 import { ApprovalStore } from './approval.store';
 import { AuthStore } from '../core/auth/auth.store';
+import { StatusBadgeComponent } from '../shared/badges/status-badge.component';
+import { approvalStatusTone, reviewStatusTone, testStatusTone } from '../shared/badges/status-tone';
+import { FileChangeRowComponent } from '../shared/file-change-row/file-change-row.component';
+import { IconComponent } from '../shared/icon/icon.component';
 
 @Component({
   selector: 'app-review-page',
   imports: [
     RouterLink,
     MatButtonModule,
-    MatChipsModule,
-    MatListModule,
     MatProgressSpinnerModule,
-    MatToolbarModule,
+    StatusBadgeComponent,
+    FileChangeRowComponent,
+    IconComponent,
   ],
   templateUrl: './review.page.html',
   styleUrl: './review.page.scss',
@@ -38,6 +39,10 @@ export class ReviewPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+
+  protected readonly approvalStatusTone = approvalStatusTone;
+  protected readonly reviewStatusTone = reviewStatusTone;
+  protected readonly testStatusTone = testStatusTone;
 
   ngOnInit(): void {
     const runId = this.route.snapshot.paramMap.get('runId');

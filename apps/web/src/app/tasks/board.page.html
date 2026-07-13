@@ -1,22 +1,15 @@
 <!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-<mat-toolbar>
-  <span>Board</span>
-  <button mat-button [routerLink]="['/']">Command Center</button>
-  <button mat-button [routerLink]="['/projects']">Projects</button>
-  <button mat-button [routerLink]="['/approvals']">Approvals</button>
-  @if (authStore.hasRole('OWNER')) {
-    <button mat-button [routerLink]="['/integrations']">Integrations</button>
-  }
-  <span class="spacer"></span>
+<div class="page-header">
+  <h1>Task Board</h1>
   @if (authStore.hasRole('MAINTAINER')) {
     <button mat-flat-button color="primary" (click)="openCreateDialog()">
-      <mat-icon>add</mat-icon>
-      New Task
+      <app-icon name="plus" [size]="16" />
+      New task
     </button>
   }
-</mat-toolbar>
+</div>
 
 <mat-drawer-container>
   <mat-drawer-content>

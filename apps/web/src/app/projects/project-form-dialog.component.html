@@ -1,25 +1,30 @@
 <!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-<h2 mat-dialog-title>New Project</h2>
+<h2 mat-dialog-title>New project</h2>
 <form [formGroup]="form" (ngSubmit)="save()">
   <mat-dialog-content>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Name</mat-label>
-      <input matInput formControlName="name" />
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Repository URL</mat-label>
-      <input matInput formControlName="repoUrl" placeholder="git@github.com:org/repo.git" />
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Default branch</mat-label>
-      <input matInput formControlName="defaultBranch" placeholder="main" />
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Stack type</mat-label>
-      <input matInput formControlName="stackType" placeholder="spring-boot" />
-    </mat-form-field>
+    <div class="talos-field">
+      <label class="talos-label" for="project-name">Name</label>
+      <input id="project-name" class="talos-input" formControlName="name" />
+    </div>
+    <div class="talos-field">
+      <label class="talos-label" for="project-repo">Repository URL</label>
+      <input
+        id="project-repo"
+        class="talos-input"
+        formControlName="repoUrl"
+        placeholder="git@github.com:org/repo.git"
+      />
+    </div>
+    <div class="talos-field">
+      <label class="talos-label" for="project-branch">Default branch</label>
+      <input id="project-branch" class="talos-input" formControlName="defaultBranch" placeholder="main" />
+    </div>
+    <div class="talos-field">
+      <label class="talos-label" for="project-stack">Stack type</label>
+      <input id="project-stack" class="talos-input" formControlName="stackType" placeholder="spring-boot" />
+    </div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button type="button" (click)="cancel()">Cancel</button>

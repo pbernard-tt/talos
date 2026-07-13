@@ -2,24 +2,47 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
 .task-card {
-  padding: 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 12px 13px;
   margin-bottom: 8px;
-  border-radius: 8px;
-  background: var(--mat-sys-surface-container, #fff);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   cursor: grab;
+  transition: background var(--duration-micro) var(--ease-out);
+
+  &:hover {
+    background: var(--surface-hover);
+  }
 
   &:active {
     cursor: grabbing;
   }
 }
 
-.title {
-  margin: 0 0 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
-.risk-high {
-  --mdc-chip-label-text-color: #b3261e;
+.title {
+  font: var(--weight-semibold) var(--text-sm) / var(--leading-tight) var(--font-ui);
+  color: var(--text-primary);
+}
+
+.priority-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  margin-top: 5px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }

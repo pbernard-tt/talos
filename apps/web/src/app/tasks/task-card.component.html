@@ -2,11 +2,15 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
 <div class="task-card" (click)="onClick()">
-  <p class="title">{{ task.title }}</p>
-  <mat-chip-set>
-    <mat-chip [class]="'priority-' + task.priority.toLowerCase()">{{ task.priority }}</mat-chip>
-    @if (task.riskLevel === 'HIGH') {
-      <mat-chip class="risk-high">HIGH RISK</mat-chip>
+  <div class="header">
+    <span class="title">{{ task.title }}</span>
+    <span class="priority-dot" [style.background]="priorityColorVar(task.priority)"></span>
+  </div>
+
+  <div class="footer">
+    @if (task.assignedAgentKey) {
+      <app-agent-badge [agentKey]="task.assignedAgentKey" />
     }
-  </mat-chip-set>
+    <app-risk-badge [level]="task.riskLevel" />
+  </div>
 </div>

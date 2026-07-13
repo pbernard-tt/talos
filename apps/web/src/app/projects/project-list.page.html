@@ -1,22 +1,15 @@
 <!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-<mat-toolbar>
-  <span>Projects</span>
-  <button mat-button [routerLink]="['/']">Command Center</button>
-  <button mat-button [routerLink]="['/board']">Board</button>
-  <button mat-button [routerLink]="['/approvals']">Approvals</button>
-  @if (authStore.hasRole('OWNER')) {
-    <button mat-button [routerLink]="['/integrations']">Integrations</button>
-  }
-  <span class="spacer"></span>
+<div class="page-header">
+  <h1>Projects</h1>
   @if (authStore.hasRole('MAINTAINER')) {
     <button mat-flat-button color="primary" (click)="openCreateDialog()">
-      <mat-icon>add</mat-icon>
-      New Project
+      <app-icon name="plus" [size]="16" />
+      New project
     </button>
   }
-</mat-toolbar>
+</div>
 
 @if (store.loading()) {
   <div class="state-container">
@@ -46,12 +39,14 @@
 
     <ng-container matColumnDef="defaultBranch">
       <th mat-header-cell *matHeaderCellDef>Default branch</th>
-      <td mat-cell *matCellDef="let project">{{ project.defaultBranch }}</td>
+      <td mat-cell *matCellDef="let project" class="mono">{{ project.defaultBranch }}</td>
     </ng-container>
 
     <ng-container matColumnDef="status">
       <th mat-header-cell *matHeaderCellDef>Status</th>
-      <td mat-cell *matCellDef="let project">{{ project.status }}</td>
+      <td mat-cell *matCellDef="let project">
+        <app-status-badge [label]="project.status" [tone]="projectStatusTone(project.status)" />
+      </td>
     </ng-container>
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>

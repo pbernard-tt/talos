@@ -1,0 +1,59 @@
+<!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
+<div class="shell" [class.collapsed]="collapsed()">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <img src="assets/talos-logo.png" alt="" class="logo" />
+      @if (!collapsed()) {
+        <span class="wordmark">Talos</span>
+      }
+    </div>
+
+    <nav class="nav">
+      @for (item of navItems(); track item.path) {
+        <a
+          class="nav-item"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.exact }"
+          #rla="routerLinkActive"
+          [title]="item.label"
+        >
+          <span class="nav-dot" [class.active]="rla.isActive"></span>
+          @if (!collapsed()) {
+            <span class="nav-label">{{ item.label }}</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <button type="button" class="collapse-toggle" (click)="toggleCollapsed()">
+        <app-icon name="panel-left" [size]="16" />
+        @if (!collapsed()) {
+          <span>Collapse</span>
+        }
+      </button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="breadcrumb">Talos <span class="sep">/</span> {{ breadcrumb() }}</div>
+      <div class="spacer"></div>
+      <button type="button" class="user-chip" (click)="logout()" title="Sign out">
+        <span class="avatar">{{ initials() }}</span>
+        <span class="user-text">
+          <span class="user-email">{{ authStore.email() }}</span>
+          <span class="user-role">{{ authStore.role() }} &middot; Sign out</span>
+        </span>
+        <app-icon name="log-out" [size]="14" />
+      </button>
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

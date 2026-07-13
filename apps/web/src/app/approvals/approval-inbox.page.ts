@@ -2,10 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { ApprovalCardComponent } from '../dashboard/approval-card.component';
 import { ApprovalStore } from './approval.store';
@@ -14,7 +12,7 @@ import { ApprovalStore } from './approval.store';
  * know a run id to reach /review/:runId. Defaults to PENDING so the common case needs no filtering. */
 @Component({
   selector: 'app-approval-inbox-page',
-  imports: [RouterLink, MatButtonModule, MatProgressSpinnerModule, MatToolbarModule, ApprovalCardComponent],
+  imports: [MatButtonModule, MatProgressSpinnerModule, ApprovalCardComponent],
   templateUrl: './approval-inbox.page.html',
   styleUrl: './approval-inbox.page.scss',
 })

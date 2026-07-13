@@ -5,8 +5,6 @@ import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 
 export interface ApprovalActionDialogData {
   title: string;
@@ -22,7 +20,7 @@ export interface ApprovalActionDialogResult {
 /** Section 15's UX rule: approval actions require a confirmation dialog restating what will happen. */
 @Component({
   selector: 'app-approval-action-dialog',
-  imports: [ReactiveFormsModule, MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule],
+  imports: [ReactiveFormsModule, MatButtonModule, MatDialogModule],
   templateUrl: './approval-action-dialog.component.html',
 })
 export class ApprovalActionDialogComponent {

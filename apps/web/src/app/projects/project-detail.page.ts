@@ -3,23 +3,26 @@
 
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
-import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { ConfigPanelComponent } from './config-panel.component';
 import { ProjectStore } from './project.store';
+import { AgentBadgeComponent } from '../shared/badges/agent-badge.component';
+import { StatusBadgeComponent } from '../shared/badges/status-badge.component';
+import { projectStatusTone, runStatusTone } from '../shared/badges/status-tone';
+import { IconComponent } from '../shared/icon/icon.component';
 
 @Component({
   selector: 'app-project-detail-page',
   imports: [
     RouterLink,
     ConfigPanelComponent,
-    MatButtonModule,
     MatProgressSpinnerModule,
     MatTableModule,
-    MatToolbarModule,
+    AgentBadgeComponent,
+    StatusBadgeComponent,
+    IconComponent,
   ],
   templateUrl: './project-detail.page.html',
   styleUrl: './project-detail.page.scss',
@@ -30,6 +33,9 @@ export class ProjectDetailPage implements OnInit {
 
   protected readonly runColumns = ['agentKey', 'status', 'createdAt'];
   protected readonly costColumns = ['agentKey', 'month', 'totalCostUsd', 'totalInputTokens', 'totalOutputTokens', 'runCount'];
+
+  protected readonly projectStatusTone = projectStatusTone;
+  protected readonly runStatusTone = runStatusTone;
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');

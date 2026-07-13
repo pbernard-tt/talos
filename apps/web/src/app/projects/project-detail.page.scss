@@ -1,19 +1,86 @@
 /* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
-.state-container {
-  display: flex;
+.back-link {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 48px;
+  gap: 6px;
+  font: var(--weight-semibold) var(--text-sm) var(--font-ui);
+  color: var(--text-secondary);
+  text-decoration: none;
+  margin-bottom: 16px;
+
+  &:hover {
+    color: var(--text-primary);
+    text-decoration: none;
+  }
 }
 
-.overview,
-.runs,
-.config {
-  padding: 16px;
+section {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+h3 {
+  margin: 0 0 12px;
+  font: var(--weight-semibold) var(--text-xs) var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+dt {
+  font: var(--weight-semibold) var(--text-xs) var(--font-ui);
+  color: var(--text-muted);
+}
+
+dd {
+  margin: 0;
+  font: var(--weight-medium) var(--text-sm) var(--font-ui);
+  color: var(--text-primary);
+}
+
+dd.mono {
+  font-family: var(--font-mono);
+}
+
+.mono {
+  font-family: var(--font-mono);
 }
 
 .full-width {
   width: 100%;
+}
+
+.advisory {
+  font: var(--weight-medium) var(--text-xs) var(--font-ui);
+  color: var(--text-muted);
+  margin: -6px 0 14px;
+}
+
+.headline {
+  font: var(--weight-regular) var(--text-sm) var(--font-ui);
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+
+ul {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font: var(--weight-regular) var(--text-sm) var(--font-ui);
+  color: var(--text-secondary);
+}
+
+li {
+  margin-bottom: 4px;
 }

@@ -3,17 +3,16 @@
 
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Component, OnInit, Signal, computed, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { CreateTaskRequest, Task, TaskDetail, TaskStatus } from '../api';
 import { AuthStore } from '../core/auth/auth.store';
+import { IconComponent } from '../shared/icon/icon.component';
 import { TaskColumnComponent } from './task-column.component';
 import { TaskDrawerComponent } from './task-drawer.component';
 import { TaskFormDialogComponent } from './task-form-dialog.component';
@@ -37,14 +36,12 @@ const COLUMNS: Column[] = [
 @Component({
   selector: 'app-board-page',
   imports: [
-    RouterLink,
     TaskColumnComponent,
     TaskDrawerComponent,
+    IconComponent,
     MatButtonModule,
-    MatIconModule,
     MatProgressSpinnerModule,
     MatSidenavModule,
-    MatToolbarModule,
   ],
   templateUrl: './board.page.html',
   styleUrl: './board.page.scss',

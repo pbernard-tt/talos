@@ -1,10 +1,10 @@
 <!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-<mat-toolbar>
-  <button mat-button [routerLink]="['/projects']">&larr; Projects</button>
-  <span>{{ store.selectedProject()?.name }}</span>
-</mat-toolbar>
+<a class="back-link" [routerLink]="['/projects']">
+  <app-icon name="arrow-left" [size]="14" />
+  Projects
+</a>
 
 @if (store.loading()) {
   <div class="state-container">
@@ -15,30 +15,41 @@
     <p>{{ store.error() }}</p>
   </div>
 } @else if (store.selectedProject(); as project) {
+  <div class="page-header">
+    <h1>{{ project.name }}</h1>
+    <app-status-badge [label]="project.status" [tone]="projectStatusTone(project.status)" />
+  </div>
+
   <section class="overview">
-    <p><strong>Repository:</strong> {{ project.repoUrl }}</p>
-    <p><strong>Default branch:</strong> {{ project.defaultBranch }}</p>
-    <p><strong>Stack:</strong> {{ project.stackType }}</p>
-    <p><strong>Status:</strong> {{ project.status }}</p>
+    <dl>
+      <dt>Repository</dt>
+      <dd class="mono">{{ project.repoUrl }}</dd>
+      <dt>Default branch</dt>
+      <dd class="mono">{{ project.defaultBranch }}</dd>
+      <dt>Stack</dt>
+      <dd>{{ project.stackType }}</dd>
+    </dl>
   </section>
 
   <section class="runs">
     <h3>Recent runs</h3>
     @if (project.recentRuns.length === 0) {
-      <p>No runs yet.</p>
+      <p class="empty">No runs yet.</p>
     } @else {
       <table mat-table [dataSource]="project.recentRuns" class="full-width">
         <ng-container matColumnDef="agentKey">
           <th mat-header-cell *matHeaderCellDef>Agent</th>
-          <td mat-cell *matCellDef="let run">{{ run.agentKey }}</td>
+          <td mat-cell *matCellDef="let run"><app-agent-badge [agentKey]="run.agentKey" /></td>
         </ng-container>
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
-          <td mat-cell *matCellDef="let run">{{ run.status }}</td>
+          <td mat-cell *matCellDef="let run">
+            <app-status-badge [label]="run.status" [tone]="runStatusTone(run.status)" />
+          </td>
         </ng-container>
         <ng-container matColumnDef="createdAt">
           <th mat-header-cell *matHeaderCellDef>Started</th>
-          <td mat-cell *matCellDef="let run">{{ run.createdAt }}</td>
+          <td mat-cell *matCellDef="let run" class="mono">{{ run.createdAt }}</td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="runColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: runColumns"></tr>
@@ -49,16 +60,16 @@
   <section class="costs">
     <h3>Monthly cost</h3>
     @if (store.monthlyCosts().length === 0) {
-      <p>No priced runs yet.</p>
+      <p class="empty">No priced runs yet.</p>
     } @else {
       <table mat-table [dataSource]="store.monthlyCosts()" class="full-width">
         <ng-container matColumnDef="agentKey">
           <th mat-header-cell *matHeaderCellDef>Agent</th>
-          <td mat-cell *matCellDef="let row">{{ row.agentKey }}</td>
+          <td mat-cell *matCellDef="let row"><app-agent-badge [agentKey]="row.agentKey" /></td>
         </ng-container>
         <ng-container matColumnDef="month">
           <th mat-header-cell *matHeaderCellDef>Month</th>
-          <td mat-cell *matCellDef="let row">{{ row.month }}</td>
+          <td mat-cell *matCellDef="let row" class="mono">{{ row.month }}</td>
         </ng-container>
         <ng-container matColumnDef="totalCostUsd">
           <th mat-header-cell *matHeaderCellDef>Cost</th>
@@ -71,15 +82,15 @@
         </ng-container>
         <ng-container matColumnDef="totalInputTokens">
           <th mat-header-cell *matHeaderCellDef>Input tokens</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalInputTokens }}</td>
+          <td mat-cell *matCellDef="let row" class="mono">{{ row.totalInputTokens }}</td>
         </ng-container>
         <ng-container matColumnDef="totalOutputTokens">
           <th mat-header-cell *matHeaderCellDef>Output tokens</th>
-          <td mat-cell *matCellDef="let row">{{ row.totalOutputTokens }}</td>
+          <td mat-cell *matCellDef="let row" class="mono">{{ row.totalOutputTokens }}</td>
         </ng-container>
         <ng-container matColumnDef="runCount">
           <th mat-header-cell *matHeaderCellDef>Runs</th>
-          <td mat-cell *matCellDef="let row">{{ row.runCount }}</td>
+          <td mat-cell *matCellDef="let row" class="mono">{{ row.runCount }}</td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="costColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: costColumns"></tr>
@@ -89,11 +100,12 @@
 
   <section class="recommendations">
     <h3>Recommendations</h3>
+    <p class="advisory">Advisory only &mdash; Talos never auto-selects an agent or executes these for you.</p>
     @if (store.recommendations(); as recommendations) {
       @if (recommendations.agentStats.length === 0) {
-        <p>No run history yet -- recommendations need at least one completed run.</p>
+        <p class="empty">No run history yet -- recommendations need at least one completed run.</p>
       } @else {
-        <p>
+        <p class="headline">
           @if (recommendations.suggestedAgentKey) {
             <strong>Suggested agent:</strong> {{ recommendations.suggestedAgentKey }}
           }
@@ -115,7 +127,7 @@
           }
         </ul>
         @if (recommendations.riskFlags.length > 0) {
-          <p><strong>Risk flags:</strong></p>
+          <p class="headline"><strong>Risk flags:</strong></p>
           <ul>
             @for (flag of recommendations.riskFlags; track flag.fileArea) {
               <li>{{ flag.fileArea }}/ has failed review {{ flag.riskFlaggedRunCount }} times</li>

@@ -1,31 +1,48 @@
 /* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
-.state-container {
-  display: flex;
+.back-link {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 48px;
+  gap: 6px;
+  font: var(--weight-semibold) var(--text-sm) var(--font-ui);
+  color: var(--text-secondary);
+  text-decoration: none;
+  margin-bottom: 16px;
+
+  &:hover {
+    color: var(--text-primary);
+    text-decoration: none;
+  }
 }
 
-.risk-panel,
-.files,
-.diff,
-.actions {
-  padding: 16px;
+section {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+h3 {
+  margin: 0 0 12px;
+  font: var(--weight-semibold) var(--text-xs) var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .warning {
-  color: var(--mat-sys-error, #b3261e);
-  font-weight: 500;
-}
-
-mat-chip.risk {
-  background-color: var(--mat-sys-error-container, #f9dedc);
-}
-
-mat-list-item.risk {
-  --mdc-list-list-item-label-text-color: var(--mat-sys-error, #b3261e);
+  color: var(--status-warning);
+  font: var(--weight-medium) var(--text-sm) var(--font-ui);
+  margin: 12px 0 0;
 }
 
 .actions {
@@ -36,10 +53,14 @@ mat-list-item.risk {
 .diff-view {
   max-height: 640px;
   overflow: auto;
-  background: var(--mat-sys-surface-container, #f3f3f3);
-  font-family: monospace;
-  font-size: 12px;
-  padding: 12px;
-  border-radius: 4px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
+  padding: 14px;
   white-space: pre;
+  margin: 0;
 }

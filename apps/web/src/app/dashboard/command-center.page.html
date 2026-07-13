@@ -1,16 +1,9 @@
 <!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-<mat-toolbar>
-  <span>Command Center</span>
-  <span class="spacer"></span>
-  <button mat-button [routerLink]="['/projects']">Projects</button>
-  <button mat-button [routerLink]="['/board']">Board</button>
-  <button mat-button [routerLink]="['/approvals']">Approvals</button>
-  @if (authStore.hasRole('OWNER')) {
-    <button mat-button [routerLink]="['/integrations']">Integrations</button>
-  }
-</mat-toolbar>
+<div class="page-header">
+  <h1>Command Center</h1>
+</div>
 
 @if (store.loading()) {
   <div class="state-container">
@@ -32,7 +25,7 @@
 
   <div class="columns">
     <section class="column">
-      <h3>Active runs ({{ store.activeRuns().length }})</h3>
+      <h3>Active runs <span class="count">{{ store.activeRuns().length }}</span></h3>
       @if (store.activeRuns().length === 0) {
         <p class="empty">No runs in flight.</p>
       } @else {
@@ -43,7 +36,7 @@
     </section>
 
     <section class="column">
-      <h3>Approvals waiting ({{ store.pendingApprovals().length }})</h3>
+      <h3>Approvals waiting <span class="count">{{ store.pendingApprovals().length }}</span></h3>
       @if (store.pendingApprovals().length === 0) {
         <p class="empty">Nothing pending review.</p>
       } @else {

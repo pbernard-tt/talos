@@ -4,20 +4,24 @@
 @if (task) {
   <div class="header">
     <h3>{{ task.title }}</h3>
-    <button mat-icon-button (click)="close.emit()">
-      <mat-icon>close</mat-icon>
+    <button type="button" class="icon-button" (click)="close.emit()" aria-label="Close">
+      <app-icon name="x" [size]="18" />
     </button>
   </div>
 
   <p class="description">{{ task.description || 'No description.' }}</p>
 
+  <div class="badges">
+    <app-status-badge [label]="task.status" [tone]="taskStatusTone(task.status)" />
+    @if (task.assignedAgentKey) {
+      <app-agent-badge [agentKey]="task.assignedAgentKey" />
+    }
+    <app-risk-badge [level]="task.riskLevel" />
+  </div>
+
   <dl>
-    <dt>Status</dt>
-    <dd>{{ task.status }}</dd>
     <dt>Priority</dt>
     <dd>{{ task.priority }}</dd>
-    <dt>Risk level</dt>
-    <dd>{{ task.riskLevel }}</dd>
     <dt>Source</dt>
     <dd>{{ task.source }}</dd>
   </dl>
@@ -30,22 +34,23 @@
       [disabled]="hasActiveRun()"
       (click)="startRun.emit(task)"
     >
-      <mat-icon>play_arrow</mat-icon>
+      <app-icon name="play" [size]="16" />
       {{ hasActiveRun() ? 'Run in progress' : 'Start agent run' }}
     </button>
   }
 
   <h4>Runs</h4>
   @if (task.runs.length === 0) {
-    <p>No agent runs yet.</p>
+    <p class="empty">No agent runs yet.</p>
   } @else {
-    <mat-list>
+    <div class="run-list">
       @for (run of task.runs; track run.id) {
-        <a mat-list-item [routerLink]="['/runs', run.id]">
-          <span matListItemTitle>{{ run.agentKey }}</span>
-          <span matListItemLine>{{ run.status }} &middot; {{ run.createdAt }}</span>
+        <a class="run-row" [routerLink]="['/runs', run.id]">
+          <app-agent-badge [agentKey]="run.agentKey" />
+          <app-status-badge [label]="run.status" [tone]="runStatusTone(run.status)" />
+          <span class="run-created">{{ run.createdAt }}</span>
         </a>
       }
-    </mat-list>
+    </div>
   }
 }

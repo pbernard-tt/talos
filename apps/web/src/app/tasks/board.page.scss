@@ -1,31 +1,28 @@
 /* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
-.spacer {
-  flex: 1 1 auto;
-}
-
-.state-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px;
+:host {
+  display: block;
+  height: calc(100% - 44px);
 }
 
 mat-drawer-container {
-  height: calc(100vh - 64px);
+  height: 100%;
+  background: transparent;
 }
 
 .board {
   display: flex;
-  gap: 12px;
-  padding: 16px;
-  overflow-x: auto;
+  gap: 14px;
   height: 100%;
   box-sizing: border-box;
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
 
 mat-drawer {
-  width: 360px;
-  padding: 16px;
+  width: 380px;
+  padding: 20px;
+  background: var(--surface-elevated);
+  border-left: 1px solid var(--border-default);
 }

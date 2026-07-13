@@ -2,17 +2,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { Component, OnInit, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
-import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { Integration, IntegrationCreateRequest } from '../api';
 import { AuthStore } from '../core/auth/auth.store';
+import { IconComponent } from '../shared/icon/icon.component';
 import { IntegrationFormDialogComponent } from './integration-form-dialog.component';
 import { IntegrationStore } from './integration.store';
 
@@ -21,14 +19,7 @@ import { IntegrationStore } from './integration.store';
  * doesn't even attempt the load for lower roles. */
 @Component({
   selector: 'app-integrations-page',
-  imports: [
-    RouterLink,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatTableModule,
-    MatToolbarModule,
-  ],
+  imports: [MatButtonModule, MatProgressSpinnerModule, MatTableModule, IconComponent],
   templateUrl: './integrations.page.html',
   styleUrl: './integrations.page.scss',
 })

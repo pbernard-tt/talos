@@ -2,9 +2,9 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
 <a class="run-card" [routerLink]="['/runs', run.id]">
-  <p class="agent">{{ run.agentKey }}</p>
-  <mat-chip-set>
-    <mat-chip>{{ run.status }}</mat-chip>
-  </mat-chip-set>
+  <div class="row">
+    <app-agent-badge [agentKey]="run.agentKey" />
+    <app-status-badge [label]="run.status" [tone]="runStatusTone(run.status)" />
+  </div>
   <p class="created">{{ run.createdAt }}</p>
 </a>

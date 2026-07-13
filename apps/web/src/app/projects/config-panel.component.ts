@@ -7,8 +7,6 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { ProjectDetail } from '../api';
@@ -16,14 +14,7 @@ import { ProjectStore } from './project.store';
 
 @Component({
   selector: 'app-config-panel',
-  imports: [
-    DatePipe,
-    FormsModule,
-    MatButtonModule,
-    MatExpansionModule,
-    MatFormFieldModule,
-    MatInputModule,
-  ],
+  imports: [DatePipe, FormsModule, MatButtonModule, MatExpansionModule],
   templateUrl: './config-panel.component.html',
   styleUrl: './config-panel.component.scss',
 })

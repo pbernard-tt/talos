@@ -1,50 +1,57 @@
 <!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-<h2 mat-dialog-title>New Task</h2>
+<h2 mat-dialog-title>New task</h2>
 <form [formGroup]="form" (ngSubmit)="save()">
   <mat-dialog-content>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Project</mat-label>
-      <mat-select formControlName="projectId">
+    <div class="talos-field">
+      <label class="talos-label" for="task-project">Project</label>
+      <select id="task-project" class="talos-select" formControlName="projectId">
+        <option value="" disabled>Select a project</option>
         @for (project of projectStore.projects(); track project.id) {
-          <mat-option [value]="project.id">{{ project.name }}</mat-option>
+          <option [value]="project.id">{{ project.name }}</option>
         }
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Title</mat-label>
-      <input matInput formControlName="title" />
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Description</mat-label>
-      <textarea matInput formControlName="description" rows="3"></textarea>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Priority</mat-label>
-      <mat-select formControlName="priority">
+      </select>
+    </div>
+
+    <div class="talos-field">
+      <label class="talos-label" for="task-title">Title</label>
+      <input id="task-title" class="talos-input" formControlName="title" />
+    </div>
+
+    <div class="talos-field">
+      <label class="talos-label" for="task-description">Description</label>
+      <textarea id="task-description" class="talos-textarea" formControlName="description" rows="3"></textarea>
+    </div>
+
+    <div class="talos-field">
+      <label class="talos-label" for="task-priority">Priority</label>
+      <select id="task-priority" class="talos-select" formControlName="priority">
         @for (priority of priorities; track priority) {
-          <mat-option [value]="priority">{{ priority }}</mat-option>
+          <option [value]="priority">{{ priority }}</option>
         }
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Risk level</mat-label>
-      <mat-select formControlName="riskLevel">
+      </select>
+    </div>
+
+    <div class="talos-field">
+      <label class="talos-label" for="task-risk">Risk level</label>
+      <select id="task-risk" class="talos-select" formControlName="riskLevel">
         @for (riskLevel of riskLevels; track riskLevel) {
-          <mat-option [value]="riskLevel">{{ riskLevel }}</mat-option>
+          <option [value]="riskLevel">{{ riskLevel }}</option>
         }
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Agent</mat-label>
-      <mat-select formControlName="assignedAgentKey">
-        <mat-option value="">Use project default</mat-option>
+      </select>
+    </div>
+
+    <div class="talos-field">
+      <label class="talos-label" for="task-agent">Agent</label>
+      <select id="task-agent" class="talos-select" formControlName="assignedAgentKey">
+        <option value="">Use project default</option>
         @for (agentKey of agentKeys; track agentKey) {
-          <mat-option [value]="agentKey">{{ agentKey }}</mat-option>
+          <option [value]="agentKey">{{ agentKey }}</option>
         }
-      </mat-select>
-    </mat-form-field>
+      </select>
+    </div>
+
     @if (projectStore.recommendations()?.suggestedAgentKey; as suggested) {
       <p class="recommendation-hint">
         Suggested agent: <strong>{{ suggested }}</strong>

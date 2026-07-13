@@ -1,0 +1,76 @@
+/* SPDX-FileCopyrightText: 2026 Vulkan Technologies */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/* Talos — shared form primitives, adapted from the talos-design skill's Input/Select
+   (components/forms/Input.jsx, Select.jsx). Plain elements styled with tokens rather than
+   Material form fields: the floating-label chrome doesn't fit the dense operator-console look
+   these forms want. Applied globally so every page's forms look identical. */
+
+.talos-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.talos-label {
+  font: var(--weight-semibold) var(--text-xs) var(--font-ui);
+  color: var(--text-secondary);
+}
+
+.talos-input,
+.talos-textarea,
+.talos-select {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font: var(--weight-regular) var(--text-base) var(--font-ui);
+  outline: none;
+  transition: border-color var(--duration-micro) var(--ease-out);
+}
+
+.talos-textarea {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  resize: vertical;
+}
+
+.talos-select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.talos-input:focus,
+.talos-textarea:focus,
+.talos-select:focus {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-glow);
+}
+
+.talos-input:disabled,
+.talos-textarea:disabled,
+.talos-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.talos-input.error,
+.talos-textarea.error,
+.talos-select.error {
+  border-color: var(--status-error);
+}
+
+.talos-field-error {
+  font: var(--weight-medium) var(--text-xs) var(--font-ui);
+  color: var(--status-error);
+}
+
+.talos-field-hint {
+  font: var(--weight-regular) var(--text-xs) var(--font-ui);
+  color: var(--text-muted);
+}

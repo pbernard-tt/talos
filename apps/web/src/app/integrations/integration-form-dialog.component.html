@@ -1,31 +1,48 @@
 <!-- SPDX-FileCopyrightText: 2026 Vulkan Technologies -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-<h2 mat-dialog-title>New Integration</h2>
+<h2 mat-dialog-title>New integration</h2>
 <form [formGroup]="form" (ngSubmit)="save()">
   <mat-dialog-content>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Type</mat-label>
-      <input matInput formControlName="type" placeholder="e.g. github, dokploy" />
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Name</mat-label>
-      <input matInput formControlName="name" />
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Secret</mat-label>
-      <input matInput type="password" formControlName="secret" placeholder="e.g. a GitHub PAT" />
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Auth mode</mat-label>
-      <input matInput formControlName="authMode" placeholder="e.g. pat, deploy_key" />
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Config (JSON)</mat-label>
-      <textarea matInput formControlName="configJson" rows="4" placeholder='{"baseUrl": "..."}'></textarea>
-    </mat-form-field>
+    <div class="talos-field">
+      <label class="talos-label" for="integration-type">Type</label>
+      <input id="integration-type" class="talos-input" formControlName="type" placeholder="e.g. github, dokploy" />
+    </div>
+    <div class="talos-field">
+      <label class="talos-label" for="integration-name">Name</label>
+      <input id="integration-name" class="talos-input" formControlName="name" />
+    </div>
+    <div class="talos-field">
+      <label class="talos-label" for="integration-secret">Secret</label>
+      <input
+        id="integration-secret"
+        class="talos-input"
+        type="password"
+        formControlName="secret"
+        placeholder="e.g. a GitHub PAT"
+      />
+    </div>
+    <div class="talos-field">
+      <label class="talos-label" for="integration-auth-mode">Auth mode</label>
+      <input
+        id="integration-auth-mode"
+        class="talos-input"
+        formControlName="authMode"
+        placeholder="e.g. pat, deploy_key"
+      />
+    </div>
+    <div class="talos-field">
+      <label class="talos-label" for="integration-config">Config (JSON)</label>
+      <textarea
+        id="integration-config"
+        class="talos-textarea"
+        formControlName="configJson"
+        rows="4"
+        placeholder='{"baseUrl": "..."}'
+      ></textarea>
+    </div>
     @if (jsonError(); as error) {
-      <p class="error">{{ error }}</p>
+      <p class="talos-field-error">{{ error }}</p>
     }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
